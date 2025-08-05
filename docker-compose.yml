@@ -1,10 +1,29 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: parking_manage_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: luxrobo1!
+      MYSQL_DATABASE: parking_dev
+      MYSQL_USER: luxrobo
+      MYSQL_PASSWORD: luxrobo1!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - parking_network
+
   backend:
     build:
       context: ./backend
       dockerfile: docker/Dockerfile
+    container_name: parking_manage_backend
     ports:
       - "8080:8080"
     volumes:
@@ -12,12 +31,22 @@ services:
       - ./data:/app/data
     environment:
       - PORT=8080
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=parking_dev
+      - DB_USER=luxrobo
+      - DB_PASSWORD=luxrobo1!
+    depends_on:
+      - mysql
     restart: unless-stopped
+    networks:
+      - parking_network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: parking_manage_frontend
     ports:
       - "3000:3000"
     volumes:
@@ -25,6 +54,13 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - parking_network
 
 volumes:
   shared_data:
+  mysql_data:
+
+networks:
+  parking_network:
+    driver: bridge

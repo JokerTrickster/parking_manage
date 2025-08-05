@@ -1,10 +1,12 @@
 import { FileType } from '../models/FileUpload';
-import { FileUploadService } from '../services/FileUploadService';
+import { FileUploadService, FolderInfo } from '../services/FileUploadService';
 
 export interface FileUploadState {
   selectedFile: File | null;
   selectedFiles?: File[];
   selectedFolderName?: string;
+  existingFolders: FolderInfo[];
+  selectedExistingFolder: FolderInfo | null;
   uploading: boolean;
   uploadResult: {
     success: boolean;
@@ -32,11 +34,44 @@ export class FileUploadViewModel {
     this.setState = setState;
   }
 
+  async loadExistingFolders(): Promise<void> {
+    try {
+      const folders = await FileUploadService.getExistingFolders(this.projectId, this.fileType);
+      this.setState(prev => ({
+        ...prev,
+        existingFolders: folders
+      }));
+    } catch (error) {
+      console.error('기존 폴더 로드 실패:', error);
+    }
+  }
+
   selectFile(file: File): void {
     this.setState(prev => ({ 
       ...prev, 
       selectedFile: file, 
-      uploadResult: null 
+      uploadResult: null,
+      selectedExistingFolder: null
+    }));
+  }
+
+  selectFiles(files: File[]): void {
+    this.setState(prev => ({ 
+      ...prev, 
+      selectedFiles: files,
+      selectedFile: files[0] || null,
+      uploadResult: null,
+      selectedExistingFolder: null
+    }));
+  }
+
+  selectExistingFolder(folder: FolderInfo): void {
+    this.setState(prev => ({
+      ...prev,
+      selectedExistingFolder: folder,
+      selectedFile: null,
+      selectedFiles: undefined,
+      uploadResult: null
     }));
   }
 
@@ -60,25 +95,19 @@ export class FileUploadViewModel {
         }
       );
       
+      this.setState(prev => ({
+        ...prev,
+        uploadResult: {
+          success: response.success,
+          message: response.message,
+          filePath: response.file_path,
+        },
+        uploading: false,
+      }));
+
+      // 업로드 성공 시 폴더 목록 새로고침
       if (response.success) {
-        this.setState(prev => ({
-          ...prev,
-          uploadResult: {
-            success: true,
-            message: response.message,
-            filePath: response.file_path,
-          },
-          uploading: false,
-        }));
-      } else {
-        this.setState(prev => ({
-          ...prev,
-          uploadResult: {
-            success: false,
-            message: response.message,
-          },
-          uploading: false,
-        }));
+        await this.loadExistingFolders();
       }
     } catch (error) {
       console.error('파일 업로드 실패:', error);
@@ -87,6 +116,53 @@ export class FileUploadViewModel {
         uploadResult: {
           success: false,
           message: '파일 업로드 중 오류가 발생했습니다.',
+        },
+        uploading: false,
+      }));
+    }
+  }
+
+  async uploadFolder(): Promise<void> {
+    if (!this.state.selectedFiles || this.state.selectedFiles.length === 0) return;
+
+    try {
+      this.setState(prev => ({ 
+        ...prev, 
+        uploading: true, 
+        uploadResult: null,
+        uploadProgress: 0
+      }));
+
+      const response = await FileUploadService.uploadFolder(
+        this.state.selectedFiles,
+        this.projectId,
+        this.fileType,
+        (progress) => {
+          this.setState(prev => ({ ...prev, uploadProgress: progress }));
+        }
+      );
+      
+      this.setState(prev => ({
+        ...prev,
+        uploadResult: {
+          success: response.success,
+          message: response.message,
+          filePath: response.file_path,
+        },
+        uploading: false,
+      }));
+
+      // 업로드 성공 시 폴더 목록 새로고침
+      if (response.success) {
+        await this.loadExistingFolders();
+      }
+    } catch (error) {
+      console.error('폴더 업로드 실패:', error);
+      this.setState(prev => ({
+        ...prev,
+        uploadResult: {
+          success: false,
+          message: '폴더 업로드 중 오류가 발생했습니다.',
         },
         uploading: false,
       }));
@@ -105,6 +181,22 @@ export class FileUploadViewModel {
 
   get selectedFile(): File | null {
     return this.state.selectedFile;
+  }
+
+  get selectedFiles(): File[] | undefined {
+    return this.state.selectedFiles;
+  }
+
+  get selectedFolderName(): string | undefined {
+    return this.state.selectedFolderName;
+  }
+
+  get existingFolders(): FolderInfo[] {
+    return this.state.existingFolders;
+  }
+
+  get selectedExistingFolder(): FolderInfo | null {
+    return this.state.selectedExistingFolder;
   }
 
   get uploading(): boolean {
