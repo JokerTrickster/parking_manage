@@ -3,6 +3,8 @@ import { FileUploadService } from '../services/FileUploadService';
 
 export interface FileUploadState {
   selectedFile: File | null;
+  selectedFiles?: File[];
+  selectedFolderName?: string;
   uploading: boolean;
   uploadResult: {
     success: boolean;

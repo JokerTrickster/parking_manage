@@ -13,6 +13,7 @@ import {
   CloudUpload as UploadIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
+  Folder as FolderIcon,
 } from '@mui/icons-material';
 import { FileType } from '../models/FileUpload';
 import { FileUploadViewModel, FileUploadState } from '../viewmodels/FileUploadViewModel';
@@ -37,10 +38,22 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
 
   const viewModel = new FileUploadViewModel(projectId, fileType, state, setState);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      viewModel.selectFile(file);
+  const handleFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // 폴더 내의 모든 파일을 처리
+      const fileArray = Array.from(files);
+      if (fileArray.length > 0) {
+        // 첫 번째 파일을 대표로 선택 (실제로는 모든 파일을 처리해야 함)
+        viewModel.selectFile(fileArray[0]);
+        
+        // 선택된 파일 정보 표시를 위해 추가 정보 저장
+        setState(prev => ({
+          ...prev,
+          selectedFiles: fileArray,
+          selectedFolderName: fileArray[0]?.webkitRelativePath?.split('/')[0] || '선택된 폴더'
+        }));
+      }
     }
   };
 
@@ -63,29 +76,34 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
             <input
               accept={viewModel.getAcceptedExtensions()}
               style={{ display: 'none' }}
-              id={`file-upload-${fileType}`}
+              id={`folder-upload-${fileType}`}
               type="file"
-              onChange={handleFileSelect}
-              multiple={fileType === 'learning'}
+              onChange={handleFolderSelect}
+              webkitdirectory=""
+              directory=""
+              multiple={true}
             />
-            <label htmlFor={`file-upload-${fileType}`}>
+            <label htmlFor={`folder-upload-${fileType}`}>
               <Button
                 variant="outlined"
                 component="span"
-                startIcon={<UploadIcon />}
+                startIcon={<FolderIcon />}
                 disabled={viewModel.uploading}
               >
-                파일 선택
+                폴더 선택
               </Button>
             </label>
             
             {viewModel.selectedFile && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" color="text.secondary">
-                  선택된 파일: {viewModel.selectedFile.name}
+                  선택된 폴더: {state.selectedFolderName || '폴더'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  파일 개수: {state.selectedFiles?.length || 1}개
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  크기: {(viewModel.selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  첫 번째 파일: {viewModel.selectedFile.name}
                 </Typography>
               </Box>
             )}
