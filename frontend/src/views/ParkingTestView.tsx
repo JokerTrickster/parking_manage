@@ -1,0 +1,223 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  Alert,
+  CircularProgress,
+  Paper,
+} from '@mui/material';
+import {
+  PlayArrow as StartIcon,
+  ArrowBack as BackIcon,
+  CheckCircle as SuccessIcon,
+  Error as ErrorIcon,
+} from '@mui/icons-material';
+import { Project } from '../models/Project';
+import { ParkingTestViewModel, ParkingTestState } from '../viewmodels/ParkingTestViewModel';
+import FileUploadView from './FileUploadView';
+
+interface ParkingTestViewProps {
+  project: Project;
+  onBack: () => void;
+}
+
+const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) => {
+  const [state, setState] = useState<ParkingTestState>({
+    loading: false,
+    stats: null,
+    varThreshold: 50.0,
+    testResult: null,
+    error: null,
+  });
+
+  const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project, state, setState]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    viewModel.loadProjectStats();
+  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시에만 실행
+
+  return (
+    <Box>
+      {/* 헤더 */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+        <Button
+          startIcon={<BackIcon />}
+          onClick={onBack}
+          sx={{ mr: 2 }}
+        >
+          대시보드로
+        </Button>
+        <Typography variant="h4" component="h1">
+          주차면 테스트 - {project.name}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* 파일 업로드 섹션 */}
+        <Box>
+          <Typography variant="h5" gutterBottom>
+            데이터 업로드
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
+              <FileUploadView
+                projectId={project.id}
+                fileType="learning"
+                onUploadSuccess={(filePath) => {
+                  console.log('학습 이미지 업로드 성공:', filePath);
+                }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
+              <FileUploadView
+                projectId={project.id}
+                fileType="test"
+                onUploadSuccess={(filePath) => {
+                  console.log('테스트 이미지 업로드 성공:', filePath);
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* 설정 및 통계 패널 */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          {/* 설정 패널 */}
+          <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  테스트 설정
+                </Typography>
+                
+                <TextField
+                  fullWidth
+                  label="Var Threshold"
+                  type="number"
+                  value={viewModel.varThreshold}
+                  onChange={(e) => viewModel.setVarThreshold(parseFloat(e.target.value))}
+                  sx={{ mb: 2 }}
+                  helperText="배경 제거 민감도 (기본값: 50.0)"
+                />
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  학습 데이터와 테스트 이미지를 업로드한 후 테스트를 시작하세요.
+                </Typography>
+
+                <Button
+                  variant="contained"
+                  startIcon={viewModel.loading ? <CircularProgress size={20} /> : <StartIcon />}
+                  onClick={() => viewModel.startTest()}
+                  disabled={viewModel.loading}
+                  fullWidth
+                  size="large"
+                >
+                  {viewModel.loading ? '테스트 실행 중...' : '테스트 시작'}
+                </Button>
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* 통계 패널 */}
+          <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  데이터 통계
+                </Typography>
+                
+                {viewModel.stats ? (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    <Box sx={{ flex: '1 1 120px', minWidth: 0 }}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="primary">
+                          {viewModel.stats.learning_images_count}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          학습 이미지
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    <Box sx={{ flex: '1 1 120px', minWidth: 0 }}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h4" color="secondary">
+                          {viewModel.stats.test_images_count}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          테스트 이미지
+                        </Typography>
+                      </Paper>
+                    </Box>
+                    <Box sx={{ flex: '1 1 100%', minWidth: 0 }}>
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
+                        <Typography variant="h4" color="white">
+                          {viewModel.stats.matched_count}
+                        </Typography>
+                        <Typography variant="body2" color="white">
+                          매칭된 이미지
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  </Box>
+                ) : (
+                  <CircularProgress />
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+
+        {/* 결과 패널 */}
+        {viewModel.testResult && (
+          <Box>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <SuccessIcon color="success" sx={{ mr: 1 }} />
+                  <Typography variant="h6">
+                    테스트 완료
+                  </Typography>
+                </Box>
+                
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  주차 감지 테스트가 성공적으로 완료되었습니다.
+                </Alert>
+                
+                <Typography variant="body2" color="text.secondary">
+                  결과 파일: {viewModel.testResult.data?.result_path}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+
+        {/* 오류 패널 */}
+        {viewModel.error && (
+          <Box>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <ErrorIcon color="error" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="error">
+                    테스트 실패
+                  </Typography>
+                </Box>
+                
+                <Alert severity="error">
+                  {viewModel.error}
+                </Alert>
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+export default ParkingTestView; 
