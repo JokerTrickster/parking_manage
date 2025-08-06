@@ -1,0 +1,8 @@
+# Shared 폴더 (업로드된 파일들)
+shared/
+shared/*
+shared/**/*
+
+# 또는 특정 하위 폴더만 무시하려면:
+# shared/uploads/
+# shared/results/
