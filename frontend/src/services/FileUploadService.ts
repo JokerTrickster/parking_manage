@@ -136,9 +136,12 @@ export class FileUploadService {
     try {
       const formData = new FormData();
       
-      // 모든 파일을 FormData에 추가
+      // 모든 파일을 FormData에 추가 (폴더 구조 정보 포함)
       files.forEach((file, index) => {
-        formData.append('files', file);
+        // 파일의 상대 경로를 포함하여 추가
+        // File 객체의 webkitRelativePath 속성을 사용하여 폴더 구조 정보 유지
+        const relativePath = (file as any).webkitRelativePath || file.name;
+        formData.append('files', file, relativePath);
       });
       
       formData.append('project_id', projectId);

@@ -64,12 +64,16 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
     if (files && files.length > 0) {
       const fileArray = Array.from(files);
       if (fileArray.length > 0) {
+        // 폴더명 추출 (첫 번째 파일의 webkitRelativePath에서)
+        const firstFile = fileArray[0] as any;
+        const folderName = firstFile.webkitRelativePath?.split('/')[0] || '선택된 폴더';
+        
         viewModel.selectFiles(fileArray);
         
         setState(prev => ({
           ...prev,
           selectedFiles: fileArray,
-          selectedFolderName: fileArray[0]?.webkitRelativePath?.split('/')[0] || '선택된 폴더'
+          selectedFolderName: folderName
         }));
       }
     }
