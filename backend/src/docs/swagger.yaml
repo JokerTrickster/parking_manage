@@ -8,9 +8,63 @@ definitions:
       total_files:
         type: integer
     type: object
+  response.ResTestUpload:
+    properties:
+      failed:
+        type: integer
+      success:
+        type: integer
+      total_files:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
+  /v0.1/parking/{projectId}/test-images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |
+        폴더를 업로드하여 테스트 이미지들을 서버에 저장합니다.
+        폴더 구조가 그대로 유지되어 저장됩니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 테스트 이미지 폴더 내 파일들
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResTestUpload'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 테스트 이미지 폴더 업로드
+      tags:
+      - parking
   /v0.1/parking/{projectId}/train-images:
     post:
       consumes:
