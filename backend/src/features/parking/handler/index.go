@@ -8,6 +8,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewParkingHandler(c *echo.Echo) {
-	NewLearningUploadParkingHandler(c, usecase.NewLearningUploadParkingUseCase(repository.NewLearningUploadParkingRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
+func NewParkingHandler(e *echo.Echo) {
+	NewLearningUploadParkingHandler(e, usecase.NewLearningUploadParkingUseCase(repository.NewLearningUploadParkingRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 }

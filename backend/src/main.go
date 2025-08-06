@@ -50,7 +50,7 @@ func main() {
 	// swagger 초기화
 
 	if common.Env.IsLocal {
-		swaggerDocs.SwaggerInfo.Host = "localhost:" + common.Env.Port
+		swaggerDocs.SwaggerInfo_swagger.Host = common.Env.Host + ":" + common.Env.Port
 		e.GET("/swagger/*", echoSwagger.WrapHandler)
 	} else {
 		// swaggerDocs.SwaggerInfo.Host = fmt.Sprintf("dev-board-api.boardgame.com")

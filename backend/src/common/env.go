@@ -14,6 +14,7 @@ import (
 
 type Config struct {
 	// Server Configuration
+	Host  string
 	Port  string
 	Env   string
 	Debug bool
@@ -56,6 +57,7 @@ var Env *Config
 // 사용하는 환경 변수 네임 설정 함수
 func InitVarNames() []string {
 	result := make([]string, 0)
+	result = append(result, "HOST")
 	result = append(result, "PORT")
 	result = append(result, "ENV")
 	result = append(result, "DEBUG")
@@ -84,6 +86,7 @@ func LoadConfig() error {
 
 	Env = &Config{
 		// Server Configuration
+		Host:  getEnv("HOST", "192.168.0.84"),
 		Port:  getEnv("PORT", "8080"),
 		Env:   getEnv("ENV", "local"),
 		Debug: getEnvAsBool("DEBUG", true),
