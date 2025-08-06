@@ -79,7 +79,17 @@ export class FileUploadService {
       formData.append('project_id', projectId);
       formData.append('file_type', fileType);
 
-      const response = await api.post(API_ENDPOINTS.UPLOAD_LEARNING(projectId), formData, {
+      // fileType에 따라 올바른 API 엔드포인트 선택
+      let endpoint: string;
+      if (fileType === 'learning') {
+        endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
+      } else if (fileType === 'test') {
+        endpoint = API_ENDPOINTS.UPLOAD_TEST(projectId);
+      } else {
+        throw new Error('지원하지 않는 파일 타입입니다.');
+      }
+
+      const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -147,7 +157,17 @@ export class FileUploadService {
       formData.append('project_id', projectId);
       formData.append('file_type', fileType);
 
-      const response = await api.post(API_ENDPOINTS.UPLOAD_LEARNING(projectId), formData, {
+      // fileType에 따라 올바른 API 엔드포인트 선택
+      let endpoint: string;
+      if (fileType === 'learning') {
+        endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
+      } else if (fileType === 'test') {
+        endpoint = API_ENDPOINTS.UPLOAD_TEST(projectId);
+      } else {
+        throw new Error('지원하지 않는 파일 타입입니다.');
+      }
+
+      const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

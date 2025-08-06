@@ -10,4 +10,5 @@ import (
 
 func NewParkingHandler(e *echo.Echo) {
 	NewLearningUploadParkingHandler(e, usecase.NewLearningUploadParkingUseCase(repository.NewLearningUploadParkingRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
+	NewTestUploadParkingHandler(e, usecase.NewTestUploadParkingUseCase(repository.NewTestUploadParkingRepository(mysql.GormMysqlDB), mysql.DBTimeOut))
 }
