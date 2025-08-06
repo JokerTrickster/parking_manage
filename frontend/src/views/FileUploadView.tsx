@@ -265,14 +265,22 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
               icon={viewModel.uploadResult.success ? <SuccessIcon /> : <ErrorIcon />}
             >
               {viewModel.uploadResult.message}
-              {viewModel.uploadResult.success && (
+              {viewModel.uploadResult.success && viewModel.uploadResult.totalFiles && (
                 <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    저장된 경로:
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    📊 업로드 결과:
                   </Typography>
-                  <Typography variant="caption" color="primary" sx={{ display: 'block', fontFamily: 'monospace' }}>
-                    {viewModel.uploadResult.filePath}
-                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                    <Typography variant="caption" color="primary">
+                      📁 총 파일: {viewModel.uploadResult.totalFiles}개
+                    </Typography>
+                    <Typography variant="caption" color="success.main">
+                      ✅ 성공: {viewModel.uploadResult.success}개
+                    </Typography>
+                      <Typography variant="caption" color="error.main">
+                        ❌ 실패: {viewModel.uploadResult.failed}개
+                      </Typography>
+                  </Box>
                 </Box>
               )}
             </Alert>

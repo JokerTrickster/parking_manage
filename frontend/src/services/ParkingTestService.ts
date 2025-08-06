@@ -1,12 +1,8 @@
 import axios from 'axios';
 import { ParkingTestRequest, ParkingTestResponse, SavedResult } from '../models/ParkingTest';
+import { API_ENDPOINTS, axiosConfig } from '../config/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-});
+const api = axios.create(axiosConfig);
 
 export class ParkingTestService {
   static async detectParking(request: ParkingTestRequest): Promise<ParkingTestResponse> {

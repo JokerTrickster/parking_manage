@@ -11,6 +11,9 @@ export interface FileUploadState {
   uploadResult: {
     success: boolean;
     message: string;
+    totalFiles?: number;
+    successCount?: number;
+    failed?: number;
     filePath?: string;
   } | null;
   uploadProgress: number;
@@ -142,12 +145,20 @@ export class FileUploadViewModel {
         }
       );
       
+      // 서버 응답 구조에 맞춰 처리
+      const resultMessage = response.success 
+        ? response.message 
+        : '폴더 업로드 중 오류가 발생했습니다.';
+      
       this.setState(prev => ({
         ...prev,
         uploadResult: {
           success: response.success,
-          message: response.message,
-          filePath: response.file_path,
+          message: resultMessage,
+          // 개수 정보를 메시지에 포함
+          totalFiles: response.total_files,
+          successCount: response.success_count,
+          failed: response.failed
         },
         uploading: false,
       }));
@@ -203,7 +214,14 @@ export class FileUploadViewModel {
     return this.state.uploading;
   }
 
-  get uploadResult(): { success: boolean; message: string; filePath?: string } | null {
+  get uploadResult(): { 
+    success: boolean; 
+    message: string; 
+    totalFiles?: number;
+    successCount?: number;
+    failed?: number;
+    filePath?: string; 
+  } | null {
     return this.state.uploadResult;
   }
 

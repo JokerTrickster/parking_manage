@@ -1,17 +1,13 @@
 import axios from 'axios';
 import { Project, ProjectStats } from '../models/Project';
+import { API_ENDPOINTS, axiosConfig } from '../config/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-});
+const api = axios.create(axiosConfig);
 
 export class ProjectService {
   static async getProjects(): Promise<{ success: boolean; data: Project[] }> {
     try {
-      const response = await api.get('/projects');
+      const response = await api.get(API_ENDPOINTS.PROJECTS);
       return response.data;
     } catch (error) {
       console.error('프로젝트 목록 조회 실패:', error);

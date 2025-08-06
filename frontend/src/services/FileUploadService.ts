@@ -1,12 +1,8 @@
 import axios from 'axios';
 import { FileUploadResponse, FileType } from '../models/FileUpload';
+import { apiConfig, API_ENDPOINTS, axiosConfig } from '../config/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-});
+const api = axios.create(axiosConfig);
 
 export interface FolderInfo {
   name: string;
@@ -83,7 +79,7 @@ export class FileUploadService {
       formData.append('project_id', projectId);
       formData.append('file_type', fileType);
 
-      const response = await api.post('/upload', formData, {
+      const response = await api.post(API_ENDPOINTS.UPLOAD_LEARNING(projectId), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -148,7 +144,7 @@ export class FileUploadService {
       formData.append('project_id', projectId);
       formData.append('file_type', fileType);
 
-      const response = await api.post('/upload', formData, {
+      const response = await api.post(API_ENDPOINTS.UPLOAD_LEARNING(projectId), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
