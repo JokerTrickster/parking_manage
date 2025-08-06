@@ -13,3 +13,11 @@ type ILearningUploadParkingUseCase interface {
 type ITestUploadParkingUseCase interface {
 	TestUpload(c context.Context, projectID string, files []*multipart.FileHeader) (response.ResTestUpload, error)
 }
+
+type ILearningStatsParkingUseCase interface {
+	GetLearningStats(c context.Context, projectID string) (response.ResLearningStats, error)
+}
+
+type ITestStatsParkingUseCase interface {
+	GetTestStats(c context.Context, projectID string) (response.ResTestStats, error)
+}

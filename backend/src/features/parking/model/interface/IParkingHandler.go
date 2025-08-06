@@ -9,3 +9,11 @@ type ILearningUploadParkingHandler interface {
 type ITestUploadParkingHandler interface {
 	TestUpload(c echo.Context) error
 }
+
+type ILearningStatsParkingHandler interface {
+	GetLearningStats(c echo.Context) error
+}
+
+type ITestStatsParkingHandler interface {
+	GetTestStats(c echo.Context) error
+}

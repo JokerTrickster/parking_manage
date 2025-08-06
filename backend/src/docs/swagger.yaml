@@ -1,4 +1,22 @@
 definitions:
+  response.FolderInfo:
+    properties:
+      fileCount:
+        type: integer
+      name:
+        type: string
+      path:
+        type: string
+    type: object
+  response.ResLearningStats:
+    properties:
+      folders:
+        items:
+          $ref: '#/definitions/response.FolderInfo'
+        type: array
+      total:
+        type: integer
+    type: object
   response.ResLearningUpload:
     properties:
       failed:
@@ -6,6 +24,15 @@ definitions:
       success:
         type: integer
       total_files:
+        type: integer
+    type: object
+  response.ResTestStats:
+    properties:
+      folders:
+        items:
+          $ref: '#/definitions/response.FolderInfo'
+        type: array
+      total:
         type: integer
     type: object
   response.ResTestUpload:
@@ -20,6 +47,84 @@ definitions:
 info:
   contact: {}
 paths:
+  /v0.1/parking/{projectId}/images/test-folders:
+    get:
+      consumes:
+      - application/json
+      description: |
+        프로젝트의 테스트 이미지 폴더 목록과 통계를 조회합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResTestStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 테스트 이미지 폴더 통계 조회
+      tags:
+      - parking
+  /v0.1/parking/{projectId}/images/train-folders:
+    get:
+      consumes:
+      - application/json
+      description: |
+        프로젝트의 학습 이미지 폴더 목록과 통계를 조회합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResLearningStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 학습 이미지 폴더 통계 조회
+      tags:
+      - parking
   /v0.1/parking/{projectId}/test-images:
     post:
       consumes:
