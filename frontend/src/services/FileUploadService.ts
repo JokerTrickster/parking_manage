@@ -15,57 +15,24 @@ export class FileUploadService {
     projectId: string,
     fileType: FileType
   ): Promise<FolderInfo[]> {
-    // 임시로 하드코딩된 데이터 반환
-    // 실제로는 백엔드 API에서 가져와야 함
-    if (projectId === 'banpo' && fileType === 'learning') {
-      return [
-        {
-          name: 'P1_B2_1_1',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_1',
-          fileCount: 25
-        },
-        {
-          name: 'P1_B2_1_2',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_2',
-          fileCount: 30
-        },
-        {
-          name: 'P1_B2_1_3',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_3',
-          fileCount: 199
-        },
-        {
-          name: 'P1_B2_1_4',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_4',
-          fileCount: 56
-        },
-        {
-          name: 'P1_B2_1_5',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_5',
-          fileCount: 29
-        },
-        {
-          name: 'P1_B2_1_6',
-          path: 'shared/banpo/uploads/learningImages/P1_B2_1_6',
-          fileCount: 42
-        }
-      ];
-    } else if (projectId === 'banpo' && fileType === 'test') {
-      return [
-        {
-          name: 'test_folder_1',
-          path: 'shared/banpo/uploads/testImages/test_folder_1',
-          fileCount: 15
-        },
-        {
-          name: 'test_folder_2',
-          path: 'shared/banpo/uploads/testImages/test_folder_2',
-          fileCount: 20
-        }
-      ];
+    try {
+      let endpoint: string;
+      if (fileType === 'learning') {
+        endpoint = API_ENDPOINTS.GET_LEARNING_FOLDERS(projectId);
+      } else if (fileType === 'test') {
+        endpoint = API_ENDPOINTS.GET_TEST_FOLDERS(projectId);
+      } else if (fileType === 'roi') {
+        endpoint = API_ENDPOINTS.GET_ROI_FOLDERS(projectId);
+      } else {
+        throw new Error('지원하지 않는 파일 타입입니다.');
+      }
+
+      const response = await api.get(endpoint);
+      return response.data.folders || [];
+    } catch (error) {
+      console.error('폴더 목록 조회 실패:', error);
+      return [];
     }
-    
-    return [];
   }
 
   static async uploadFile(
@@ -75,7 +42,14 @@ export class FileUploadService {
   ): Promise<FileUploadResponse> {
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      
+      // ROI 파일 타입일 때는 'files' 키 사용, 나머지는 'file' 키 사용
+      if (fileType === 'roi') {
+        formData.append('files', file);
+      } else {
+        formData.append('file', file);
+      }
+      
       formData.append('project_id', projectId);
       formData.append('file_type', fileType);
 
@@ -85,6 +59,8 @@ export class FileUploadService {
         endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
       } else if (fileType === 'test') {
         endpoint = API_ENDPOINTS.UPLOAD_TEST(projectId);
+      } else if (fileType === 'roi') {
+        endpoint = API_ENDPOINTS.UPLOAD_ROI(projectId);
       } else {
         throw new Error('지원하지 않는 파일 타입입니다.');
       }
@@ -163,6 +139,8 @@ export class FileUploadService {
         endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
       } else if (fileType === 'test') {
         endpoint = API_ENDPOINTS.UPLOAD_TEST(projectId);
+      } else if (fileType === 'roi') {
+        endpoint = API_ENDPOINTS.UPLOAD_ROI(projectId);
       } else {
         throw new Error('지원하지 않는 파일 타입입니다.');
       }

@@ -31,9 +31,13 @@ export const API_ENDPOINTS = {
   // 파일 업로드 관련
   UPLOAD_LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/train-images`,
   UPLOAD_TEST: (projectId: string) => `/v0.1/parking/${projectId}/test-images`,
+  UPLOAD_ROI: (projectId: string) => `/v0.1/parking/${projectId}/roi-files`,
   
   // 폴더 관련
   GET_FOLDERS: (projectId: string, fileType: string) => `/api/folders/${projectId}/${fileType}`,
+  GET_LEARNING_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/train-folders`,
+  GET_TEST_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/test-folders`,
+  GET_ROI_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/roi-folders`,
   
   // 주차 테스트 관련
   PARKING_TEST: '/api/parking-test',

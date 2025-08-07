@@ -79,8 +79,26 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
     }
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      if (fileArray.length > 0) {
+        viewModel.selectFiles(fileArray);
+        setState(prev => ({
+          ...prev,
+          selectedFiles: fileArray,
+          selectedFolderName: fileArray[0].name
+        }));
+      }
+    }
+  };
+
   const handleUpload = async () => {
-    if (state.selectedFiles && state.selectedFiles.length > 1) {
+    if (fileType === 'roi') {
+      // ROI 파일은 단일 파일 업로드로 처리
+      await viewModel.uploadFile();
+    } else if (state.selectedFiles && state.selectedFiles.length > 1) {
       await viewModel.uploadFolder();
     } else {
       await viewModel.uploadFile();
@@ -183,43 +201,45 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
         {activeTab === 1 && (
           <Box>
             <Typography variant="subtitle1" gutterBottom>
-              새 {viewModel.getFileTypeLabel()} 폴더 업로드
+              새 {viewModel.getFileTypeLabel()} {fileType === 'roi' ? '파일' : '폴더'} 업로드
             </Typography>
             
             <Box sx={{ border: '2px dashed #ccc', p: 3, textAlign: 'center', mb: 2 }}>
               <input
                 accept={viewModel.getAcceptedExtensions()}
                 style={{ display: 'none' }}
-                id={`folder-upload-${fileType}`}
+                id={`${fileType === 'roi' ? 'file' : 'folder'}-upload-${fileType}`}
                 type="file"
-                onChange={handleFolderSelect}
-                {...{
+                onChange={fileType === 'roi' ? handleFileSelect : handleFolderSelect}
+                {...(fileType === 'roi' ? {
+                  multiple: true
+                } : {
                   webkitdirectory: "",
                   directory: "",
                   multiple: true
-                } as any}
+                } as any)}
               />
-              <label htmlFor={`folder-upload-${fileType}`}>
+              <label htmlFor={`${fileType === 'roi' ? 'file' : 'folder'}-upload-${fileType}`}>
                 <Button
                   variant="outlined"
                   component="span"
-                  startIcon={<FolderIcon />}
+                  startIcon={fileType === 'roi' ? <UploadIcon /> : <FolderIcon />}
                   disabled={viewModel.uploading}
                 >
-                  폴더 선택
+                  {fileType === 'roi' ? 'JSON 파일 선택' : '폴더 선택'}
                 </Button>
               </label>
               
               {viewModel.selectedFile && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    선택된 폴더: {state.selectedFolderName || '폴더'}
+                    {fileType === 'roi' ? '선택된 파일' : '선택된 폴더'}: {state.selectedFolderName || (fileType === 'roi' ? '파일' : '폴더')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     파일 개수: {state.selectedFiles?.length || 1}개
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    첫 번째 파일: {viewModel.selectedFile.name}
+                    {fileType === 'roi' ? '선택된 파일' : '첫 번째 파일'}: {viewModel.selectedFile.name}
                   </Typography>
                 </Box>
               )}

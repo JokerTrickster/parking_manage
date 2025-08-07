@@ -7,6 +7,8 @@ export interface ParkingTestState {
   loading: boolean;
   stats: ProjectStats | null;
   varThreshold: number;
+  learningRate: number;
+  iterations: number;
   testResult: ParkingTestResponse | null;
   error: string | null;
 }
@@ -90,6 +92,14 @@ export class ParkingTestViewModel {
     this.setState(prev => ({ ...prev, varThreshold: value }));
   }
 
+  setLearningRate(value: number): void {
+    this.setState(prev => ({ ...prev, learningRate: value }));
+  }
+
+  setIterations(value: number): void {
+    this.setState(prev => ({ ...prev, iterations: value }));
+  }
+
   get loading(): boolean {
     return this.state.loading;
   }
@@ -100,6 +110,14 @@ export class ParkingTestViewModel {
 
   get varThreshold(): number {
     return this.state.varThreshold;
+  }
+
+  get learningRate(): number {
+    return this.state.learningRate;
+  }
+
+  get iterations(): number {
+    return this.state.iterations;
   }
 
   get testResult(): ParkingTestResponse | null {

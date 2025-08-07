@@ -1,4 +1,4 @@
-import { FileType } from '../models/FileUpload';
+import { FileType, FileUploadResponse } from '../models/FileUpload';
 import { FileUploadService, FolderInfo } from '../services/FileUploadService';
 
 export interface FileUploadState {
@@ -89,20 +89,34 @@ export class FileUploadViewModel {
         uploadProgress: 0
       }));
 
-      const response = await FileUploadService.uploadFileWithProgress(
-        this.state.selectedFile,
-        this.projectId,
-        this.fileType,
-        (progress) => {
-          this.setState(prev => ({ ...prev, uploadProgress: progress }));
-        }
-      );
+      let response: FileUploadResponse;
+      if (this.fileType === 'roi') {
+        // ROI 파일은 단일 파일 업로드
+        response = await FileUploadService.uploadFile(
+          this.state.selectedFile,
+          this.projectId,
+          this.fileType
+        );
+      } else {
+        // 다른 파일 타입은 기존 방식 사용
+        response = await FileUploadService.uploadFileWithProgress(
+          this.state.selectedFile,
+          this.projectId,
+          this.fileType,
+          (progress) => {
+            this.setState(prev => ({ ...prev, uploadProgress: progress }));
+          }
+        );
+      }
       
       this.setState(prev => ({
         ...prev,
         uploadResult: {
           success: response.success,
           message: response.message,
+          totalFiles: response.total_files,
+          successCount: response.success_count,
+          failed: response.failed,
           filePath: response.file_path,
         },
         uploading: false,
@@ -181,13 +195,28 @@ export class FileUploadViewModel {
   }
 
   getFileTypeLabel(): string {
-    return this.fileType === 'learning' ? '학습 이미지' : '테스트 이미지';
+    switch (this.fileType) {
+      case 'learning':
+        return '학습 이미지';
+      case 'test':
+        return '테스트 이미지';
+      case 'roi':
+        return 'ROI 파일';
+      default:
+        return '파일';
+    }
   }
 
   getAcceptedExtensions(): string {
-    return this.fileType === 'learning' 
-      ? '.jpg,.jpeg,.png' 
-      : '.jpg,.jpeg,.png';
+    switch (this.fileType) {
+      case 'learning':
+      case 'test':
+        return '.jpg,.jpeg,.png';
+      case 'roi':
+        return '.json';
+      default:
+        return '';
+    }
   }
 
   get selectedFile(): File | null {

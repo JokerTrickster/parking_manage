@@ -17,3 +17,11 @@ type LearningStatsParkingRepository struct {
 type TestStatsParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type RoiStatsParkingRepository struct {
+	GormDB *gorm.DB
+}
+
+type RoiUploadParkingRepository struct {
+	GormDB *gorm.DB
+}

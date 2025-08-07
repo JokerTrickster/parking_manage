@@ -26,6 +26,24 @@ definitions:
       total_files:
         type: integer
     type: object
+  response.ResRoiStats:
+    properties:
+      folders:
+        items:
+          $ref: '#/definitions/response.FolderInfo'
+        type: array
+      total:
+        type: integer
+    type: object
+  response.ResRoiUpload:
+    properties:
+      failed:
+        type: integer
+      success:
+        type: integer
+      total_files:
+        type: integer
+    type: object
   response.ResTestStats:
     properties:
       folders:
@@ -47,6 +65,45 @@ definitions:
 info:
   contact: {}
 paths:
+  /v0.1/parking/{projectId}/images/roi-folders:
+    get:
+      consumes:
+      - application/json
+      description: |
+        프로젝트의 ROI 파일 폴더 목록과 통계를 조회합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResRoiStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 파일 폴더 통계 조회
+      tags:
+      - parking
   /v0.1/parking/{projectId}/images/test-folders:
     get:
       consumes:
@@ -123,6 +180,51 @@ paths:
             additionalProperties: true
             type: object
       summary: 학습 이미지 폴더 통계 조회
+      tags:
+      - parking
+  /v0.1/parking/{projectId}/roi-files:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |
+        JSON 파일들을 서버에 저장합니다.
+        파일명이 그대로 유지되어 저장됩니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: ROI JSON 파일들
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResRoiUpload'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 파일 업로드
       tags:
       - parking
   /v0.1/parking/{projectId}/test-images:

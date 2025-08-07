@@ -6,8 +6,14 @@ type ILearningUploadParkingRepository interface {
 type ITestUploadParkingRepository interface {
 }
 
+type IRoiUploadParkingRepository interface {
+}
+
 type ILearningStatsParkingRepository interface {
 }
 
 type ITestStatsParkingRepository interface {
+}
+
+type IRoiStatsParkingRepository interface {
 }

@@ -30,6 +30,8 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
     loading: false,
     stats: null,
     varThreshold: 50.0,
+    learningRate: 0.001,
+    iterations: 1000,
     testResult: null,
     error: null,
   });
@@ -82,6 +84,15 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 }}
               />
             </Box>
+            <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
+              <FileUploadView
+                projectId={project.id}
+                fileType="roi"
+                onUploadSuccess={(filePath) => {
+                  console.log('ROI 파일 업로드 성공:', filePath);
+                }}
+              />
+            </Box>
           </Box>
         </Box>
 
@@ -95,18 +106,35 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                   테스트 설정
                 </Typography>
                 
-                <TextField
-                  fullWidth
-                  label="Var Threshold"
-                  type="number"
-                  value={viewModel.varThreshold}
-                  onChange={(e) => viewModel.setVarThreshold(parseFloat(e.target.value))}
-                  sx={{ mb: 2 }}
-                  helperText="배경 제거 민감도 (기본값: 50.0)"
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Var Threshold"
+                    type="number"
+                    value={viewModel.varThreshold}
+                    onChange={(e) => viewModel.setVarThreshold(parseFloat(e.target.value))}
+                    helperText="배경 제거 민감도 (기본값: 50.0)"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Learning Rate"
+                    type="number"
+                    value={viewModel.learningRate}
+                    onChange={(e) => viewModel.setLearningRate(parseFloat(e.target.value))}
+                    helperText="학습률 (기본값: 0.001)"
+                  />
+                  <TextField
+                    fullWidth
+                    label="반복 횟수"
+                    type="number"
+                    value={viewModel.iterations}
+                    onChange={(e) => viewModel.setIterations(parseInt(e.target.value))}
+                    helperText="학습 반복 횟수 (기본값: 1000)"
+                  />
+                </Box>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  학습 데이터와 테스트 이미지를 업로드한 후 테스트를 시작하세요.
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
+                  학습 데이터, 테스트 이미지, ROI 파일을 업로드한 후 테스트를 시작하세요.
                 </Typography>
 
                 <Button

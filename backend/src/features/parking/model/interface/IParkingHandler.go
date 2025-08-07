@@ -10,10 +10,18 @@ type ITestUploadParkingHandler interface {
 	TestUpload(c echo.Context) error
 }
 
+type IRoiUploadParkingHandler interface {
+	RoiUpload(c echo.Context) error
+}
+
 type ILearningStatsParkingHandler interface {
 	GetLearningStats(c echo.Context) error
 }
 
 type ITestStatsParkingHandler interface {
 	GetTestStats(c echo.Context) error
+}
+
+type IRoiStatsParkingHandler interface {
+	GetRoiStats(c echo.Context) error
 }
