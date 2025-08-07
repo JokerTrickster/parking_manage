@@ -12,7 +12,7 @@ func NewLearningParkingRepository(gormDB *gorm.DB) _interface.ILearningParkingRe
 	return &LearningParkingRepository{GormDB: gormDB}
 }
 
-func (r *LearningParkingRepository) CreateExperimentSession(ctx context.Context, experimentSession mysql.ExperimentSession) (int, error) {
+func (r *LearningParkingRepository) CreateExperimentSession(ctx context.Context, experimentSession mysql.ExperimentSessions) (int, error) {
 	result := r.GormDB.WithContext(ctx).Create(&experimentSession)
 	if result.Error != nil {
 		return 0, result.Error
@@ -20,7 +20,7 @@ func (r *LearningParkingRepository) CreateExperimentSession(ctx context.Context,
 	return int(experimentSession.ID), nil
 }
 
-func (r *LearningParkingRepository) CreateCctvResult(ctx context.Context, cctvResult mysql.CctvResult) (int, error) {
+func (r *LearningParkingRepository) CreateCctvResult(ctx context.Context, cctvResult mysql.CctvResults) (int, error) {
 	result := r.GormDB.WithContext(ctx).Create(&cctvResult)
 	if result.Error != nil {
 		return 0, result.Error
@@ -28,7 +28,7 @@ func (r *LearningParkingRepository) CreateCctvResult(ctx context.Context, cctvRe
 	return int(cctvResult.ID), nil
 }
 
-func (r *LearningParkingRepository) CreateRoiResult(ctx context.Context, roiResult mysql.RoiResult) error {
+func (r *LearningParkingRepository) CreateRoiResult(ctx context.Context, roiResult mysql.RoiResults) error {
 	result := r.GormDB.WithContext(ctx).Create(&roiResult)
 	if result.Error != nil {
 		return result.Error

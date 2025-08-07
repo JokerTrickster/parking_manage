@@ -24,7 +24,7 @@ type IRoiStatsParkingRepository interface {
 }
 
 type ILearningParkingRepository interface {
-	CreateExperimentSession(ctx context.Context, experimentSession mysql.ExperimentSession) (int, error)
-	CreateCctvResult(ctx context.Context, cctvResult mysql.CctvResult) (int, error)
-	CreateRoiResult(ctx context.Context, roiResult mysql.RoiResult) error
+	CreateExperimentSession(ctx context.Context, experimentSession mysql.ExperimentSessions) (int, error)
+	CreateCctvResult(ctx context.Context, cctvResult mysql.CctvResults) (int, error)
+	CreateRoiResult(ctx context.Context, roiResult mysql.RoiResults) error
 }
