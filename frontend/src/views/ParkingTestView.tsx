@@ -33,7 +33,11 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
     learningRate: 0.001,
     iterations: 1000,
     testResult: null,
+    learningResult: null,
     error: null,
+    selectedLearningPath: '',
+    selectedTestPath: '',
+    selectedRoiPath: '',
   });
 
   const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project, state, setState]);
@@ -72,6 +76,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 fileType="learning"
                 onUploadSuccess={(filePath) => {
                   console.log('학습 이미지 업로드 성공:', filePath);
+                  viewModel.setSelectedLearningPath(filePath);
                 }}
               />
             </Box>
@@ -81,6 +86,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 fileType="test"
                 onUploadSuccess={(filePath) => {
                   console.log('테스트 이미지 업로드 성공:', filePath);
+                  viewModel.setSelectedTestPath(filePath);
                 }}
               />
             </Box>
@@ -90,6 +96,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 fileType="roi"
                 onUploadSuccess={(filePath) => {
                   console.log('ROI 파일 업로드 성공:', filePath);
+                  viewModel.setSelectedRoiPath(filePath);
                 }}
               />
             </Box>
@@ -134,18 +141,18 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 </Box>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
-                  학습 데이터, 테스트 이미지, ROI 파일을 업로드한 후 테스트를 시작하세요.
+                  학습 데이터, 테스트 이미지, ROI 파일을 업로드한 후 학습을 시작하세요.
                 </Typography>
 
                 <Button
                   variant="contained"
                   startIcon={viewModel.loading ? <CircularProgress size={20} /> : <StartIcon />}
-                  onClick={() => viewModel.startTest()}
+                  onClick={() => viewModel.startLearning()}
                   disabled={viewModel.loading}
                   fullWidth
                   size="large"
                 >
-                  {viewModel.loading ? '테스트 실행 중...' : '테스트 시작'}
+                  {viewModel.loading ? '학습 실행 중...' : '학습 시작'}
                 </Button>
               </CardContent>
             </Card>
@@ -200,7 +207,31 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
           </Box>
         </Box>
 
-        {/* 결과 패널 */}
+        {/* 학습 결과 패널 */}
+        {viewModel.learningResult && (
+          <Box>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <SuccessIcon color="success" sx={{ mr: 1 }} />
+                  <Typography variant="h6">
+                    학습 완료
+                  </Typography>
+                </Box>
+                
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  주차 감지 학습이 성공적으로 완료되었습니다.
+                </Alert>
+                
+                <Typography variant="body2" color="text.secondary">
+                  {viewModel.learningResult.message}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        )}
+
+        {/* 테스트 결과 패널 */}
         {viewModel.testResult && (
           <Box>
             <Card>
@@ -232,7 +263,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <ErrorIcon color="error" sx={{ mr: 1 }} />
                   <Typography variant="h6" color="error">
-                    테스트 실패
+                    실행 실패
                   </Typography>
                 </Box>
                 

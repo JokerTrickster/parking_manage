@@ -25,3 +25,7 @@ type ITestStatsParkingHandler interface {
 type IRoiStatsParkingHandler interface {
 	GetRoiStats(c echo.Context) error
 }
+
+type ILearningParkingHandler interface {
+	Learning(c echo.Context) error
+}

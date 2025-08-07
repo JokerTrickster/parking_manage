@@ -17,3 +17,6 @@ type ITestStatsParkingRepository interface {
 
 type IRoiStatsParkingRepository interface {
 }
+
+type ILearningParkingRepository interface {
+}

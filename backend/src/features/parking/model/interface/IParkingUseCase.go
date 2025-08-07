@@ -2,6 +2,7 @@ package _interface
 
 import (
 	"context"
+	"main/features/parking/model/request"
 	"main/features/parking/model/response"
 	"mime/multipart"
 )
@@ -28,4 +29,8 @@ type ITestStatsParkingUseCase interface {
 
 type IRoiStatsParkingUseCase interface {
 	GetRoiStats(c context.Context, projectID string) (response.ResRoiStats, error)
+}
+
+type ILearningParkingUseCase interface {
+	Learning(c context.Context, req request.ReqLearning) (response.ResLearning, error)
 }

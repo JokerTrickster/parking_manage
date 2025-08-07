@@ -1,7 +1,9 @@
 import { Project, ProjectStats } from '../models/Project';
 import { ParkingTestRequest, ParkingTestResponse } from '../models/ParkingTest';
+import { LearningRequest, LearningResponse } from '../models/Learning';
 import { ProjectService } from '../services/ProjectService';
 import { ParkingTestService } from '../services/ParkingTestService';
+import { LearningService } from '../services/LearningService';
 
 export interface ParkingTestState {
   loading: boolean;
@@ -10,7 +12,12 @@ export interface ParkingTestState {
   learningRate: number;
   iterations: number;
   testResult: ParkingTestResponse | null;
+  learningResult: LearningResponse | null;
   error: string | null;
+  // 선택된 파일/폴더 경로
+  selectedLearningPath: string;
+  selectedTestPath: string;
+  selectedRoiPath: string;
 }
 
 export class ParkingTestViewModel {
@@ -42,6 +49,60 @@ export class ParkingTestViewModel {
           test_images_count: 25,
           matched_count: 23,
         },
+      }));
+    }
+  }
+
+  async startLearning(): Promise<void> {
+    try {
+      // 필수 경로 검증
+      if (!this.state.selectedLearningPath || !this.state.selectedTestPath || !this.state.selectedRoiPath) {
+        this.setState(prev => ({
+          ...prev,
+          error: '학습 이미지, 테스트 이미지, ROI 파일을 모두 선택해주세요.',
+          loading: false,
+        }));
+        return;
+      }
+
+      this.setState(prev => ({ 
+        ...prev, 
+        loading: true, 
+        error: null, 
+        learningResult: null 
+      }));
+
+      const request: LearningRequest = {
+        projectId: this._project.id,
+        learningRate: this.state.learningRate,
+        iterations: this.state.iterations,
+        varThreshold: this.state.varThreshold,
+        learningPath: this.state.selectedLearningPath,
+        testPath: this.state.selectedTestPath,
+        roiPath: this.state.selectedRoiPath,
+      };
+
+      const response = await LearningService.executeLearning(request);
+      
+      if (response.success) {
+        this.setState(prev => ({ 
+          ...prev, 
+          learningResult: response, 
+          loading: false 
+        }));
+      } else {
+        this.setState(prev => ({
+          ...prev,
+          error: response.message || '학습 실행 중 오류가 발생했습니다.',
+          loading: false,
+        }));
+      }
+    } catch (error) {
+      console.error('학습 실행 실패:', error);
+      this.setState(prev => ({
+        ...prev,
+        error: '서버 연결에 실패했습니다. 서버가 실행 중인지 확인해주세요.',
+        loading: false,
       }));
     }
   }
@@ -100,6 +161,18 @@ export class ParkingTestViewModel {
     this.setState(prev => ({ ...prev, iterations: value }));
   }
 
+  setSelectedLearningPath(path: string): void {
+    this.setState(prev => ({ ...prev, selectedLearningPath: path }));
+  }
+
+  setSelectedTestPath(path: string): void {
+    this.setState(prev => ({ ...prev, selectedTestPath: path }));
+  }
+
+  setSelectedRoiPath(path: string): void {
+    this.setState(prev => ({ ...prev, selectedRoiPath: path }));
+  }
+
   get loading(): boolean {
     return this.state.loading;
   }
@@ -124,8 +197,24 @@ export class ParkingTestViewModel {
     return this.state.testResult;
   }
 
+  get learningResult(): LearningResponse | null {
+    return this.state.learningResult;
+  }
+
   get error(): string | null {
     return this.state.error;
+  }
+
+  get selectedLearningPath(): string {
+    return this.state.selectedLearningPath;
+  }
+
+  get selectedTestPath(): string {
+    return this.state.selectedTestPath;
+  }
+
+  get selectedRoiPath(): string {
+    return this.state.selectedRoiPath;
   }
 
   get project(): Project {

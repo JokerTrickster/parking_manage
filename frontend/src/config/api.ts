@@ -42,6 +42,9 @@ export const API_ENDPOINTS = {
   // 주차 테스트 관련
   PARKING_TEST: '/api/parking-test',
   
+  // 학습 실행 관련
+  LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/learning`,
+  
   // Swagger
   SWAGGER: '/swagger/index.html'
 };

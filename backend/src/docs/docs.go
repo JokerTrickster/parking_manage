@@ -154,6 +154,58 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/parking/{projectId}/learning": {
+            "post": {
+                "description": "OpenCV를 사용하여 주차면 학습을 실행합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "학습 실행",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "프로젝트 ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "학습 요청 데이터",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReqLearning"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResLearning"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/roi-files": {
             "post": {
                 "description": "JSON 파일들을 서버에 저장합니다.\n파일명이 그대로 유지되어 저장됩니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
@@ -315,6 +367,32 @@ const docTemplate_swagger = `{
         }
     },
     "definitions": {
+        "request.ReqLearning": {
+            "type": "object",
+            "properties": {
+                "iterations": {
+                    "type": "integer"
+                },
+                "learningPath": {
+                    "type": "string"
+                },
+                "learningRate": {
+                    "type": "number"
+                },
+                "projectId": {
+                    "type": "string"
+                },
+                "roiPath": {
+                    "type": "string"
+                },
+                "testPath": {
+                    "type": "string"
+                },
+                "varThreshold": {
+                    "type": "number"
+                }
+            }
+        },
         "response.FolderInfo": {
             "type": "object",
             "properties": {
@@ -326,6 +404,17 @@ const docTemplate_swagger = `{
                 },
                 "path": {
                     "type": "string"
+                }
+            }
+        },
+        "response.ResLearning": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
