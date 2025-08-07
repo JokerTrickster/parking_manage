@@ -2,12 +2,17 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"main/common/db/mysql"
+	"main/features/parking/model/entity"
 	_interface "main/features/parking/model/interface"
 	"main/features/parking/model/request"
 	"main/features/parking/model/response"
@@ -60,7 +65,7 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 	}
 
 	// OpenCV 실행
-	success, message := d.executeOpenCV(req, backendDir)
+	success, message := d.executeOpenCV(c, req, backendDir)
 
 	return response.ResLearning{
 		Success: success,
@@ -68,28 +73,8 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 	}, nil
 }
 
-// 입력 파일 경로 검증
-func validatePaths(req request.ReqLearning) error {
-	// 학습 이미지 경로 확인
-	if _, err := os.Stat(req.LearningPath); os.IsNotExist(err) {
-		return fmt.Errorf("학습 이미지 경로가 존재하지 않습니다: %s", req.LearningPath)
-	}
-
-	// 테스트 이미지 경로 확인
-	if _, err := os.Stat(req.TestPath); os.IsNotExist(err) {
-		return fmt.Errorf("테스트 이미지 경로가 존재하지 않습니다: %s", req.TestPath)
-	}
-
-	// ROI 파일 경로 확인
-	if _, err := os.Stat(req.RoiPath); os.IsNotExist(err) {
-		return fmt.Errorf("ROI 파일 경로가 존재하지 않습니다: %s", req.RoiPath)
-	}
-
-	return nil
-}
-
 // OpenCV 실행
-func (d *LearningParkingUseCase) executeOpenCV(req request.ReqLearning, backendDir string) (bool, string) {
+func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.ReqLearning, backendDir string) (bool, string) {
 	opencvPath := filepath.Join(backendDir, "opencv", "build", "main")
 
 	// OpenCV 실행 명령어 구성 (새로운 파라미터 순서)
@@ -113,6 +98,72 @@ func (d *LearningParkingUseCase) executeOpenCV(req request.ReqLearning, backendD
 		return false, fmt.Sprintf("OpenCV 실행 실패: %v\n출력: %s", err, string(output))
 	}
 
-	// 성공 시 결과 메시지 반환
-	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n출력: %s", string(output))
+	outputStr := string(output)
+	fmt.Println("OpenCV 출력:", outputStr)
+
+	// JSON 파일명 추출
+	lines := strings.Split(outputStr, "\n")
+	var jsonFilename string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "JSON_FILE:") {
+			jsonFilename = strings.TrimSpace(strings.TrimPrefix(line, "JSON_FILE:"))
+			break
+		}
+	}
+
+	if jsonFilename == "" {
+		return false, "JSON 파일명을 찾을 수 없습니다."
+	}
+
+	data, err := os.ReadFile(jsonFilename)
+	if err != nil {
+		return false, fmt.Sprintf("JSON 파일 읽기 실패: %v", err)
+	}
+
+	var result entity.ExperimentResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		log.Fatal(err)
+	}
+	// DB 저장 로직
+
+	// gorm 객체 생성 후 저장
+	//ExperimentSession 객체 생성 후 저장
+	experimentSessionDB := mysql.ExperimentSessions{
+		VarThreshold:  req.VarThreshold,
+		LearningRate:  req.LearningRate,
+		Iterations:    req.Iterations,
+		LearningPath:  req.LearningPath,
+		TestImagePath: req.TestPath,
+		RoiPath:       req.RoiPath,
+	}
+	esID, err := d.Repository.CreateExperimentSession(ctx, experimentSessionDB)
+	if err != nil {
+		return false, fmt.Sprintf("실험 세션 생성 실패: %v", err)
+	}
+	// CctvResult 객체 생성 후 저장
+	for _, cctvResult := range result.Results {
+		cctvResultDB := mysql.CctvResults{
+			ExperimentSessionId: esID,
+			CctvId:              cctvResult.CctvID,
+			LearningDataSize:    cctvResult.LearningDataSize,
+		}
+		crID, err := d.Repository.CreateCctvResult(ctx, cctvResultDB)
+		if err != nil {
+			return false, fmt.Sprintf("CctvResult 생성 실패: %v", err)
+		}
+		// RoiResult 객체 생성 후 저장
+		for _, roiResult := range cctvResult.RoiResults {
+			roiResultDB := mysql.RoiResults{
+				CctvResultId: crID,
+				RoiId:        roiResult.RoiID,
+				Rate:         roiResult.ForegroundRatio,
+			}
+			err = d.Repository.CreateRoiResult(ctx, roiResultDB)
+			if err != nil {
+				return false, fmt.Sprintf("RoiResult 생성 실패: %v", err)
+			}
+		}
+	}
+
+	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result)
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"main/common"
 	"main/features"
-	"os"
-	"time"
 
 	_middleware "main/middleware"
 
@@ -19,17 +17,7 @@ import (
 //export PATH=$PATH:~/go/bin
 func main() {
 
-	// Go의 기본 multipart 메모리 제한 설정 (환경 변수로 설정)
-	os.Setenv("GOMAXPROCS", "1") // CPU 사용량 제한
-	// Go의 기본 32MB 제한을 우회하기 위한 설정
-	// 이 설정은 Go 런타임에서 multipart 파싱 시 사용하는 메모리 제한을 늘립니다
-
 	e := echo.New()
-
-	// 파일 업로드 크기 제한 설정
-	e.Server.MaxHeaderBytes = 1 << 30 // 1GB
-	e.Server.ReadTimeout = 300 * time.Second
-	e.Server.WriteTimeout = 300 * time.Second
 
 	// 환경 변수 로드
 	if err := common.LoadConfig(); err != nil {

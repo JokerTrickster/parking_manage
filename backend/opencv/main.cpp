@@ -18,6 +18,7 @@ using json = nlohmann::json;
 struct ParkingResult {
     string test_image_name;
     string cctv_id;
+    int learning_data_size;  // 학습 데이터 크기 추가
     vector<pair<int, double>> roi_results; // ROI 인덱스와 foreground 비율
     string timestamp;
     double var_threshold;
@@ -26,6 +27,12 @@ struct ParkingResult {
     string learning_path;
     string test_image_path;
     string roi_path;
+};
+
+// ROI 정보를 담는 구조체
+struct RoiInfo {
+    vector<Point> points;
+    int parking_id;
 };
 
 // 현재 시간을 문자열로 반환하는 함수
@@ -50,7 +57,7 @@ string extract_cctv_id_from_filename(const string& filename) {
     return "";
 }
 
-vector<vector<Point>> get_rois_from_json(const string& json_path, const string& cctv_id) {
+vector<RoiInfo> get_rois_from_json(const string& json_path, const string& cctv_id) {
     ifstream ifs(json_path);
     if (!ifs.is_open()) {
         cerr << "JSON 파일을 열 수 없습니다: " << json_path << endl;
@@ -59,42 +66,22 @@ vector<vector<Point>> get_rois_from_json(const string& json_path, const string& 
     json j;
     ifs >> j;
     
-    vector<vector<Point>> rois;
-    
-    cout << "JSON 파일 로드 완료. CCTV ID 찾기: " << cctv_id << endl;
+    vector<RoiInfo> rois;
     
     for (auto& [ip, cctvData] : j.items()) {
-        cout << "IP 키: " << ip << endl;
-        cout << "CCTV ID: " << cctvData["cctv_id"] << endl;
-        
         if (cctvData["cctv_id"] == cctv_id) {
-            cout << "CCTV " << cctv_id << " 발견 (IP: " << ip << ")" << endl;
             
             // matches 배열에서 모든 ROI 추출
             for (const auto& match : cctvData["matches"]) {
-                cout << "Match 객체 키들: ";
-                for (const auto& [key, value] : match.items()) {
-                    cout << key << " ";
-                }
-                cout << endl;
-                
                 // 다양한 필드명 시도
                 json roi_arr;
                 if (match.contains("original_roi")) {
                     roi_arr = match["original_roi"];
-                    cout << "original_roi 필드 발견" << endl;
                 } else if (match.contains("img_center_roi")) {
                     roi_arr = match["img_center_roi"];
-                    cout << "img_center_roi 필드 발견" << endl;
                 } else if (match.contains("roi")) {
                     roi_arr = match["roi"];
-                    cout << "roi 필드 발견" << endl;
                 } else {
-                    cout << "ROI 필드를 찾을 수 없습니다. 사용 가능한 키들: ";
-                    for (const auto& [key, value] : match.items()) {
-                        cout << key << " ";
-                    }
-                    cout << endl;
                     continue;
                 }
                 
@@ -108,8 +95,34 @@ vector<vector<Point>> get_rois_from_json(const string& json_path, const string& 
                 }
                 
                 if (!roi.empty()) {
-                    rois.push_back(roi);
-                    cout << "ROI 추가됨: " << roi.size() << "개 포인트" << endl;
+                    RoiInfo roiInfo;
+                    roiInfo.points = roi;
+                    
+                    // parking_id 추출 (기본값은 0)
+                    roiInfo.parking_id = 0;
+                    if (match.contains("parking_id")) {
+                        try {
+                            if (match["parking_id"].is_number()) {
+                                roiInfo.parking_id = match["parking_id"];
+                            } else if (match["parking_id"].is_string()) {
+                                // 문자열인 경우 _ 뒤의 숫자만 추출
+                                string parking_id_str = match["parking_id"];
+                                size_t underscore_pos = parking_id_str.find('_');
+                                if (underscore_pos != string::npos && underscore_pos + 1 < parking_id_str.length()) {
+                                    string number_part = parking_id_str.substr(underscore_pos + 1);
+                                    roiInfo.parking_id = stoi(number_part);
+                                } else {
+                                    // _가 없으면 전체를 숫자로 변환 시도
+                                    roiInfo.parking_id = stoi(parking_id_str);
+                                }
+                            }
+                        } catch (const exception& e) {
+                            cerr << "parking_id 파싱 실패: " << e.what() << endl;
+                            roiInfo.parking_id = 0;
+                        }
+                    }
+                    
+                    rois.push_back(roiInfo);
                 }
             }
             break; // 해당 CCTV를 찾았으므로 루프 종료
@@ -118,10 +131,7 @@ vector<vector<Point>> get_rois_from_json(const string& json_path, const string& 
     
     if (rois.empty()) {
         cerr << "CCTV " << cctv_id << "의 ROI를 찾을 수 없습니다." << endl;
-    } else {
-        cout << "총 " << rois.size() << "개의 ROI를 찾았습니다." << endl;
-    }
-    
+    } 
     return rois;
 }
 
@@ -162,6 +172,7 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
 
     // 2️⃣ 학습용 이미지로 배경 모델 학습
     Mat frame, fgMask;
+    int learning_data_count = 0;  // 학습 데이터 개수 카운트
     
     for (int epoch = 0; epoch < iterations; ++epoch) {
         for (const auto& entry : fs::directory_iterator(learning_folder_path)) {
@@ -171,10 +182,14 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
                     frame = imread(entry.path().string());
                     if (frame.empty()) continue;
                     mog2->apply(frame, fgMask, learning_rate);
+                    learning_data_count++;  // 학습 데이터 개수 증가
                 }
             }
         }
     }
+    
+    // 학습 데이터 크기 저장
+    result.learning_data_size = learning_data_count;
 
     // 3️⃣ 테스트 이미지 로드
     Mat testImg = imread(test_image_path);
@@ -191,7 +206,7 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     morphologyEx(fgMask, fgMask, MORPH_CLOSE, kernel);
 
     // 6️⃣ 해당 CCTV의 ROI 정보 JSON에서 읽기
-    vector<vector<Point>> rois = get_rois_from_json(roi_path, cctv_id);
+    vector<RoiInfo> rois = get_rois_from_json(roi_path, cctv_id);
     if (rois.empty()) {
         return result;
     }
@@ -204,7 +219,7 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     for (size_t i = 0; i < rois.size(); i++) {
         // ROI 마스크 생성
         Mat roiMask = Mat::zeros(fgMask.size(), CV_8UC1);
-        fillPoly(roiMask, vector<vector<Point>>{rois[i]}, Scalar(255));
+        fillPoly(roiMask, vector<vector<Point>>{rois[i].points}, Scalar(255));
         
         // ROI 마스크에서 흰색 픽셀 수 확인
         int roiTotalPixels = countNonZero(roiMask);
@@ -223,20 +238,20 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
         
         // ROI 경계선 그리기 (테스트 이미지에)
         Scalar roiColor = (ratio >= 0.4) ? Scalar(0, 255, 0) : Scalar(0, 0, 255); // 녹색(차량있음) 또는 빨간색(차량없음)
-        polylines(roiImage, vector<vector<Point>>{rois[i]}, true, roiColor, 2);
+        polylines(roiImage, vector<vector<Point>>{rois[i].points}, true, roiColor, 2);
         
         // ROI 중심점 계산
         Point center(0, 0);
-        for (const auto& point : rois[i]) {
+        for (const auto& point : rois[i].points) {
             center += point;
         }
-        center.x /= rois[i].size();
-        center.y /= rois[i].size();
+        center.x /= rois[i].points.size();
+        center.y /= rois[i].points.size();
         
         // ROI 번호와 비율 텍스트 표시 (소수점 3자리)
         stringstream ss;
         ss << fixed << setprecision(3) << ratio;
-        string ratioText = "ROI" + to_string(i+1) + ": " + ss.str();
+        string ratioText = "ROI" + to_string(rois[i].parking_id) + ": " + ss.str();
         
         int font = FONT_HERSHEY_SIMPLEX;
         double font_scale = 0.6;
@@ -255,7 +270,7 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
                 font, font_scale, Scalar(255, 255, 255), thickness);
         
         // Foreground 마스크에도 ROI 그리기
-        polylines(fgMaskColored, vector<vector<Point>>{rois[i]}, true, roiColor, 2);
+        polylines(fgMaskColored, vector<vector<Point>>{rois[i].points}, true, roiColor, 2);
         
         // Foreground 마스크에도 텍스트 배경
         rectangle(fgMaskColored, 
@@ -268,8 +283,8 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
                 Point(center.x - text_size.width/2, center.y), 
                 font, font_scale, Scalar(255, 255, 255), thickness);
         
-        // 결과에 추가
-        result.roi_results.push_back({static_cast<int>(i+1), ratio});
+        // 결과에 추가 (parking_id 사용)
+        result.roi_results.push_back({rois[i].parking_id, ratio});
     }
     
     // 이미지 저장 (CCTV ID 폴더 안에)
@@ -303,20 +318,13 @@ void save_result_to_json(const vector<ParkingResult>& results, const string& out
     
     for (const auto& result : results) {
         json result_obj;
-        result_obj["test_image_name"] = result.test_image_name;
         result_obj["cctv_id"] = result.cctv_id;
-        result_obj["timestamp"] = result.timestamp;
-        result_obj["var_threshold"] = result.var_threshold;
-        result_obj["learning_rate"] = result.learning_rate;
-        result_obj["iterations"] = result.iterations;
-        result_obj["learning_path"] = result.learning_path;
-        result_obj["test_image_path"] = result.test_image_path;
-        result_obj["roi_path"] = result.roi_path;
+        result_obj["learning_data_size"] = result.learning_data_size;
         
         json roi_array = json::array();
         for (const auto& roi_result : result.roi_results) {
             json roi_obj;
-            roi_obj["roi_index"] = roi_result.first;
+            roi_obj["roi_id"] = roi_result.first;
             roi_obj["foreground_ratio"] = roi_result.second;
             roi_array.push_back(roi_obj);
         }
@@ -327,12 +335,16 @@ void save_result_to_json(const vector<ParkingResult>& results, const string& out
     
     j["results"] = results_array;
     j["total_tests"] = results.size();
+    j["project_id"] = "banpo";
     
     // JSON 파일로 저장
     ofstream ofs(filename);
     if (ofs.is_open()) {
         ofs << j.dump(2);
         ofs.close();
+        
+        // JSON 파일명을 표준 출력으로 출력 (서버에서 읽을 수 있도록)
+        cout << "JSON_FILE:" << filename << endl;
     }
 }
 

@@ -4,9 +4,27 @@ import (
 	"gorm.io/gorm"
 )
 
-// 전체, 한식, 중식, 일식, 양식, 분식, 패스트푸드, 카페, 술집, 기타
-type Times struct {
+type ExperimentSessions struct {
 	gorm.Model
-	Timer       uint   `json:"timer" gorm:"column:timer"`
-	Description string `json:"description" gorm:"column:description"`
+	VarThreshold  float64 `json:"var_threshold" gorm:"column:var_threshold"`
+	LearningRate  float64 `json:"learning_rate" gorm:"column:learning_rate"`
+	Iterations    int     `json:"iterations" gorm:"column:iterations"`
+	LearningPath  string  `json:"learning_path" gorm:"column:learning_path"`
+	TestImagePath string  `json:"test_image_path" gorm:"column:test_image_path"`
+	RoiPath       string  `json:"roi_path" gorm:"column:roi_path"`
+	Note          string  `json:"note" gorm:"column:note"`
+}
+
+type CctvResults struct {
+	gorm.Model
+	ExperimentSessionId int    `json:"experiment_session_id" gorm:"column:experiment_session_id"`
+	CctvId              string `json:"cctv_id" gorm:"column:cctv_id"`
+	LearningDataSize    int    `json:"learning_data_size" gorm:"column:learning_data_size"`
+}
+
+type RoiResults struct {
+	gorm.Model
+	CctvResultId int     `json:"cctv_result_id" gorm:"column:cctv_result_id"`
+	RoiId        int     `json:"roi_id" gorm:"column:roi_id"`
+	Rate         float64 `json:"rate" gorm:"column:rate"`
 }

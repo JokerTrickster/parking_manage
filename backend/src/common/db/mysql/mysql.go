@@ -17,14 +17,6 @@ var GormMysqlDB *gorm.DB
 
 const DBTimeOut = 8 * time.Second
 
-// 게임 타입 지정
-const (
-	FIND_IT   = 1
-	SLIME_WAR = 2
-	SEQUENCE  = 3
-	FROG      = 4
-)
-
 func InitMySQL() error {
 	var connectionString string
 	var err error
@@ -40,6 +32,8 @@ func InitMySQL() error {
 		)
 	}
 	fmt.Println(connectionString)
+	connectionString = "luxrobo:luxrobo1!@tcp(localhost:3306)/parking_dev?parseTime=true"
+
 	// MySQL에 연결
 	MysqlDB, err := sql.Open("mysql", connectionString)
 	if err != nil {
