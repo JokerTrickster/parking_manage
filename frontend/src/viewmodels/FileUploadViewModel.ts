@@ -102,8 +102,8 @@ export class FileUploadViewModel {
         response = await FileUploadService.uploadFileWithProgress(
           this.state.selectedFile,
           this.projectId,
-          this.fileType,
-          (progress) => {
+          'roi', // fileType을 'roi'로 고정
+          (progress: number) => {
             this.setState(prev => ({ ...prev, uploadProgress: progress }));
           }
         );
@@ -153,10 +153,7 @@ export class FileUploadViewModel {
       const response = await FileUploadService.uploadFolder(
         this.state.selectedFiles,
         this.projectId,
-        this.fileType,
-        (progress) => {
-          this.setState(prev => ({ ...prev, uploadProgress: progress }));
-        }
+        this.fileType as 'learning' | 'test'
       );
       
       // 서버 응답 구조에 맞춰 처리

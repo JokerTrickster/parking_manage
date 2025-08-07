@@ -51,9 +51,6 @@ string extract_cctv_id_from_filename(const string& filename) {
 }
 
 vector<vector<Point>> get_rois_from_json(const string& json_path, const string& cctv_id) {
-    cout << "JSON 파일 경로: " << json_path << endl;
-    cout << "찾는 CCTV ID: " << cctv_id << endl;
-    
     ifstream ifs(json_path);
     if (!ifs.is_open()) {
         cerr << "JSON 파일을 열 수 없습니다: " << json_path << endl;
@@ -63,59 +60,66 @@ vector<vector<Point>> get_rois_from_json(const string& json_path, const string& 
     ifs >> j;
     
     vector<vector<Point>> rois;
-    bool found_cctv = false;
     
-    cout << "JSON 파일의 모든 키:" << endl;
+    cout << "JSON 파일 로드 완료. CCTV ID 찾기: " << cctv_id << endl;
+    
     for (auto& [ip, cctvData] : j.items()) {
-        cout << "  IP: " << ip << ", CCTV ID: " << cctvData["cctv_id"] << endl;
+        cout << "IP 키: " << ip << endl;
+        cout << "CCTV ID: " << cctvData["cctv_id"] << endl;
         
         if (cctvData["cctv_id"] == cctv_id) {
-            found_cctv = true;
-            cout << "CCTV ID 매칭 발견: " << cctv_id << endl;
+            cout << "CCTV " << cctv_id << " 발견 (IP: " << ip << ")" << endl;
             
-            // 해당 CCTV의 ROI를 가져오기
+            // matches 배열에서 모든 ROI 추출
             for (const auto& match : cctvData["matches"]) {
-                cout << "매치 항목 처리 중..." << endl;
+                cout << "Match 객체 키들: ";
+                for (const auto& [key, value] : match.items()) {
+                    cout << key << " ";
+                }
+                cout << endl;
                 
-                // img_center_roi 사용 (original_roi 대신)
-                auto roi_arr = match["img_center_roi"];
-                cout << "ROI 배열 크기: " << roi_arr.size() << endl;
+                // 다양한 필드명 시도
+                json roi_arr;
+                if (match.contains("original_roi")) {
+                    roi_arr = match["original_roi"];
+                    cout << "original_roi 필드 발견" << endl;
+                } else if (match.contains("img_center_roi")) {
+                    roi_arr = match["img_center_roi"];
+                    cout << "img_center_roi 필드 발견" << endl;
+                } else if (match.contains("roi")) {
+                    roi_arr = match["roi"];
+                    cout << "roi 필드 발견" << endl;
+                } else {
+                    cout << "ROI 필드를 찾을 수 없습니다. 사용 가능한 키들: ";
+                    for (const auto& [key, value] : match.items()) {
+                        cout << key << " ";
+                    }
+                    cout << endl;
+                    continue;
+                }
                 
                 vector<Point> roi;
                 
-                // 좌표 배열을 Point로 변환 (x, y 쌍으로)
+                // ROI 좌표를 Point로 변환
                 for (size_t i = 0; i + 1 < roi_arr.size(); i += 2) {
                     int x = roi_arr[i];
                     int y = roi_arr[i + 1];
                     roi.emplace_back(x, y);
-                    cout << "  좌표 " << (i/2 + 1) << ": (" << x << ", " << y << ")" << endl;
                 }
                 
                 if (!roi.empty()) {
                     rois.push_back(roi);
-                    cout << "ROI 추가됨, 크기: " << roi.size() << endl;
-                } else {
-                    cout << "ROI가 비어있음" << endl;
+                    cout << "ROI 추가됨: " << roi.size() << "개 포인트" << endl;
                 }
             }
             break; // 해당 CCTV를 찾았으므로 루프 종료
         }
     }
     
-    if (!found_cctv) {
-        cerr << "해당 CCTV ID를 찾을 수 없습니다: " << cctv_id << endl;
-    } else if (rois.empty()) {
-        cerr << "해당 CCTV의 ROI를 찾을 수 없습니다: " << cctv_id << endl;
+    if (rois.empty()) {
+        cerr << "CCTV " << cctv_id << "의 ROI를 찾을 수 없습니다." << endl;
     } else {
         cout << "총 " << rois.size() << "개의 ROI를 찾았습니다." << endl;
-        // ROI 좌표 출력 (디버깅용)
-        for (size_t i = 0; i < rois.size(); i++) {
-            cout << "ROI " << (i+1) << " 좌표: ";
-            for (const auto& point : rois[i]) {
-                cout << "(" << point.x << ", " << point.y << ") ";
-            }
-            cout << endl;
-        }
     }
     
     return rois;
@@ -123,7 +127,7 @@ vector<vector<Point>> get_rois_from_json(const string& json_path, const string& 
 
 ParkingResult process_single_test_image(const string& test_image_path, double learning_rate, int iterations, 
                                       double var_threshold, const string& learning_base_path, 
-                                      const string& roi_path) {
+                                      const string& roi_path, const string& output_dir) {
     ParkingResult result;
     result.test_image_name = fs::path(test_image_path).filename().string();
     result.learning_rate = learning_rate;
@@ -137,22 +141,19 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     // 파일명에서 CCTV ID 추출
     string cctv_id = extract_cctv_id_from_filename(result.test_image_name);
     if (cctv_id.empty()) {
-        cerr << "CCTV ID를 추출할 수 없습니다: " << result.test_image_name << endl;
         return result;
     }
     result.cctv_id = cctv_id;
     
-    cout << "\n=== 테스트 이미지 처리 시작 ===" << endl;
-    cout << "테스트 이미지: " << result.test_image_name << endl;
-    cout << "CCTV ID: " << cctv_id << endl;
+    // CCTV ID별 폴더 생성
+    string cctv_output_dir = output_dir + "/" + cctv_id;
+    fs::create_directories(cctv_output_dir);
     
     // 해당 CCTV의 학습 폴더 경로
     string learning_folder_path = fs::path(learning_base_path) / "learningBackImg" / cctv_id;
     if (!fs::exists(learning_folder_path)) {
-        cerr << "학습 폴더를 찾을 수 없습니다: " << learning_folder_path << endl;
         return result;
     }
-    cout << "학습 폴더: " << learning_folder_path << endl;
     
     // 1️⃣ MOG2 초기화
     int history = 500;
@@ -160,8 +161,6 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     Ptr<BackgroundSubtractor> mog2 = createBackgroundSubtractorMOG2(history, var_threshold, detectShadows);
 
     // 2️⃣ 학습용 이미지로 배경 모델 학습
-    cout << "학습 시작... (반복 횟수: " << iterations << ")\n";
-    int learning_count = 0;
     Mat frame, fgMask;
     
     for (int epoch = 0; epoch < iterations; ++epoch) {
@@ -172,20 +171,14 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
                     frame = imread(entry.path().string());
                     if (frame.empty()) continue;
                     mog2->apply(frame, fgMask, learning_rate);
-                    learning_count++;
-                    if (learning_count % 10 == 0) {
-                        cout << "학습 진행: " << learning_count << "개 이미지 처리됨" << endl;
-                    }
                 }
             }
         }
     }
-    cout << "총 " << learning_count << "개 이미지로 학습 완료" << endl;
 
     // 3️⃣ 테스트 이미지 로드
     Mat testImg = imread(test_image_path);
     if (testImg.empty()) {
-        cerr << "테스트 이미지를 열 수 없습니다: " << test_image_path << endl;
         return result;
     }
 
@@ -200,28 +193,23 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     // 6️⃣ 해당 CCTV의 ROI 정보 JSON에서 읽기
     vector<vector<Point>> rois = get_rois_from_json(roi_path, cctv_id);
     if (rois.empty()) {
-        cout << "ROI가 비어있어서 처리 중단" << endl;
         return result;
     }
 
-    // 7️⃣ 각 ROI별 foreground 비율 계산
-    cout << "\n=== ROI별 Foreground 비율 ===" << endl;
-    cout << "테스트 이미지 크기: " << testImg.cols << "x" << testImg.rows << endl;
-    cout << "Foreground 마스크 크기: " << fgMask.cols << "x" << fgMask.rows << endl;
+    // 7️⃣ 각 ROI별 foreground 비율 계산 및 이미지 저장
+    Mat roiImage = testImg.clone();
+    Mat fgMaskColored;
+    cvtColor(fgMask, fgMaskColored, COLOR_GRAY2BGR);
     
     for (size_t i = 0; i < rois.size(); i++) {
-        cout << "\nROI " << (i+1) << " 처리 중..." << endl;
-        
         // ROI 마스크 생성
         Mat roiMask = Mat::zeros(fgMask.size(), CV_8UC1);
         fillPoly(roiMask, vector<vector<Point>>{rois[i]}, Scalar(255));
         
         // ROI 마스크에서 흰색 픽셀 수 확인
         int roiTotalPixels = countNonZero(roiMask);
-        cout << "ROI " << (i+1) << " 총 픽셀 수: " << roiTotalPixels << endl;
         
         if (roiTotalPixels == 0) {
-            cout << "ROI " << (i+1) << " 마스크가 비어있음" << endl;
             continue;
         }
         
@@ -233,13 +221,71 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
         int foregroundPixels = countNonZero(maskedFG);
         double ratio = roiTotalPixels > 0 ? (double)foregroundPixels / roiTotalPixels : 0.0;
         
-        cout << "ROI " << (i+1) << ": " << ratio << " (" << foregroundPixels << "/" << roiTotalPixels << ")" << endl;
+        // ROI 경계선 그리기 (테스트 이미지에)
+        Scalar roiColor = (ratio >= 0.4) ? Scalar(0, 255, 0) : Scalar(0, 0, 255); // 녹색(차량있음) 또는 빨간색(차량없음)
+        polylines(roiImage, vector<vector<Point>>{rois[i]}, true, roiColor, 2);
+        
+        // ROI 중심점 계산
+        Point center(0, 0);
+        for (const auto& point : rois[i]) {
+            center += point;
+        }
+        center.x /= rois[i].size();
+        center.y /= rois[i].size();
+        
+        // ROI 번호와 비율 텍스트 표시 (소수점 3자리)
+        stringstream ss;
+        ss << fixed << setprecision(3) << ratio;
+        string ratioText = "ROI" + to_string(i+1) + ": " + ss.str();
+        
+        int font = FONT_HERSHEY_SIMPLEX;
+        double font_scale = 0.6;
+        int thickness = 2;
+        
+        // 텍스트 배경 (가독성을 위해)
+        Size text_size = getTextSize(ratioText, font, font_scale, thickness, nullptr);
+        rectangle(roiImage, 
+                 Point(center.x - text_size.width/2 - 5, center.y - text_size.height - 5),
+                 Point(center.x + text_size.width/2 + 5, center.y + 5),
+                 Scalar(0, 0, 0), -1);
+        
+        // 텍스트 그리기
+        putText(roiImage, ratioText, 
+                Point(center.x - text_size.width/2, center.y), 
+                font, font_scale, Scalar(255, 255, 255), thickness);
+        
+        // Foreground 마스크에도 ROI 그리기
+        polylines(fgMaskColored, vector<vector<Point>>{rois[i]}, true, roiColor, 2);
+        
+        // Foreground 마스크에도 텍스트 배경
+        rectangle(fgMaskColored, 
+                 Point(center.x - text_size.width/2 - 5, center.y - text_size.height - 5),
+                 Point(center.x + text_size.width/2 + 5, center.y + 5),
+                 Scalar(0, 0, 0), -1);
+        
+        // Foreground 마스크에도 텍스트 그리기
+        putText(fgMaskColored, ratioText, 
+                Point(center.x - text_size.width/2, center.y), 
+                font, font_scale, Scalar(255, 255, 255), thickness);
         
         // 결과에 추가
         result.roi_results.push_back({static_cast<int>(i+1), ratio});
     }
     
-    cout << "총 " << result.roi_results.size() << "개의 ROI 결과 추가됨" << endl;
+    // 이미지 저장 (CCTV ID 폴더 안에)
+    string roiImagePath = cctv_output_dir + "/roi_result.jpg";
+    string fgMaskPath = cctv_output_dir + "/fgmask.jpg";
+    
+    bool roiSaved = imwrite(roiImagePath, roiImage);
+    bool fgMaskSaved = imwrite(fgMaskPath, fgMaskColored);
+    
+    // 저장 결과 확인 (디버깅용)
+    if (!roiSaved) {
+        cerr << "ROI 이미지 저장 실패: " << roiImagePath << endl;
+    }
+    if (!fgMaskSaved) {
+        cerr << "Foreground 마스크 저장 실패: " << fgMaskPath << endl;
+    }
 
     return result;
 }
@@ -287,16 +333,12 @@ void save_result_to_json(const vector<ParkingResult>& results, const string& out
     if (ofs.is_open()) {
         ofs << j.dump(2);
         ofs.close();
-        cout << "결과가 저장되었습니다: " << filename << endl;
-    } else {
-        cerr << "결과 파일을 저장할 수 없습니다: " << filename << endl;
     }
 }
 
 int main(int argc, char* argv[]) {
     if (argc != 8) {
         cout << "사용법: " << argv[0] << " <learning_rate> <iterations> <var_threshold> <project_id> <learning_base_path> <test_images_path> <roi_path>" << endl;
-        cout << "예시: " << argv[0] << " 0.01 1000 0.5 banpo /path/to/learning /path/to/test_images /path/to/roi.json" << endl;
         return 1;
     }
     
@@ -308,20 +350,15 @@ int main(int argc, char* argv[]) {
     string test_images_path = argv[6];
     string roi_path = argv[7];
     
-    cout << "=== 주차 감지 알고리즘 시작 ===" << endl;
-    cout << "Learning Rate: " << learning_rate << endl;
-    cout << "Iterations: " << iterations << endl;
-    cout << "Var Threshold: " << var_threshold << endl;
-    cout << "Project ID: " << project_id << endl;
-    cout << "Learning Base Path: " << learning_base_path << endl;
-    cout << "Test Images Path: " << test_images_path << endl;
-    cout << "ROI Path: " << roi_path << endl;
-    
     // 테스트 이미지 폴더 확인
     if (!fs::exists(test_images_path)) {
         cerr << "테스트 이미지 폴더를 찾을 수 없습니다: " << test_images_path << endl;
         return 1;
     }
+    
+    // 결과 디렉토리 생성
+    string results_dir = "../../shared/" + project_id + "/results/" + get_current_timestamp();
+    fs::create_directories(results_dir);
     
     vector<ParkingResult> all_results;
     
@@ -334,14 +371,9 @@ int main(int argc, char* argv[]) {
                 
                 // _Current.jpg 파일만 처리
                 if (filename.find("_Current.jpg") != string::npos) {
-                    cout << "\n" << string(50, '=') << endl;
-                    cout << "처리 중: " << filename << endl;
-                    cout << "전체 경로: " << entry.path().string() << endl;
-                    cout << string(50, '=') << endl;
-                    
                     ParkingResult result = process_single_test_image(
                         entry.path().string(), learning_rate, iterations, var_threshold,
-                        learning_base_path, roi_path
+                        learning_base_path, roi_path, results_dir
                     );
                     
                     if (!result.cctv_id.empty()) {
@@ -353,10 +385,8 @@ int main(int argc, char* argv[]) {
     }
     
     // 결과를 shared/{project_id}/results 폴더에 저장
-    string output_dir = "../../shared/" + project_id + "/results/" + get_current_timestamp();
-    save_result_to_json(all_results, output_dir);
+    save_result_to_json(all_results, results_dir);
     
-    cout << "\n=== 주차 감지 알고리즘 완료 ===" << endl;
-    cout << "총 " << all_results.size() << "개 테스트 이미지 처리 완료" << endl;
     return 0;
 }
+

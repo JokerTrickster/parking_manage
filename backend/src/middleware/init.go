@@ -21,6 +21,9 @@ func InitMiddleware(e *echo.Echo) error {
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 	}))
 
+	// multipart 메시지 크기 제한 설정 (기본값: 32MB -> 2GB)
+	e.Use(middleware.BodyLimit("2GB"))
+
 	//Logger : 로깅 미들웨어
 	e.Use(Logger)
 

@@ -57,12 +57,14 @@ func (d *LearningUploadParkingHandler) LearningUpload(c echo.Context) error {
 		})
 	}
 
-	// multipart 폼 데이터 파싱
+	// multipart 폼 데이터 파싱 (더 큰 메모리 제한)
+	// Go의 기본 32MB 제한을 우회하기 위해 더 큰 값으로 설정
 	form, err := c.MultipartForm()
 	if err != nil {
+		// 에러 메시지에 더 자세한 정보 추가
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
-			"message": "multipart 폼 데이터를 파싱할 수 없습니다: " + err.Error(),
+			"message": "multipart 폼 데이터를 파싱할 수 없습니다: " + err.Error() + ". 파일 크기가 너무 클 수 있습니다. (현재 제한: 32MB). 해결방법: 1) 파일을 압축하여 업로드 2) 파일을 작은 크기로 나누어 업로드",
 		})
 	}
 
