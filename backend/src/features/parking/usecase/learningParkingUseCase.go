@@ -97,8 +97,9 @@ func (d *LearningParkingUseCase) executeOpenCV(req request.ReqLearning, backendD
 		fmt.Sprintf("%f", req.LearningRate), // learning_rate
 		fmt.Sprintf("%d", req.Iterations),   // iterations
 		fmt.Sprintf("%f", req.VarThreshold), // var_threshold
-		req.LearningPath,                    // learning_path
-		req.TestPath,                        // test_path
+		req.ProjectID,                       // project_id
+		req.LearningPath,                    // learning_base_path
+		req.TestPath,                        // test_images_path (폴더)
 		req.RoiPath,                         // roi_path
 	}
 

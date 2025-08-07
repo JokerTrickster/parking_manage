@@ -84,9 +84,9 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
               <FileUploadView
                 projectId={project.id}
                 fileType="test"
-                onUploadSuccess={(filePath) => {
-                  console.log('테스트 이미지 업로드 성공:', filePath);
-                  viewModel.setSelectedTestPath(filePath);
+                onUploadSuccess={(folderPath) => {
+                  console.log('테스트 이미지 폴더 선택 성공:', folderPath);
+                  viewModel.setSelectedTestPath(folderPath);
                 }}
               />
             </Box>
