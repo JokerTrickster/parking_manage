@@ -16,6 +16,22 @@ definitions:
       varThreshold:
         type: number
     type: object
+  response.CctvImagesData:
+    properties:
+      cctv_id:
+        type: string
+      fg_mask_image:
+        type: string
+      roi_result_image:
+        type: string
+    type: object
+  response.CctvResultInfo:
+    properties:
+      cctv_id:
+        type: string
+      has_images:
+        type: boolean
+    type: object
   response.FolderInfo:
     properties:
       fileCount:
@@ -25,8 +41,35 @@ definitions:
       path:
         type: string
     type: object
+  response.LearningResultsData:
+    properties:
+      cctv_list:
+        items:
+          $ref: '#/definitions/response.CctvResultInfo'
+        type: array
+      timestamp:
+        type: string
+    type: object
+  response.ResCctvImages:
+    properties:
+      data:
+        $ref: '#/definitions/response.CctvImagesData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   response.ResLearning:
     properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  response.ResLearningResults:
+    properties:
+      data:
+        $ref: '#/definitions/response.LearningResultsData'
       message:
         type: string
       success:
@@ -89,6 +132,47 @@ definitions:
 info:
   contact: {}
 paths:
+  /v0.1/parking/{projectId}/{folder}/{cctvId}/images:
+    get:
+      consumes:
+      - application/json
+      description: Gets the ROI result and foreground mask images for a specific CCTV
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Learning result folder
+        in: path
+        name: folder
+        required: true
+        type: string
+      - description: CCTV ID
+        in: path
+        name: cctvId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResCctvImages'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get CCTV Images
+      tags:
+      - parking
   /v0.1/parking/{projectId}/images/roi-folders:
     get:
       consumes:
@@ -241,6 +325,42 @@ paths:
             additionalProperties: true
             type: object
       summary: 학습 실행
+  /v0.1/parking/{projectId}/learning-results/{folder}:
+    get:
+      consumes:
+      - application/json
+      description: Gets the list of CCTV results for a specific learning session
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Learning result folder
+        in: path
+        name: folder
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResLearningResults'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Learning Results
+      tags:
+      - parking
   /v0.1/parking/{projectId}/roi-files:
     post:
       consumes:

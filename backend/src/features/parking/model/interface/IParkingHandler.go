@@ -29,3 +29,11 @@ type IRoiStatsParkingHandler interface {
 type ILearningParkingHandler interface {
 	Learning(c echo.Context) error
 }
+
+type ILearningResultsParkingHandler interface {
+	GetLearningResults(c echo.Context) error
+}
+
+type ICctvImagesParkingHandler interface {
+	GetCctvImages(c echo.Context) error
+}

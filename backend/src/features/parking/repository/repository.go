@@ -29,3 +29,7 @@ type RoiUploadParkingRepository struct {
 type LearningParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type ResultLearningParkingRepository struct {
+	GormDB *gorm.DB
+}

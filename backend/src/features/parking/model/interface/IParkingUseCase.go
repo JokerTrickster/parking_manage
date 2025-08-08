@@ -8,29 +8,41 @@ import (
 )
 
 type ILearningUploadParkingUseCase interface {
-	LearningUpload(c context.Context, projectID string, files []*multipart.FileHeader) (response.ResLearningUpload, error)
+	LearningUpload(ctx context.Context, projectID string, files []*multipart.FileHeader) (response.ResLearningUpload, error)
 }
 
 type ITestUploadParkingUseCase interface {
-	TestUpload(c context.Context, projectID string, files []*multipart.FileHeader) (response.ResTestUpload, error)
+	TestUpload(ctx context.Context, projectID string, files []*multipart.FileHeader) (response.ResTestUpload, error)
 }
 
 type IRoiUploadParkingUseCase interface {
-	RoiUpload(c context.Context, projectID string, files []*multipart.FileHeader) (response.ResRoiUpload, error)
+	RoiUpload(ctx context.Context, projectID string, files []*multipart.FileHeader) (response.ResRoiUpload, error)
 }
 
 type ILearningStatsParkingUseCase interface {
-	GetLearningStats(c context.Context, projectID string) (response.ResLearningStats, error)
+	GetLearningStats(ctx context.Context, projectID string) (response.ResLearningStats, error)
 }
 
 type ITestStatsParkingUseCase interface {
-	GetTestStats(c context.Context, projectID string) (response.ResTestStats, error)
+	GetTestStats(ctx context.Context, projectID string) (response.ResTestStats, error)
 }
 
 type IRoiStatsParkingUseCase interface {
-	GetRoiStats(c context.Context, projectID string) (response.ResRoiStats, error)
+	GetRoiStats(ctx context.Context, projectID string) (response.ResRoiStats, error)
 }
 
 type ILearningParkingUseCase interface {
-	Learning(c context.Context, req request.ReqLearning) (response.ResLearning, error)
+	Learning(ctx context.Context, req request.ReqLearning) (response.ResLearning, error)
+}
+
+type ILearningResultsParkingUseCase interface {
+	GetLearningResults(ctx context.Context, projectID string, timestamp string) (response.ResLearningResults, error)
+}
+
+type ICctvImagesParkingUseCase interface {
+	GetCctvImages(ctx context.Context, projectID string, timestamp string, cctvID string) (response.ResCctvImages, error)
+}
+
+type IResultLearningParkingUseCase interface {
+	ResultLearning(c context.Context) error
 }
