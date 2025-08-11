@@ -9,9 +9,13 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Modal,
+  IconButton,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
+  Close as CloseIcon,
+  ZoomIn as ZoomInIcon,
 } from '@mui/icons-material';
 import { CctvInfo } from '../models/Learning';
 import LearningService from '../services/LearningService';
@@ -30,6 +34,12 @@ interface CctvImages {
   fgMaskImage: string;
 }
 
+interface ModalState {
+  open: boolean;
+  imageUrl: string;
+  imageTitle: string;
+}
+
 const ITEMS_PER_PAGE = 4;
 
 const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
@@ -44,6 +54,11 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
   const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set()); // 이미 로드된 이미지 추적
   const [error, setError] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<ModalState>({
+    open: false,
+    imageUrl: '',
+    imageTitle: '',
+  });
 
   const totalPages = Math.ceil(cctvList.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -142,7 +157,7 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
         loadCctvImages(cctv.cctv_id);
       }
     });
-  }, [currentPage, loadCctvImages, loadedImages]); // loadedImages 의존성 추가
+  }, [currentPage, loadCctvImages]); // loadedImages 의존성 제거하여 무한 루프 방지
 
   // 컴포넌트 언마운트 시 Blob URL 정리
   useEffect(() => {
@@ -162,6 +177,22 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
     setCurrentPage(value);
     // 페이지 변경 시 에러 상태 초기화
     setError(null);
+  };
+
+  const handleImageClick = (imageUrl: string, imageTitle: string) => {
+    setModalState({
+      open: true,
+      imageUrl,
+      imageTitle,
+    });
+  };
+
+  const handleCloseModal = () => {
+    setModalState({
+      open: false,
+      imageUrl: '',
+      imageTitle: '',
+    });
   };
 
   return (
@@ -227,47 +258,104 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
                           </Box>
                         ) : cctvImages.has(cctv.cctv_id) ? (
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box>
-                              <Typography variant="subtitle2" gutterBottom>
-                                ROI 결과 이미지
-                              </Typography>
-                              <img 
-                                src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
-                                alt={`ROI Result - ${cctv.cctv_id}`}
-                                style={{ 
-                                  width: '100%', 
-                                  height: 'auto', 
-                                  maxHeight: '200px', 
-                                  objectFit: 'contain',
-                                  border: '1px solid #e0e0e0',
-                                  borderRadius: '4px'
-                                }}
-                                onError={(e) => {
-                                  console.error(`ROI 이미지 로드 실패: ${cctv.cctv_id}`);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            </Box>
-                            <Box>
-                              <Typography variant="subtitle2" gutterBottom>
-                                Foreground 마스크 이미지
-                              </Typography>
-                              <img 
-                                src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
-                                alt={`Foreground Mask - ${cctv.cctv_id}`}
-                                style={{ 
-                                  width: '100%', 
-                                  height: 'auto', 
-                                  maxHeight: '200px', 
-                                  objectFit: 'contain',
-                                  border: '1px solid #e0e0e0',
-                                  borderRadius: '4px'
-                                }}
-                                onError={(e) => {
-                                  console.error(`FGMask 이미지 로드 실패: ${cctv.cctv_id}`);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
+                            <Typography variant="subtitle2" gutterBottom>
+                              CCTV 이미지
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+                              <Box sx={{ flex: 1, position: 'relative' }}>
+                                <img 
+                                  src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
+                                  alt={`ROI Result - ${cctv.cctv_id}`}
+                                  style={{ 
+                                    width: '100%', 
+                                    height: 'auto', 
+                                    maxHeight: '200px', 
+                                    objectFit: 'contain',
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease-in-out',
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.02)';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                  }}
+                                  onClick={() => handleImageClick(
+                                    cctvImages.get(cctv.cctv_id)?.roiResultImage || '',
+                                    `ROI 결과 - ${cctv.cctv_id}`
+                                  )}
+                                  onError={(e) => {
+                                    console.error(`ROI 이미지 로드 실패: ${cctv.cctv_id}`);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <Box sx={{ 
+                                  position: 'absolute', 
+                                  top: 8, 
+                                  right: 8, 
+                                  backgroundColor: 'rgba(0,0,0,0.5)', 
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 32,
+                                  height: 32,
+                                }}>
+                                  <ZoomInIcon sx={{ color: 'white', fontSize: 16 }} />
+                                </Box>
+                                <Typography variant="caption" display="block" textAlign="center" sx={{ mt: 1 }}>
+                                  ROI 결과
+                                </Typography>
+                              </Box>
+                              <Box sx={{ flex: 1, position: 'relative' }}>
+                                <img 
+                                  src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
+                                  alt={`Foreground Mask - ${cctv.cctv_id}`}
+                                  style={{ 
+                                    width: '100%', 
+                                    height: 'auto', 
+                                    maxHeight: '200px', 
+                                    objectFit: 'contain',
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease-in-out',
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.02)';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                  }}
+                                  onClick={() => handleImageClick(
+                                    cctvImages.get(cctv.cctv_id)?.fgMaskImage || '',
+                                    `Foreground 마스크 - ${cctv.cctv_id}`
+                                  )}
+                                  onError={(e) => {
+                                    console.error(`FGMask 이미지 로드 실패: ${cctv.cctv_id}`);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <Box sx={{ 
+                                  position: 'absolute', 
+                                  top: 8, 
+                                  right: 8, 
+                                  backgroundColor: 'rgba(0,0,0,0.5)', 
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 32,
+                                  height: 32,
+                                }}>
+                                  <ZoomInIcon sx={{ color: 'white', fontSize: 16 }} />
+                                </Box>
+                                <Typography variant="caption" display="block" textAlign="center" sx={{ mt: 1 }}>
+                                  Foreground 마스크
+                                </Typography>
+                              </Box>
                             </Box>
                           </Box>
                         ) : (
@@ -308,6 +396,71 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 이미지 모달 */}
+      <Modal
+        open={modalState.open}
+        onClose={handleCloseModal}
+        aria-labelledby="image-modal-title"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 2,
+        }}
+      >
+        <Box sx={{
+          position: 'relative',
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: 24,
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          overflow: 'hidden',
+        }}>
+          {/* 모달 헤더 */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 2,
+            borderBottom: '1px solid #e0e0e0',
+            bgcolor: 'background.paper',
+          }}>
+            <Typography variant="h6" component="h2">
+              {modalState.imageTitle}
+            </Typography>
+            <IconButton
+              onClick={handleCloseModal}
+              size="large"
+              sx={{ color: 'text.secondary' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          {/* 이미지 컨테이너 */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+            maxHeight: 'calc(90vh - 80px)',
+            overflow: 'auto',
+          }}>
+            <img
+              src={modalState.imageUrl}
+              alt={modalState.imageTitle}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                borderRadius: '4px',
+              }}
+            />
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };

@@ -40,3 +40,8 @@ type ICctvImagesParkingRepository interface {
 
 type IImageParkingRepository interface {
 }
+
+type IHistoryParkingRepository interface {
+	GetHistory(ctx context.Context, projectID string) ([]mysql.ExperimentSessions, error)
+	FindCctvResultByExperimentSessionID(ctx context.Context, experimentSessionID int) ([]string, error)
+}

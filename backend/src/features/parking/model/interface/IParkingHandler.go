@@ -41,3 +41,7 @@ type ICctvImagesParkingHandler interface {
 type IImageParkingHandler interface {
 	GetImage(c echo.Context) error
 }
+
+type IHistoryParkingHandler interface {
+	GetHistory(c echo.Context) error
+}

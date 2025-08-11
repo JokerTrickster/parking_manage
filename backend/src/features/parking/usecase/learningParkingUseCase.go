@@ -110,6 +110,19 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 	if jsonFilename == "" {
 		return false, "JSON 파일명을 찾을 수 없습니다.", ""
 	}
+	// JSON 파일 경로에서 results/ 뒤 폴더명 추출
+	parts := strings.Split(jsonFilename, string(os.PathSeparator))
+	folderName := ""
+	for i, p := range parts {
+		if p == "results" && i+1 < len(parts) {
+			folderName = parts[i+1]
+			break
+		}
+	}
+
+	if folderName == "" {
+		return false, "폴더명을 추출할 수 없습니다.", ""
+	}
 
 	data, err := os.ReadFile(jsonFilename)
 	if err != nil {
@@ -120,8 +133,8 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 	if err := json.Unmarshal(data, &result); err != nil {
 		log.Fatal(err)
 	}
-	// DB 저장 로직
 
+	// DB 저장 로직
 	// gorm 객체 생성 후 저장
 	//ExperimentSession 객체 생성 후 저장
 	experimentSessionDB := mysql.ExperimentSessions{
@@ -131,6 +144,8 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 		LearningPath:  req.LearningPath,
 		TestImagePath: req.TestPath,
 		RoiPath:       req.RoiPath,
+		ProjectId:     req.ProjectID,
+		Name:          folderName,
 	}
 	esID, err := d.Repository.CreateExperimentSession(ctx, experimentSessionDB)
 	if err != nil {

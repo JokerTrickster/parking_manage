@@ -50,3 +50,7 @@ type IResultLearningParkingUseCase interface {
 type IImageParkingUseCase interface {
 	GetImage(ctx context.Context, projectID string, folderPath string, cctvID string, imageType string) (response.ResImage, error)
 }
+
+type IHistoryParkingUseCase interface {
+	GetHistory(ctx context.Context, projectID string) (response.ResHistory, error)
+}

@@ -7,7 +7,8 @@ CREATE TABLE experiment_sessions (
     learning_path TEXT NOT NULL,
     test_image_path TEXT NOT NULL,
     roi_path TEXT NOT NULL,
-    note TEXT,
+    project_id VARCHAR(250) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME

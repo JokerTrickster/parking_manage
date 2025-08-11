@@ -41,6 +41,21 @@ definitions:
       path:
         type: string
     type: object
+  response.HistoryItem:
+    properties:
+      cctv_list:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      folder_path:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   response.LearningResultsData:
     properties:
       cctv_list:
@@ -58,6 +73,13 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  response.ResHistory:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/response.HistoryItem'
+        type: array
     type: object
   response.ResImage:
     properties:
@@ -228,6 +250,37 @@ paths:
             additionalProperties: true
             type: object
       summary: 이미지 불러오기
+      tags:
+      - parking
+  /v0.1/parking/{projectId}/history:
+    get:
+      consumes:
+      - application/json
+      description: Gets the learning history for a project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResHistory'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Learning History
       tags:
       - parking
   /v0.1/parking/{projectId}/images/roi-folders:

@@ -12,7 +12,8 @@ type ExperimentSessions struct {
 	LearningPath  string  `json:"learning_path" gorm:"column:learning_path"`
 	TestImagePath string  `json:"test_image_path" gorm:"column:test_image_path"`
 	RoiPath       string  `json:"roi_path" gorm:"column:roi_path"`
-	Note          string  `json:"note" gorm:"column:note"`
+	Name          string  `json:"name" gorm:"column:name"`
+	ProjectId     string  `json:"project_id" gorm:"column:project_id"`
 }
 
 type CctvResults struct {
