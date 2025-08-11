@@ -38,11 +38,14 @@ func (d *HistoryParkingUseCase) GetHistory(ctx context.Context, projectID string
 		resultPath += "/" + item.Name
 
 		historyItem := response.HistoryItem{
-			Id:         int(item.ID),
-			Name:       item.Name,
-			CreatedAt:  item.CreatedAt.Format(time.RFC3339),
-			FolderPath: resultPath,
-			CctvList:   cctvResults,
+			Id:           int(item.ID),
+			Name:         item.Name,
+			CreatedAt:    item.CreatedAt.Format(time.RFC3339),
+			FolderPath:   resultPath,
+			Epoch:        int(item.Iterations),
+			LearningRate: item.LearningRate,
+			VarThreshold: item.VarThreshold,
+			CctvList:     cctvResults,
 		}
 
 		historyItems = append(historyItems, historyItem)

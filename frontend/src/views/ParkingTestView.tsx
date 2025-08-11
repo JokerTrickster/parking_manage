@@ -293,9 +293,22 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
                               </Box>
                             }
                             secondary={
-                              <Typography variant="body2" color="text.secondary">
-                                {new Date(item.created_at).toLocaleString('ko-KR')}
-                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  {new Date(item.created_at).toLocaleString('ko-KR')}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Var Threshold: {item.varThreshold}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Learning Rate: {item.learningRate}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Epoch: {item.epoch}
+                                  </Typography>
+                                </Box>
+                              </Box>
                             }
                           />
                         </ListItemButton>

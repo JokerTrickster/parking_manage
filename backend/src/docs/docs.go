@@ -830,14 +830,23 @@ const docTemplate_swagger = `{
                 "created_at": {
                     "type": "string"
                 },
+                "epoch": {
+                    "type": "integer"
+                },
                 "folder_path": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
+                "learning_rate": {
+                    "type": "number"
+                },
                 "name": {
                     "type": "string"
+                },
+                "var_threshold": {
+                    "type": "number"
                 }
             }
         },
