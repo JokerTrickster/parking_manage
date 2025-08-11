@@ -36,13 +36,17 @@ type ILearningParkingUseCase interface {
 }
 
 type ILearningResultsParkingUseCase interface {
-	GetLearningResults(ctx context.Context, projectID string, timestamp string) (response.ResLearningResults, error)
+	GetLearningResults(ctx context.Context, projectID string, folderPath string) (response.ResLearningResults, error)
 }
 
 type ICctvImagesParkingUseCase interface {
-	GetCctvImages(ctx context.Context, projectID string, timestamp string, cctvID string) (response.ResCctvImages, error)
+	GetCctvImages(ctx context.Context, projectID string, folderPath string, cctvID string) (response.ResCctvImages, error)
 }
 
 type IResultLearningParkingUseCase interface {
 	ResultLearning(c context.Context) error
+}
+
+type IImageParkingUseCase interface {
+	GetImage(ctx context.Context, projectID string, folderPath string, cctvID string, imageType string) (response.ResImage, error)
 }

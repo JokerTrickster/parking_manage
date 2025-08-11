@@ -20,6 +20,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	learningRepo := repository.NewLearningParkingRepository(mysql.GormMysqlDB)
 	learningResultsRepo := repository.NewLearningResultsParkingRepository()
 	cctvImagesRepo := repository.NewCctvImagesParkingRepository()
+	imageRepo := repository.NewImageParkingRepository(mysql.GormMysqlDB)
 
 	// UseCase 초기화
 	learningUploadUseCase := usecase.NewLearningUploadParkingUseCase(learningUploadRepo, 30*time.Second)
@@ -31,6 +32,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	learningUseCase := usecase.NewLearningParkingUseCase(learningRepo, 300*time.Second)
 	learningResultsUseCase := usecase.NewLearningResultsParkingUseCase(learningResultsRepo, 30*time.Second)
 	cctvImagesUseCase := usecase.NewCctvImagesParkingUseCase(cctvImagesRepo, 30*time.Second)
+	imageUseCase := usecase.NewImageParkingUseCase(imageRepo, 30*time.Second)
 
 	// Handler 초기화
 	NewLearningUploadParkingHandler(e, learningUploadUseCase)
@@ -41,6 +43,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	NewRoiStatsParkingHandler(e, roiStatsUseCase)
 	NewLearningParkingHandler(e, learningUseCase)
 	NewLearningResultsParkingHandler(e, learningResultsUseCase)
+	NewImageParkingHandler(e, imageUseCase)
 	NewCctvImagesParkingHandler(e, cctvImagesUseCase)
 	return nil
 }

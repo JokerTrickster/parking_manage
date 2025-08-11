@@ -51,7 +51,7 @@ func (d *CctvImagesParkingHandler) GetCctvImages(c echo.Context) error {
 	if folder == "" {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
-			"message": "timestamp is required",
+			"message": "folder is required",
 		})
 	}
 

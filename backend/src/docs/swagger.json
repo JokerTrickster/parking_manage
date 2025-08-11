@@ -406,6 +406,73 @@
                 }
             }
         },
+        "/v0.1/parking/{projectId}/{folderPath}/{cctvId}/images/{imageType}": {
+            "get": {
+                "description": "Gets a specific image (roi_result or fgmask) for a CCTV",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "parking"
+                ],
+                "summary": "이미지 불러오기",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Learning result folder path",
+                        "name": "folderPath",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CCTV ID",
+                        "name": "cctvId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image type (roi_result or fgmask)",
+                        "name": "imageType",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResImage"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/{folder}/{cctvId}/images": {
             "get": {
                 "description": "Gets the ROI result and foreground mask images for a specific CCTV",
@@ -561,14 +628,31 @@
                 }
             }
         },
-        "response.ResLearning": {
+        "response.ResImage": {
             "type": "object",
             "properties": {
+                "content_type": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "message": {
                     "type": "string"
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "response.ResLearning": {
+            "type": "object",
+            "properties": {
+                "folder_path": {
+                    "type": "string"
                 }
             }
         },

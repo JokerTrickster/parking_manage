@@ -20,7 +20,7 @@ func NewCctvImagesParkingUseCase(repo _interface.ICctvImagesParkingRepository, t
 	return &CctvImagesParkingUseCase{Repository: repo, ContextTimeout: timeout}
 }
 
-func (d *CctvImagesParkingUseCase) GetCctvImages(ctx context.Context, projectID string, timestamp string, cctvID string) (response.ResCctvImages, error) {
+func (d *CctvImagesParkingUseCase) GetCctvImages(ctx context.Context, projectID string, folderPath string, cctvID string) (response.ResCctvImages, error) {
 	_, cancel := context.WithTimeout(ctx, d.ContextTimeout)
 	defer cancel()
 
@@ -34,7 +34,7 @@ func (d *CctvImagesParkingUseCase) GetCctvImages(ctx context.Context, projectID 
 	}
 
 	// CCTV 폴더 경로 구성 (절대 경로 사용)
-	cctvPath := filepath.Join(currentDir, "..", "..", "shared", projectID, "results", timestamp, cctvID)
+	cctvPath := filepath.Join(currentDir, "..", "..", "shared", projectID, "results", folderPath, cctvID)
 
 	// 디버깅을 위한 로그 출력
 	fmt.Printf("Current directory: %s\n", currentDir)
@@ -68,8 +68,8 @@ func (d *CctvImagesParkingUseCase) GetCctvImages(ctx context.Context, projectID 
 	}
 
 	// 이미지 URL 구성 (정적 파일 서빙을 통해 접근)
-	roiImageURL := fmt.Sprintf("/results/%s/results/%s/%s/roi_result.jpg", projectID, timestamp, cctvID)
-	fgMaskImageURL := fmt.Sprintf("/results/%s/results/%s/%s/fgmask.jpg", projectID, timestamp, cctvID)
+	roiImageURL := fmt.Sprintf("../../shared/%s/results/%s/%s/roi_result.jpg", projectID, folderPath, cctvID)
+	fgMaskImageURL := fmt.Sprintf("../../shared/%s/results/%s/%s/fgmask.jpg", projectID, folderPath, cctvID)
 
 	return response.ResCctvImages{
 		Success: true,

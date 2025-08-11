@@ -1,6 +1,6 @@
 import { Project, ProjectStats } from '../models/Project';
 import { ParkingTestRequest, ParkingTestResponse } from '../models/ParkingTest';
-import { LearningRequest, LearningResponse, LearningResultsData, LearningStatistics } from '../models/Learning';
+import { LearningRequest, LearningResponse, LearningResultsData, LearningResultsResponse } from '../models/Learning';
 import { ProjectService } from '../services/ProjectService';
 import { ParkingTestService } from '../services/ParkingTestService';
 import LearningService from '../services/LearningService';
@@ -14,13 +14,14 @@ export interface ParkingTestState {
   testResult: ParkingTestResponse | null;
   learningResult: LearningResponse | null;
   learningResultsData: LearningResultsData | null;
-  learningStatistics: LearningStatistics | null;
   showResults: boolean;
   error: string | null;
   // 선택된 파일/폴더 경로
   selectedLearningPath: string;
   selectedTestPath: string;
   selectedRoiPath: string;
+  // 최근 학습 정보
+  lastLearningFolderPath: string | null;
 }
 
 export class ParkingTestViewModel {
@@ -79,7 +80,6 @@ export class ParkingTestViewModel {
         error: null, 
         learningResult: null,
         learningResultsData: null,
-        learningStatistics: null,
         showResults: false
       }));
 
@@ -95,17 +95,20 @@ export class ParkingTestViewModel {
 
       const response = await LearningService.executeLearning(request);
       
-      if (response.success) {
+      if (response.folder_path) {
+        // 전체 경로에서 폴더명만 추출
+        const folderName = this.extractFolderName(response.folder_path);
+        
         this._setState(prev => ({ 
           ...prev, 
           learningResult: response, 
+          lastLearningFolderPath: folderName,
           loading: false 
         }));
-        await this.loadLearningResults(); // Load results after successful learning
       } else {
         this._setState(prev => ({
           ...prev,
-          error: response.message || '학습 실행 중 오류가 발생했습니다.',
+          error: '학습 실행 중 오류가 발생했습니다.',
           loading: false,
         }));
       }
@@ -118,73 +121,41 @@ export class ParkingTestViewModel {
     }
   }
 
-  async loadLearningResults(): Promise<void> {
+  async loadLearningResults(folderPath: string): Promise<LearningResultsData | null> {
     try {
       // 결과 데이터 로드
-      const resultsData = await LearningService.getLearningResults(this._project.id, this.getCurrentTimestamp());
+      const response = await LearningService.getLearningResults(this._project.id, folderPath);
       
-      // 통계 계산
-      const statistics = this.calculateStatistics(resultsData);
-      
-      this._setState(prev => ({
-        ...prev,
-        learningResultsData: resultsData,
-        learningStatistics: statistics,
-        showResults: true
-      }));
+      if (response.success) {
+        this._setState(prev => ({
+          ...prev,
+          learningResultsData: response.data,
+          showResults: true
+        }));
+        return response.data;
+      } else {
+        this._setState(prev => ({
+          ...prev,
+          error: response.message || '학습 결과를 불러오는데 실패했습니다.'
+        }));
+        return null;
+      }
     } catch (error) {
       console.error('학습 결과 로드 실패:', error);
       this._setState(prev => ({
         ...prev,
         error: '학습 결과를 불러오는데 실패했습니다.'
       }));
+      return null;
     }
   }
 
-  private calculateStatistics(resultsData: LearningResultsData): LearningStatistics {
-    const cctvStats = new Map<string, { learningImages: number; roiCount: number; vehicleCount: number }>();
-    
-    resultsData.results.forEach(result => {
-      const cctvId = result.cctv_id;
-      const currentStats = cctvStats.get(cctvId) || { learningImages: 0, roiCount: 0, vehicleCount: 0 };
-      
-      // ROI 개수 추가
-      currentStats.roiCount += result.roi_results.length;
-      
-      // 차량이 있는 ROI 개수 계산 (foreground_ratio >= 0.4)
-      const vehicleRois = result.roi_results.filter(roi => roi.foreground_ratio >= 0.4);
-      currentStats.vehicleCount += vehicleRois.length;
-      
-      cctvStats.set(cctvId, currentStats);
-    });
 
-    const totalTests = resultsData.total_tests;
-    const totalRois = Array.from(cctvStats.values()).reduce((sum, stats) => sum + stats.roiCount, 0);
-    const totalVehicles = Array.from(cctvStats.values()).reduce((sum, stats) => sum + stats.vehicleCount, 0);
 
-    return {
-      totalTests,
-      totalRois,
-      totalVehicles,
-      cctvStats: Array.from(cctvStats.entries()).map(([cctvId, stats]) => ({
-        cctvId,
-        learningImages: stats.learningImages,
-        roiCount: stats.roiCount,
-        vehicleCount: stats.vehicleCount
-      }))
-    };
+  private extractFolderName(fullPath: string): string {
+    // 경로에서 마지막 폴더명만 추출
+    const pathParts = fullPath.split('/');
+    return pathParts[pathParts.length - 1];
   }
 
-  private getCurrentTimestamp(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
-    
-    return `${year}${month}${day}_${hours}${minutes}${seconds}_${milliseconds}`;
-  }
 } 

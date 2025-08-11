@@ -2,9 +2,9 @@
 export const API_CONFIG = {
   // 개발 환경
   development: {
-    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://192.168.0.84:8080',
-    UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://192.168.0.84:8080/v0.1/parking',
-    SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://192.168.0.84:8080/swagger/index.html'
+    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://172.16.32.109:8080',
+    UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://172.16.32.109:8080/v0.1/parking',
+    SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://172.16.32.109:8080/swagger/index.html'
   },
   // 프로덕션 환경
   production: {
@@ -44,6 +44,9 @@ export const API_ENDPOINTS = {
   
   // 학습 실행 관련
   LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/learning`,
+  
+  // 학습 결과 조회 관련
+  LEARNING_RESULTS: (projectId: string, folderPath: string) => `/v0.1/parking/${projectId}/learning-results/${folderPath}`,
   
   // Swagger
   SWAGGER: '/swagger/index.html'

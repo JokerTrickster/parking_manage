@@ -3,13 +3,21 @@ import LayoutView from './views/LayoutView';
 import ProjectSelectionView from './views/ProjectSelectionView';
 import DashboardView from './views/DashboardView';
 import ParkingTestView from './views/ParkingTestView';
+import LearningResultsPage from './views/LearningResultsPage';
 import { Project } from './models/Project';
+import { CctvInfo } from './models/Learning';
 
-type Page = 'project-selection' | 'dashboard' | 'parking-test' | 'roi-work' | 'live-parking' | 'learning-data';
+type Page = 'project-selection' | 'dashboard' | 'parking-test' | 'learning-results' | 'roi-work' | 'live-parking' | 'learning-data';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('project-selection');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [learningResultsData, setLearningResultsData] = useState<{
+    projectId: string;
+    folderPath: string;
+    cctvList: CctvInfo[];
+    timestamp: string;
+  } | null>(null);
 
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
@@ -27,6 +35,17 @@ function App() {
 
   const handleBackToDashboard = () => {
     setCurrentPage('dashboard');
+  };
+
+  const handleShowLearningResults = (projectId: string, folderPath: string, cctvList: CctvInfo[], timestamp: string) => {
+    console.log('handleShowLearningResults 호출됨:', { projectId, folderPath, cctvList, timestamp });
+    setLearningResultsData({ projectId, folderPath, cctvList, timestamp });
+    setCurrentPage('learning-results');
+    console.log('페이지를 learning-results로 변경함');
+  };
+
+  const handleBackToParkingTest = () => {
+    setCurrentPage('parking-test');
   };
 
   const renderCurrentPage = () => {
@@ -48,6 +67,18 @@ function App() {
           <ParkingTestView
             project={selectedProject}
             onBack={handleBackToDashboard}
+            onShowLearningResults={handleShowLearningResults}
+          />
+        ) : null;
+      
+      case 'learning-results':
+        return learningResultsData ? (
+          <LearningResultsPage
+            projectId={learningResultsData.projectId}
+            folderPath={learningResultsData.folderPath}
+            cctvList={learningResultsData.cctvList}
+            timestamp={learningResultsData.timestamp}
+            onBack={handleBackToParkingTest}
           />
         ) : null;
       

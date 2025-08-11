@@ -35,8 +35,7 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return response.ResLearning{
-			Success: false,
-			Message: "현재 디렉토리 조회 실패: " + err.Error(),
+			FolderPath: "",
 		}, nil
 	}
 
@@ -51,30 +50,27 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 
 	if _, err := os.Stat(opencvPath); os.IsNotExist(err) {
 		return response.ResLearning{
-			Success: false,
-			Message: "OpenCV 실행 파일을 찾을 수 없습니다: " + opencvPath,
+			FolderPath: "",
 		}, nil
 	}
 
 	// 입력 파일 경로들 확인
 	if err := validatePaths(req); err != nil {
 		return response.ResLearning{
-			Success: false,
-			Message: "입력 파일 경로 검증에 실패했습니다: " + err.Error(),
+			FolderPath: "",
 		}, nil
 	}
 
 	// OpenCV 실행
-	success, message := d.executeOpenCV(c, req, backendDir)
-
+	success, message, resultPath := d.executeOpenCV(c, req, backendDir)
+	fmt.Println(success, message)
 	return response.ResLearning{
-		Success: success,
-		Message: message,
+		FolderPath: resultPath,
 	}, nil
 }
 
 // OpenCV 실행
-func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.ReqLearning, backendDir string) (bool, string) {
+func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.ReqLearning, backendDir string) (bool, string, string) {
 	opencvPath := filepath.Join(backendDir, "opencv", "build", "main")
 
 	// OpenCV 실행 명령어 구성 (새로운 파라미터 순서)
@@ -95,7 +91,7 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 	// 실행 결과 캡처
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, fmt.Sprintf("OpenCV 실행 실패: %v\n출력: %s", err, string(output))
+		return false, fmt.Sprintf("OpenCV 실행 실패: %v\n출력: %s", err, string(output)), ""
 	}
 
 	outputStr := string(output)
@@ -112,12 +108,12 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 	}
 
 	if jsonFilename == "" {
-		return false, "JSON 파일명을 찾을 수 없습니다."
+		return false, "JSON 파일명을 찾을 수 없습니다.", ""
 	}
 
 	data, err := os.ReadFile(jsonFilename)
 	if err != nil {
-		return false, fmt.Sprintf("JSON 파일 읽기 실패: %v", err)
+		return false, fmt.Sprintf("JSON 파일 읽기 실패: %v", err), ""
 	}
 
 	var result entity.ExperimentResult
@@ -138,7 +134,7 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 	}
 	esID, err := d.Repository.CreateExperimentSession(ctx, experimentSessionDB)
 	if err != nil {
-		return false, fmt.Sprintf("실험 세션 생성 실패: %v", err)
+		return false, fmt.Sprintf("실험 세션 생성 실패: %v", err), ""
 	}
 	// CctvResult 객체 생성 후 저장
 	for _, cctvResult := range result.Results {
@@ -149,7 +145,7 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 		}
 		crID, err := d.Repository.CreateCctvResult(ctx, cctvResultDB)
 		if err != nil {
-			return false, fmt.Sprintf("CctvResult 생성 실패: %v", err)
+			return false, fmt.Sprintf("CctvResult 생성 실패: %v", err), ""
 		}
 		// RoiResult 객체 생성 후 저장
 		for _, roiResult := range cctvResult.RoiResults {
@@ -160,10 +156,12 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 			}
 			err = d.Repository.CreateRoiResult(ctx, roiResultDB)
 			if err != nil {
-				return false, fmt.Sprintf("RoiResult 생성 실패: %v", err)
+				return false, fmt.Sprintf("RoiResult 생성 실패: %v", err), ""
 			}
 		}
 	}
 
-	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result)
+	// JSON 파일의 디렉토리 경로 반환
+	resultDir := filepath.Dir(jsonFilename)
+	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result), resultDir
 }

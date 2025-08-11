@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -8,24 +8,11 @@ import {
   TextField,
   Alert,
   CircularProgress,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Divider,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
   PlayArrow as StartIcon,
   Visibility as ViewResultsIcon,
-  ExpandMore as ExpandMoreIcon,
   CheckCircle as SuccessIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
@@ -36,9 +23,10 @@ import FileUploadView from './FileUploadView';
 interface ParkingTestViewProps {
   project: Project;
   onBack: () => void;
+  onShowLearningResults?: (projectId: string, folderPath: string, cctvList: any[], timestamp: string) => void;
 }
 
-const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) => {
+const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onShowLearningResults }) => {
   const [state, setState] = useState<ParkingTestState>({
     loading: false,
     stats: null,
@@ -48,30 +36,54 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
     testResult: null,
     learningResult: null,
     learningResultsData: null,
-    learningStatistics: null,
     showResults: false,
     error: null,
     selectedLearningPath: '',
     selectedTestPath: '',
     selectedRoiPath: '',
+    lastLearningFolderPath: null,
   });
 
   const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project.id]);
 
+  const loadStats = useCallback(() => {
+    viewModel.loadProjectStats();
+  }, [viewModel]);
+
   useEffect(() => {
     // 한 번만 호출
-    viewModel.loadProjectStats();
-  }, []); // 빈 배열로 한 번만 실행
+    loadStats();
+  }, [loadStats]); // loadStats 의존성 추가
 
   const handleStartLearning = async () => {
     await viewModel.startLearning(state);
-    if (state.learningResult?.success) {
-      await viewModel.loadLearningResults();
-    }
   };
 
-  const handleViewResults = () => {
-    setState(prev => ({ ...prev, showResults: !prev.showResults }));
+  const handleViewResults = async () => {
+    console.log('학습 결과 보기 버튼 클릭됨');
+    
+    if (state.lastLearningFolderPath) {
+      try {
+        // 결과 데이터 로드 (이미 있으면 재사용)
+        const resultsData = state.learningResultsData || await viewModel.loadLearningResults(state.lastLearningFolderPath);
+        
+        if (resultsData && onShowLearningResults) {
+          console.log('새로운 페이지로 이동:', resultsData);
+          onShowLearningResults(
+            project.id,
+            state.lastLearningFolderPath,
+            resultsData.cctv_list,
+            resultsData.timestamp
+          );
+        } else {
+          console.log('결과 데이터가 없거나 onShowLearningResults가 없음');
+        }
+      } catch (error) {
+        console.error('학습 결과 로드 실패:', error);
+      }
+    } else {
+      console.log('lastLearningFolderPath가 없음');
+    }
   };
 
   const handleRefreshStats = () => {
@@ -185,11 +197,14 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                   {state.loading ? '학습 중...' : '학습 시작'}
                 </Button>
 
-                {state.learningResult?.success && (
+                {state.learningResult?.folder_path && (
                   <Button
                     variant="outlined"
                     startIcon={<ViewResultsIcon />}
-                    onClick={handleViewResults}
+                    onClick={() => {
+                      console.log('버튼 클릭됨!');
+                      handleViewResults();
+                    }}
                     sx={{ mt: 2 }}
                     fullWidth
                   >
@@ -218,68 +233,9 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
                   </Button>
                 </Box>
                 
-                {state.learningStatistics && (
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h4" color="primary">
-                          {state.learningStatistics.totalTests}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          테스트 이미지
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h4" color="secondary">
-                          {state.learningStatistics.totalRois}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          ROI 체크 수
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h4" color="success.main">
-                          {state.learningStatistics.totalVehicles}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          차량 유무 수
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    <Typography variant="subtitle2" gutterBottom>
-                      CCTV별 상세 통계
-                    </Typography>
-                    <TableContainer component={Paper} variant="outlined">
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>CCTV ID</TableCell>
-                            <TableCell align="right">ROI 수</TableCell>
-                            <TableCell align="right">차량 수</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {state.learningStatistics.cctvStats.map((stat) => (
-                            <TableRow key={stat.cctvId}>
-                              <TableCell>{stat.cctvId}</TableCell>
-                              <TableCell align="right">{stat.roiCount}</TableCell>
-                              <TableCell align="right">{stat.vehicleCount}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
-                )}
-
-                {!state.learningStatistics && (
-                  <Typography variant="body2" color="text.secondary">
-                    학습을 완료하면 통계가 표시됩니다.
-                  </Typography>
-                )}
+                <Typography variant="body2" color="text.secondary">
+                  학습을 완료하면 결과를 확인할 수 있습니다.
+                </Typography>
               </CardContent>
             </Card>
           </Box>
@@ -293,7 +249,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
         )}
 
         {/* 학습 완료 메시지 */}
-        {state.learningResult?.success && (
+        {state.learningResult?.folder_path && (
           <Alert severity="success" sx={{ mt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <SuccessIcon />
@@ -302,63 +258,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) =>
           </Alert>
         )}
 
-        {/* 학습 결과 상세 보기 */}
-        {state.showResults && state.learningResultsData && (
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                학습 결과 상세
-              </Typography>
-              
-              {state.learningResultsData.results.map((result, index) => (
-                <Accordion key={index} sx={{ mb: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                        {result.test_image_name}
-                      </Typography>
-                      <Chip 
-                        label={result.cctv_id} 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined" 
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {result.roi_results.length}개 ROI
-                      </Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        ROI별 Foreground 비율
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {result.roi_results.map((roi, roiIndex) => (
-                          <Card variant="outlined" key={roiIndex} sx={{ flex: '1 1 150px' }}>
-                            <CardContent sx={{ py: 1, px: 2 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2">
-                                  ROI {roi.roi_index}
-                                </Typography>
-                                <Chip 
-                                  label={`${(roi.foreground_ratio * 100).toFixed(1)}%`}
-                                  size="small"
-                                  color={roi.foreground_ratio >= 0.4 ? 'success' : 'default'}
-                                  variant={roi.foreground_ratio >= 0.4 ? 'filled' : 'outlined'}
-                                />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </Box>
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+
       </Box>
     </Box>
   );

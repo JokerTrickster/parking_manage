@@ -6,6 +6,7 @@ import (
 
 	_interface "main/features/parking/model/interface"
 	"main/features/parking/model/request"
+	"main/features/parking/model/response"
 
 	"github.com/labstack/echo/v4"
 )
@@ -37,35 +38,31 @@ func (d *LearningParkingHandler) Learning(c echo.Context) error {
 	// 프로젝트 ID 가져오기
 	projectID := c.Param("projectId")
 	if projectID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "프로젝트 ID가 필요합니다.",
+		return c.JSON(http.StatusBadRequest, response.ResLearning{
+			FolderPath: "",
 		})
 	}
 
 	// 요청 데이터 파싱
 	var req request.ReqLearning
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "요청 데이터 파싱에 실패했습니다: " + err.Error(),
+		return c.JSON(http.StatusBadRequest, response.ResLearning{
+			FolderPath: "",
 		})
 	}
 
 	// 파라미터 검증
 	if err := validateLearningRequest(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "파라미터 검증에 실패했습니다: " + err.Error(),
+		return c.JSON(http.StatusBadRequest, response.ResLearning{
+			FolderPath: "",
 		})
 	}
 
 	// UseCase 호출
 	result, err := d.UseCase.Learning(c.Request().Context(), req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"success": false,
-			"message": "학습 실행 중 오류가 발생했습니다: " + err.Error(),
+		return c.JSON(http.StatusInternalServerError, response.ResLearning{
+			FolderPath: "",
 		})
 	}
 

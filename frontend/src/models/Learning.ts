@@ -9,8 +9,7 @@ export interface LearningRequest {
 }
 
 export interface LearningResponse {
-  success: boolean;
-  message: string;
+  folder_path: string;
 }
 
 export interface LearningResult {
@@ -42,6 +41,17 @@ export interface LearningStatistics {
 }
 
 export interface LearningResultsData {
-  results: LearningResult[];
-  total_tests: number;
+  timestamp: string;
+  cctv_list: CctvInfo[];
+}
+
+export interface CctvInfo {
+  cctv_id: string;
+  has_images: boolean;
+}
+
+export interface LearningResultsResponse {
+  success: boolean;
+  message: string;
+  data: LearningResultsData;
 } 
