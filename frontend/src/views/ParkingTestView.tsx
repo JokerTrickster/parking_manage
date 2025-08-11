@@ -20,7 +20,6 @@ import {
   Visibility as ViewResultsIcon,
   CheckCircle as SuccessIcon,
   Refresh as RefreshIcon,
-  History as HistoryIcon,
 } from '@mui/icons-material';
 import { Project } from '../models/Project';
 import { ParkingTestViewModel, ParkingTestState } from '../viewmodels/ParkingTestViewModel';
@@ -54,7 +53,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project.id]);
+  const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project, state]);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);

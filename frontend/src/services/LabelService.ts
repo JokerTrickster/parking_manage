@@ -1,12 +1,12 @@
 import { apiConfig } from '../config/api';
-import { LabelResponse, SaveLabelRequest } from '../models/Label';
+import { GetLabelResponse, SaveLabelRequest, SaveLabelResponse } from '../models/Label';
 
 class LabelService {
   private api = apiConfig;
 
-  async getLabels(projectId: string, folderPath: string): Promise<LabelResponse> {
+  async getLabels(projectId: string, folderPath: string, cctvId: string): Promise<GetLabelResponse> {
     try {
-      const response = await fetch(`${this.api.BASE_URL}/v0.1/parking/${projectId}/labels/${folderPath}`);
+      const response = await fetch(`${this.api.BASE_URL}/v0.1/parking/${projectId}/labels/${folderPath}/${cctvId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -17,14 +17,14 @@ class LabelService {
     }
   }
 
-  async saveLabels(request: SaveLabelRequest): Promise<LabelResponse> {
+  async saveLabels(projectId: string, folderPath: string, cctvId: string, request: SaveLabelRequest): Promise<SaveLabelResponse> {
     try {
-      const response = await fetch(`${this.api.BASE_URL}/v0.1/parking/${request.projectId}/labels/${request.folderPath}`, {
+      const response = await fetch(`${this.api.BASE_URL}/v0.1/parking/${projectId}/labels/${folderPath}/${cctvId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request.imageLabels),
+        body: JSON.stringify(request),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

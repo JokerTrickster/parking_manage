@@ -3,20 +3,16 @@ export interface LabelData {
   has_vehicle: boolean;
 }
 
-export interface ImageLabel {
-  image_id: string;
-  image_url: string;
-  labels: LabelData[];
-}
-
-export interface LabelResponse {
+export interface GetLabelResponse {
   success: boolean;
   message: string;
-  data?: ImageLabel[];
+  data?: LabelData[];
 }
 
 export interface SaveLabelRequest {
-  projectId: string;
-  folderPath: string;
-  imageLabels: ImageLabel[];
+  labels: LabelData[];
+}
+
+export interface SaveLabelResponse {
+  labels: LabelData[];
 }

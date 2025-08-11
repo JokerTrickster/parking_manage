@@ -42,12 +42,12 @@ func (d *LabelGetParkingUseCase) GetLabels(ctx context.Context, projectID string
 	}
 
 	// JSON 파싱
-	var imageLabels []response.GetLabelData
-	if err := json.Unmarshal(data, &imageLabels); err != nil {
+	var labels []response.GetLabelData
+	if err := json.Unmarshal(data, &labels); err != nil {
 		return response.ResGetLabel{}, nil
 	}
 
 	return response.ResGetLabel{
-		Labels: imageLabels,
+		Labels: labels,
 	}, nil
 }

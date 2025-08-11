@@ -20,7 +20,6 @@ import {
 } from '@mui/icons-material';
 import { CctvInfo } from '../models/Learning';
 import LabelDataModal from '../components/LabelDataModal';
-import LearningService from '../services/LearningService';
 import { apiConfig } from '../config/api';
 
 interface LearningResultsPageProps {
@@ -128,7 +127,7 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
         loadCctvImages(cctv.cctv_id);
       }
     });
-  }, [currentPage, loadCctvImages]); // loadedImages 의존성 제거하여 무한 루프 방지
+  }, [currentPage, loadCctvImages, currentCctvList, loadedImages, imageErrors]);
 
 
 

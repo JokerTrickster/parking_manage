@@ -56,19 +56,16 @@ const LabelDataModal: React.FC<LabelDataModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await LabelService.getLabels(projectId, folderPath);
+      const response = await LabelService.getLabels(projectId, folderPath, cctvId);
       if (response.success && response.data) {
-        const imageLabel = response.data.find(img => img.image_id === cctvId);
-        if (imageLabel) {
-          setLabels(imageLabel.labels);
-        } else {
-          setLabels([]);
-        }
+        setLabels(response.data);
       } else {
+        // 데이터가 없으면 빈 배열로 초기화
         setLabels([]);
       }
     } catch (error) {
       console.error('라벨 데이터 로드 실패:', error);
+      setError('라벨 데이터를 불러오는데 실패했습니다.');
       setLabels([]);
     } finally {
       setLoading(false);
@@ -99,24 +96,14 @@ const LabelDataModal: React.FC<LabelDataModalProps> = ({
     setSuccess(null);
 
     try {
-      const response = await LabelService.saveLabels({
-        projectId,
-        folderPath,
-        imageLabels: [{
-          image_id: cctvId,
-          image_url: roiResultImageUrl,
-          labels: labels,
-        }],
+      const response = await LabelService.saveLabels(projectId, folderPath, cctvId, {
+        labels: labels,
       });
 
-      if (response.success) {
-        setSuccess('라벨 데이터가 성공적으로 저장되었습니다.');
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        setError(response.message || '저장에 실패했습니다.');
-      }
+      setSuccess('라벨 데이터가 성공적으로 저장되었습니다.');
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error('라벨 데이터 저장 실패:', error);
       setError('라벨 데이터 저장에 실패했습니다.');
@@ -265,7 +252,7 @@ const LabelDataModal: React.FC<LabelDataModalProps> = ({
                                 onChange={(e) => handleLabelChange(index, 'has_vehicle', e.target.checked)}
                               />
                             }
-                            label="차량 유무"
+                            label="차량 있음"
                           />
                         </Box>
                       ))}
