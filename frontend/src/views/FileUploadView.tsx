@@ -38,7 +38,7 @@ interface FileUploadViewProps {
 const FileUploadView: React.FC<FileUploadViewProps> = ({ 
   projectId, 
   fileType, 
-  onUploadSuccess 
+  onUploadSuccess
 }) => {
   const [state, setState] = useState<FileUploadState>({
     selectedFile: null,
@@ -193,6 +193,7 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({
                 <Typography variant="caption" color="text.secondary">
                   경로: {viewModel.selectedExistingFolder.path}
                 </Typography>
+
               </Alert>
             )}
           </Box>

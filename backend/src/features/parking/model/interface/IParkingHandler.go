@@ -45,3 +45,11 @@ type IImageParkingHandler interface {
 type IHistoryParkingHandler interface {
 	GetHistory(c echo.Context) error
 }
+
+type ILabelGetParkingHandler interface {
+	GetLabels(c echo.Context) error
+}
+
+type ILabelSaveParkingHandler interface {
+	SaveLabels(c echo.Context) error
+}

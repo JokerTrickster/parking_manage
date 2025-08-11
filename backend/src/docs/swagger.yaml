@@ -1,4 +1,18 @@
 definitions:
+  request.LabelData:
+    properties:
+      has_vehicle:
+        type: boolean
+      roi_id:
+        type: string
+    type: object
+  request.ReqLabelSave:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/request.LabelData'
+        type: array
+    type: object
   request.ReqLearning:
     properties:
       iterations:
@@ -41,6 +55,13 @@ definitions:
       path:
         type: string
     type: object
+  response.GetLabelData:
+    properties:
+      has_vehicle:
+        type: boolean
+      roi_id:
+        type: string
+    type: object
   response.HistoryItem:
     properties:
       cctv_list:
@@ -73,6 +94,13 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  response.ResGetLabel:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/response.GetLabelData'
+        type: array
     type: object
   response.ResHistory:
     properties:
@@ -144,6 +172,13 @@ definitions:
       total_files:
         type: integer
     type: object
+  response.ResSaveLabel:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/response.SaveLabelData'
+        type: array
+    type: object
   response.ResTestStats:
     properties:
       folders:
@@ -161,6 +196,13 @@ definitions:
         type: integer
       total_files:
         type: integer
+    type: object
+  response.SaveLabelData:
+    properties:
+      has_vehicle:
+        type: boolean
+      roi_id:
+        type: string
     type: object
 info:
   contact: {}
@@ -400,6 +442,93 @@ paths:
       summary: 학습 이미지 폴더 통계 조회
       tags:
       - parking
+  /v0.1/parking/{projectId}/labels/{folderPath}/{cctvId}:
+    get:
+      consumes:
+      - application/json
+      description: 특정 CCTV의 라벨 데이터를 조회합니다.
+      parameters:
+      - description: 프로젝트 ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 폴더 경로
+        in: path
+        name: folderPath
+        required: true
+        type: string
+      - description: CCTV ID
+        in: path
+        name: cctvId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 라벨 데이터 조회 성공
+          schema:
+            $ref: '#/definitions/response.ResGetLabel'
+        "400":
+          description: 잘못된 요청
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 서버 오류
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 라벨 데이터 조회
+      tags:
+      - Labels
+    post:
+      consumes:
+      - application/json
+      description: CCTV의 라벨 데이터를 저장합니다.
+      parameters:
+      - description: 프로젝트 ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 폴더 경로
+        in: path
+        name: folderPath
+        required: true
+        type: string
+      - description: CCTV ID
+        in: path
+        name: cctvId
+        required: true
+        type: string
+      - description: 라벨 데이터
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ReqLabelSave'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 라벨 데이터 저장 성공
+          schema:
+            $ref: '#/definitions/response.ResSaveLabel'
+        "400":
+          description: 잘못된 요청
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 서버 오류
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 라벨 데이터 저장
+      tags:
+      - Labels
   /v0.1/parking/{projectId}/learning:
     post:
       consumes:

@@ -45,3 +45,9 @@ type IHistoryParkingRepository interface {
 	GetHistory(ctx context.Context, projectID string) ([]mysql.ExperimentSessions, error)
 	FindCctvResultByExperimentSessionID(ctx context.Context, experimentSessionID int) ([]string, error)
 }
+
+type ILabelGetParkingRepository interface {
+}
+
+type ILabelSaveParkingRepository interface {
+}

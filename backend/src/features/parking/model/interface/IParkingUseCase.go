@@ -54,3 +54,11 @@ type IImageParkingUseCase interface {
 type IHistoryParkingUseCase interface {
 	GetHistory(ctx context.Context, projectID string) (response.ResHistory, error)
 }
+
+type ILabelGetParkingUseCase interface {
+	GetLabels(ctx context.Context, projectID string, folderPath string, cctvID string) (response.ResGetLabel, error)
+}
+
+type ILabelSaveParkingUseCase interface {
+	SaveLabels(ctx context.Context, projectID string, folderPath string, cctvID string, labels []request.LabelData) (response.ResSaveLabel, error)
+}

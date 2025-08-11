@@ -16,8 +16,10 @@ import {
   ArrowBack as BackIcon,
   Close as CloseIcon,
   ZoomIn as ZoomInIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { CctvInfo } from '../models/Learning';
+import LabelDataModal from '../components/LabelDataModal';
 import LearningService from '../services/LearningService';
 import { apiConfig } from '../config/api';
 
@@ -60,6 +62,8 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
     imageUrl: '',
     imageTitle: '',
   });
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
+  const [selectedCctvId, setSelectedCctvId] = useState<string>('');
 
   const totalPages = Math.ceil(cctvList.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -150,6 +154,16 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
     });
   };
 
+  const handleOpenLabelModal = (cctvId: string) => {
+    setSelectedCctvId(cctvId);
+    setLabelModalOpen(true);
+  };
+
+  const handleCloseLabelModal = () => {
+    setLabelModalOpen(false);
+    setSelectedCctvId('');
+  };
+
   // CCTV에 실제로 이미지가 있는지 확인하는 함수
   const hasValidImages = (cctvId: string): boolean => {
     // 이미지 로드 실패한 경우
@@ -212,6 +226,14 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
                       <Typography variant="h6" component="h3">
                         {cctv.cctv_id}
                       </Typography>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => handleOpenLabelModal(cctv.cctv_id)}
+                      >
+                        라벨 데이터
+                      </Button>
                     </Box>
 
                     {hasValidImages(cctv.cctv_id) && (
@@ -428,6 +450,16 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
           </Box>
         </Box>
       </Modal>
+
+      {/* 라벨 데이터 모달 */}
+      <LabelDataModal
+        open={labelModalOpen}
+        onClose={handleCloseLabelModal}
+        projectId={projectId}
+        folderPath={folderPath}
+        cctvId={selectedCctvId}
+        roiResultImageUrl={cctvImages.get(selectedCctvId)?.roiResultImage || ''}
+      />
     </Box>
   );
 };

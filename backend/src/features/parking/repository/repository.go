@@ -33,3 +33,11 @@ type LearningParkingRepository struct {
 type ResultLearningParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type LabelGetParkingRepository struct {
+	GormDB *gorm.DB
+}
+
+type LabelSaveParkingRepository struct {
+	GormDB *gorm.DB
+}

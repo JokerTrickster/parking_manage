@@ -200,6 +200,133 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/parking/{projectId}/labels/{folderPath}/{cctvId}": {
+            "get": {
+                "description": "특정 CCTV의 라벨 데이터를 조회합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Labels"
+                ],
+                "summary": "라벨 데이터 조회",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "프로젝트 ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "폴더 경로",
+                        "name": "folderPath",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CCTV ID",
+                        "name": "cctvId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "라벨 데이터 조회 성공",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResGetLabel"
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "서버 오류",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "CCTV의 라벨 데이터를 저장합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Labels"
+                ],
+                "summary": "라벨 데이터 저장",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "프로젝트 ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "폴더 경로",
+                        "name": "folderPath",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CCTV ID",
+                        "name": "cctvId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "라벨 데이터",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReqLabelSave"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "라벨 데이터 저장 성공",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResSaveLabel"
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "서버 오류",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/learning": {
             "post": {
                 "description": "OpenCV를 사용하여 주차면 학습을 실행합니다.",
@@ -593,6 +720,28 @@ const docTemplate_swagger = `{
         }
     },
     "definitions": {
+        "request.LabelData": {
+            "type": "object",
+            "properties": {
+                "has_vehicle": {
+                    "type": "boolean"
+                },
+                "roi_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.ReqLabelSave": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request.LabelData"
+                    }
+                }
+            }
+        },
         "request.ReqLearning": {
             "type": "object",
             "properties": {
@@ -658,6 +807,17 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "response.GetLabelData": {
+            "type": "object",
+            "properties": {
+                "has_vehicle": {
+                    "type": "boolean"
+                },
+                "roi_id": {
+                    "type": "string"
+                }
+            }
+        },
         "response.HistoryItem": {
             "type": "object",
             "properties": {
@@ -706,6 +866,17 @@ const docTemplate_swagger = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "response.ResGetLabel": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.GetLabelData"
+                    }
                 }
             }
         },
@@ -818,6 +989,17 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "response.ResSaveLabel": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SaveLabelData"
+                    }
+                }
+            }
+        },
         "response.ResTestStats": {
             "type": "object",
             "properties": {
@@ -843,6 +1025,17 @@ const docTemplate_swagger = `{
                 },
                 "total_files": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.SaveLabelData": {
+            "type": "object",
+            "properties": {
+                "has_vehicle": {
+                    "type": "boolean"
+                },
+                "roi_id": {
+                    "type": "string"
                 }
             }
         }

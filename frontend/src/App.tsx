@@ -19,6 +19,8 @@ function App() {
     timestamp: string;
   } | null>(null);
 
+
+
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
     setCurrentPage('dashboard');
@@ -47,6 +49,8 @@ function App() {
   const handleBackToParkingTest = () => {
     setCurrentPage('parking-test');
   };
+
+
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -81,6 +85,8 @@ function App() {
             onBack={handleBackToParkingTest}
           />
         ) : null;
+      
+
       
       case 'roi-work':
         return (
