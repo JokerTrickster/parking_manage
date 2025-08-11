@@ -8,6 +8,11 @@ import {
   TextField,
   Alert,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  Chip,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -15,10 +20,13 @@ import {
   Visibility as ViewResultsIcon,
   CheckCircle as SuccessIcon,
   Refresh as RefreshIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { Project } from '../models/Project';
 import { ParkingTestViewModel, ParkingTestState } from '../viewmodels/ParkingTestViewModel';
 import FileUploadView from './FileUploadView';
+import { HistoryItem } from '../models/History';
+import HistoryService from '../services/HistoryService';
 
 interface ParkingTestViewProps {
   project: Project;
@@ -29,7 +37,6 @@ interface ParkingTestViewProps {
 const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onShowLearningResults }) => {
   const [state, setState] = useState<ParkingTestState>({
     loading: false,
-    stats: null,
     varThreshold: 50.0,
     learningRate: 0.001,
     iterations: 1000,
@@ -44,16 +51,28 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
     lastLearningFolderPath: null,
   });
 
+  const [history, setHistory] = useState<HistoryItem[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const viewModel = useMemo(() => new ParkingTestViewModel(project, state, setState), [project.id]);
 
-  const loadStats = useCallback(() => {
-    viewModel.loadProjectStats();
-  }, [viewModel]);
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await HistoryService.getHistory(project.id);
+      setHistory(response.results || []);
+    } catch (error) {
+      console.error('히스토리 로드 실패:', error);
+      setHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [project.id]);
 
   useEffect(() => {
     // 한 번만 호출
-    loadStats();
-  }, [loadStats]); // loadStats 의존성 추가
+    loadHistory();
+  }, [loadHistory]);
 
   const handleStartLearning = async () => {
     await viewModel.startLearning(state);
@@ -86,8 +105,25 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
     }
   };
 
-  const handleRefreshStats = () => {
-    viewModel.loadProjectStats();
+  const handleHistoryItemClick = (historyItem: HistoryItem) => {
+    if (onShowLearningResults) {
+      // folder_path에서 실제 폴더명 추출
+      const folderPathParts = historyItem.folder_path.split('/');
+      const folderName = folderPathParts[folderPathParts.length - 1];
+      
+      // CCTV 리스트를 CctvInfo 형태로 변환
+      const cctvList = historyItem.cctv_list.map(cctvId => ({
+        cctv_id: cctvId,
+        has_images: true
+      }));
+
+      onShowLearningResults(
+        project.id,
+        folderName,
+        cctvList,
+        historyItem.created_at
+      );
+    }
   };
 
   return (
@@ -215,27 +251,63 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
             </Card>
           </Box>
 
-          {/* 통계 패널 */}
+          {/* 히스토리 패널 */}
           <Box sx={{ flex: '1 1 400px', minWidth: 0 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">
-                    데이터 통계
+                    학습 히스토리
                   </Typography>
                   <Button
                     startIcon={<RefreshIcon />}
-                    onClick={handleRefreshStats}
+                    onClick={loadHistory}
                     size="small"
                     variant="outlined"
+                    disabled={historyLoading}
                   >
                     새로고침
                   </Button>
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary">
-                  학습을 완료하면 결과를 확인할 수 있습니다.
-                </Typography>
+                {historyLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (history && history.length > 0) ? (
+                  <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+                    {history?.map((item) => (
+                      <ListItem key={item.id} disablePadding>
+                        <ListItemButton onClick={() => handleHistoryItemClick(item)}>
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="body1" fontWeight="medium">
+                                  {item.name}
+                                </Typography>
+                                <Chip 
+                                  label={`${item.cctv_list.length}개 CCTV`} 
+                                  size="small" 
+                                  color="primary" 
+                                  variant="outlined"
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Typography variant="body2" color="text.secondary">
+                                {new Date(item.created_at).toLocaleString('ko-KR')}
+                              </Typography>
+                            }
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    학습 히스토리가 없습니다.
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Box>

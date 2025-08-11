@@ -53,6 +53,7 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
   const [cctvImages, setCctvImages] = useState<Map<string, CctvImages>>(new Map());
   const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set()); // 이미 로드된 이미지 추적
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set()); // 이미지 로드 실패한 CCTV 추적
   const [error, setError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<ModalState>({
     open: false,
@@ -80,47 +81,10 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
       
       console.log('이미지 URL:', { roiResultImageUrl, fgMaskImageUrl });
       
-      // 이미지 로딩 테스트를 위해 fetch로 실제 요청 보내기
-      const [roiResponse, fgMaskResponse] = await Promise.all([
-        fetch(roiResultImageUrl, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Accept': 'image/*',
-          },
-        }),
-        fetch(fgMaskImageUrl, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Accept': 'image/*',
-          },
-        })
-      ]);
-      
-      console.log('응답 상태:', { 
-        roiStatus: roiResponse.status, 
-        roiOk: roiResponse.ok,
-        fgMaskStatus: fgMaskResponse.status, 
-        fgMaskOk: fgMaskResponse.ok 
-      });
-      
-      if (!roiResponse.ok || !fgMaskResponse.ok) {
-        throw new Error(`이미지 로드 실패: ROI=${roiResponse.status} ${roiResponse.statusText}, FGMask=${fgMaskResponse.status} ${fgMaskResponse.statusText}`);
-      }
-      
-      // 이미지 URL을 Blob URL로 변환하여 캐싱
-      const roiBlob = await roiResponse.blob();
-      const fgMaskBlob = await fgMaskResponse.blob();
-      
-      console.log('Blob 크기:', { roiSize: roiBlob.size, fgMaskSize: fgMaskBlob.size });
-      
-      const roiBlobUrl = URL.createObjectURL(roiBlob);
-      const fgMaskBlobUrl = URL.createObjectURL(fgMaskBlob);
-      
+      // 이미지 URL을 직접 사용 (Blob URL 생성하지 않음)
       setCctvImages(prev => new Map(prev).set(cctvId, {
-        roiResultImage: roiBlobUrl,
-        fgMaskImage: fgMaskBlobUrl,
+        roiResultImage: roiResultImageUrl,
+        fgMaskImage: fgMaskImageUrl,
       }));
       
       // 로드 완료 상태 추가
@@ -141,6 +105,9 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
         stack: errorStack
       });
       setError(`CCTV ${cctvId} 이미지를 불러오는데 실패했습니다: ${errorMessage}`);
+      
+      // 이미지 로드 실패 상태 추가
+      setImageErrors(prev => new Set(prev).add(cctvId));
     } finally {
       setLoadingImages(prev => {
         const newSet = new Set(prev);
@@ -153,25 +120,13 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
   useEffect(() => {
     // 현재 페이지의 CCTV 이미지들을 자동으로 로드 (이미 로드된 것은 제외)
     currentCctvList.forEach(cctv => {
-      if (cctv.has_images && !loadedImages.has(cctv.cctv_id)) {
+      if (cctv.has_images && !loadedImages.has(cctv.cctv_id) && !imageErrors.has(cctv.cctv_id)) {
         loadCctvImages(cctv.cctv_id);
       }
     });
   }, [currentPage, loadCctvImages]); // loadedImages 의존성 제거하여 무한 루프 방지
 
-  // 컴포넌트 언마운트 시 Blob URL 정리
-  useEffect(() => {
-    return () => {
-      cctvImages.forEach((images) => {
-        if (images.roiResultImage.startsWith('blob:')) {
-          URL.revokeObjectURL(images.roiResultImage);
-        }
-        if (images.fgMaskImage.startsWith('blob:')) {
-          URL.revokeObjectURL(images.fgMaskImage);
-        }
-      });
-    };
-  }, [cctvImages]);
+
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
@@ -193,6 +148,23 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
       imageUrl: '',
       imageTitle: '',
     });
+  };
+
+  // CCTV에 실제로 이미지가 있는지 확인하는 함수
+  const hasValidImages = (cctvId: string): boolean => {
+    // 이미지 로드 실패한 경우
+    if (imageErrors.has(cctvId)) {
+      return false;
+    }
+    
+    // 이미지가 로드된 경우
+    if (cctvImages.has(cctvId)) {
+      const images = cctvImages.get(cctvId);
+      return !!(images?.roiResultImage && images?.fgMaskImage);
+    }
+    
+    // 아직 로드되지 않은 경우
+    return false;
   };
 
   return (
@@ -240,14 +212,9 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
                       <Typography variant="h6" component="h3">
                         {cctv.cctv_id}
                       </Typography>
-                      <Chip 
-                        label={cctv.has_images ? "이미지 있음" : "이미지 없음"}
-                        color={cctv.has_images ? "success" : "default"}
-                        size="small"
-                      />
                     </Box>
 
-                    {cctv.has_images && (
+                    {hasValidImages(cctv.cctv_id) && (
                       <Box>
                         {loadingImages.has(cctv.cctv_id) ? (
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
@@ -371,9 +338,9 @@ const LearningResultsPage: React.FC<LearningResultsPageProps> = ({
                       </Box>
                     )}
 
-                    {!cctv.has_images && (
+                    {!hasValidImages(cctv.cctv_id) && !loadingImages.has(cctv.cctv_id) && (
                       <Typography variant="body2" color="text.secondary">
-                        이 CCTV에 대한 이미지가 없습니다.
+                        이 CCTV에 대한 이미지를 불러올 수 없습니다.
                       </Typography>
                     )}
                   </CardContent>

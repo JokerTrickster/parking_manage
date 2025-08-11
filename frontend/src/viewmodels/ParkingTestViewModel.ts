@@ -1,13 +1,12 @@
-import { Project, ProjectStats } from '../models/Project';
+import { Project } from '../models/Project';
 import { ParkingTestRequest, ParkingTestResponse } from '../models/ParkingTest';
 import { LearningRequest, LearningResponse, LearningResultsData, LearningResultsResponse } from '../models/Learning';
-import { ProjectService } from '../services/ProjectService';
+
 import { ParkingTestService } from '../services/ParkingTestService';
 import LearningService from '../services/LearningService';
 
 export interface ParkingTestState {
   loading: boolean;
-  stats: ProjectStats | null;
   varThreshold: number;
   learningRate: number;
   iterations: number;
@@ -47,20 +46,6 @@ export class ParkingTestViewModel {
   }
 
   // Methods
-  async loadProjectStats(): Promise<void> {
-    try {
-      this._setState(prev => ({ ...prev, loading: true }));
-      const stats = await ProjectService.getProjectStats(this._project.id);
-      this._setState(prev => ({ ...prev, stats, loading: false }));
-    } catch (error) {
-      console.error('프로젝트 통계 로드 실패:', error);
-      this._setState(prev => ({ 
-        ...prev, 
-        error: '프로젝트 통계를 불러오는데 실패했습니다.',
-        loading: false 
-      }));
-    }
-  }
 
   async startLearning(currentState: ParkingTestState): Promise<void> {
     try {
