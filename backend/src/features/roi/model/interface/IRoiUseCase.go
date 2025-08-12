@@ -2,6 +2,7 @@ package _interface
 
 import (
 	"context"
+	"main/features/roi/model/request"
 	"main/features/roi/model/response"
 	"mime/multipart"
 )
@@ -24,4 +25,21 @@ type IGetDraftRoiUseCase interface {
 
 type ISaveDraftRoiUseCase interface {
 	SaveDraftRoi(ctx context.Context, projectID string, roiFileName string) (response.ResSaveDraft, error)
+}
+
+// ROI CRUD UseCase 인터페이스들
+type ICreateRoiUseCase interface {
+	CreateRoi(ctx context.Context, projectID string, req request.CreateRoiRequest) (response.ResCreateRoi, error)
+}
+
+type IReadRoiUseCase interface {
+	ReadRoi(ctx context.Context, projectID string, req request.ReadRoiRequest) (response.ResReadRoi, error)
+}
+
+type IUpdateRoiUseCase interface {
+	UpdateRoi(ctx context.Context, projectID string, req request.UpdateRoiRequest) (response.ResUpdateRoi, error)
+}
+
+type IDeleteRoiUseCase interface {
+	DeleteRoi(ctx context.Context, projectID string, req request.DeleteRoiRequest) (response.ResDeleteRoi, error)
 }

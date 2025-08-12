@@ -21,3 +21,20 @@ type IGetDraftRoiHandler interface {
 type ISaveDraftRoiHandler interface {
 	SaveDraftRoi(c echo.Context) error
 }
+
+// ROI CRUD Handler 인터페이스들
+type ICreateRoiHandler interface {
+	CreateRoi(c echo.Context) error
+}
+
+type IReadRoiHandler interface {
+	ReadRoi(c echo.Context) error
+}
+
+type IUpdateRoiHandler interface {
+	UpdateRoi(c echo.Context) error
+}
+
+type IDeleteRoiHandler interface {
+	DeleteRoi(c echo.Context) error
+}

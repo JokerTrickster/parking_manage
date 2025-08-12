@@ -718,6 +718,116 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/roi/{projectId}/create": {
+            "post": {
+                "description": "CCTV ID와 ROI ID에 해당하는 좌표를 입력한 좌표로 변경합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 생성",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create ROI Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateRoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResCreateRoi"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/roi/{projectId}/delete": {
+            "delete": {
+                "description": "CCTV ID와 ROI ID에 해당하는 좌표를 빈 배열로 설정합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 삭제",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Delete ROI Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.DeleteRoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResDeleteRoi"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/roi/{projectId}/draft": {
             "get": {
                 "description": "초안 JSON 파일을 읽어서 필요한 정보만 응답합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
@@ -876,6 +986,61 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/roi/{projectId}/read": {
+            "post": {
+                "description": "CCTV ID에 해당하는 모든 ROI 좌표를 배열로 반환합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 읽기",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Read ROI Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReadRoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResReadRoi"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/roi/{projectId}/test-images": {
             "post": {
                 "description": "이미지 폴더를 서버에 저장합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
@@ -910,6 +1075,61 @@ const docTemplate_swagger = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.ResUpload"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/roi/{projectId}/update": {
+            "put": {
+                "description": "CCTV ID와 ROI ID에 해당하는 좌표를 새로운 좌표로 변경합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 수정",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update ROI Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.UpdateRoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResUpdateRoi"
                         }
                     },
                     "400": {
@@ -984,6 +1204,40 @@ const docTemplate_swagger = `{
         }
     },
     "definitions": {
+        "request.CreateRoiRequest": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "coords": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "roi_file": {
+                    "type": "string"
+                },
+                "roi_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.DeleteRoiRequest": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "roi_file": {
+                    "type": "string"
+                },
+                "roi_id": {
+                    "type": "string"
+                }
+            }
+        },
         "request.LabelData": {
             "type": "object",
             "properties": {
@@ -991,6 +1245,17 @@ const docTemplate_swagger = `{
                     "type": "boolean"
                 },
                 "roi_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.ReadRoiRequest": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "roi_file": {
                     "type": "string"
                 }
             }
@@ -1029,6 +1294,26 @@ const docTemplate_swagger = `{
                 },
                 "varThreshold": {
                     "type": "number"
+                }
+            }
+        },
+        "request.UpdateRoiRequest": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "coords": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "roi_file": {
+                    "type": "string"
+                },
+                "roi_id": {
+                    "type": "string"
                 }
             }
         },
@@ -1168,6 +1453,28 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "response.ResCreateRoi": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "response.ResDeleteRoi": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "response.ResDraftRoi": {
             "type": "object",
             "properties": {
@@ -1271,6 +1578,21 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "response.ResReadRoi": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "rois": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                    }
+                }
+            }
+        },
         "response.ResRoiStats": {
             "type": "object",
             "properties": {
@@ -1363,6 +1685,17 @@ const docTemplate_swagger = `{
                 },
                 "total_files": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.ResUpdateRoi": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },

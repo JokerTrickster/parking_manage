@@ -1,9 +1,38 @@
 definitions:
+  request.CreateRoiRequest:
+    properties:
+      cctv_id:
+        type: string
+      coords:
+        items:
+          type: integer
+        type: array
+      roi_file:
+        type: string
+      roi_id:
+        type: string
+    type: object
+  request.DeleteRoiRequest:
+    properties:
+      cctv_id:
+        type: string
+      roi_file:
+        type: string
+      roi_id:
+        type: string
+    type: object
   request.LabelData:
     properties:
       has_vehicle:
         type: boolean
       roi_id:
+        type: string
+    type: object
+  request.ReadRoiRequest:
+    properties:
+      cctv_id:
+        type: string
+      roi_file:
         type: string
     type: object
   request.ReqLabelSave:
@@ -29,6 +58,19 @@ definitions:
         type: string
       varThreshold:
         type: number
+    type: object
+  request.UpdateRoiRequest:
+    properties:
+      cctv_id:
+        type: string
+      coords:
+        items:
+          type: integer
+        type: array
+      roi_file:
+        type: string
+      roi_id:
+        type: string
     type: object
   response.CctvImagesData:
     properties:
@@ -118,6 +160,20 @@ definitions:
       success:
         type: boolean
     type: object
+  response.ResCreateRoi:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  response.ResDeleteRoi:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   response.ResDraftRoi:
     properties:
       cctv_list:
@@ -184,6 +240,16 @@ definitions:
       total_files:
         type: integer
     type: object
+  response.ResReadRoi:
+    properties:
+      cctv_id:
+        type: string
+      rois:
+        additionalProperties:
+          items: {}
+          type: array
+        type: object
+    type: object
   response.ResRoiStats:
     properties:
       folders:
@@ -244,6 +310,13 @@ definitions:
         type: integer
       total_files:
         type: integer
+    type: object
+  response.ResUpdateRoi:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   response.ResUpload:
     properties:
@@ -836,6 +909,94 @@ paths:
       summary: 테스트 이미지 파일 조회
       tags:
       - roi
+  /v0.1/roi/{projectId}/create:
+    post:
+      consumes:
+      - application/json
+      description: |
+        CCTV ID와 ROI ID에 해당하는 좌표를 입력한 좌표로 변경합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Create ROI Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateRoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResCreateRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 생성
+      tags:
+      - roi
+  /v0.1/roi/{projectId}/delete:
+    delete:
+      consumes:
+      - application/json
+      description: |
+        CCTV ID와 ROI ID에 해당하는 좌표를 빈 배열로 설정합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Delete ROI Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.DeleteRoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResDeleteRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 삭제
+      tags:
+      - roi
   /v0.1/roi/{projectId}/draft:
     get:
       consumes:
@@ -966,6 +1127,50 @@ paths:
       summary: ROI 초안 저장
       tags:
       - roi
+  /v0.1/roi/{projectId}/read:
+    post:
+      consumes:
+      - application/json
+      description: |
+        CCTV ID에 해당하는 모든 ROI 좌표를 배열로 반환합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Read ROI Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ReadRoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResReadRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 읽기
+      tags:
+      - roi
   /v0.1/roi/{projectId}/test-images:
     post:
       consumes:
@@ -1008,6 +1213,50 @@ paths:
             additionalProperties: true
             type: object
       summary: 이미지 폴더 업로드
+      tags:
+      - roi
+  /v0.1/roi/{projectId}/update:
+    put:
+      consumes:
+      - application/json
+      description: |
+        CCTV ID와 ROI ID에 해당하는 좌표를 새로운 좌표로 변경합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Update ROI Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateRoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResUpdateRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 수정
       tags:
       - roi
 swagger: "2.0"

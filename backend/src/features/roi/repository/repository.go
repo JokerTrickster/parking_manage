@@ -21,3 +21,17 @@ type GetDraftRoiRepository struct {
 type SaveDraftRoiRepository struct {
 	GormDB *gorm.DB
 }
+
+type CreateRoiRepository struct {
+	GormDB *gorm.DB
+}
+type ReadRoiRepository struct {
+	GormDB *gorm.DB
+}
+type UpdateRoiRepository struct {
+	GormDB *gorm.DB
+}
+
+type DeleteRoiRepository struct {
+	GormDB *gorm.DB
+}
