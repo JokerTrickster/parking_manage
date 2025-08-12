@@ -2,6 +2,7 @@ package features
 
 import (
 	parkingHandler "main/features/parking/handler"
+	roiHandler "main/features/roi/handler"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -14,6 +15,7 @@ func InitHandler(e *echo.Echo) error {
 	})
 
 	parkingHandler.NewParkingHandler(e)
+	roiHandler.NewRoiHandler(e)
 
 	return nil
 }

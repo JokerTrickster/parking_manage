@@ -203,6 +203,15 @@ definitions:
       total_files:
         type: integer
     type: object
+  response.ResUpload:
+    properties:
+      failed:
+        type: integer
+      success:
+        type: integer
+      total_files:
+        type: integer
+    type: object
   response.SaveLabelData:
     properties:
       has_vehicle:
@@ -741,4 +750,48 @@ paths:
       summary: 학습 이미지 폴더 업로드
       tags:
       - parking
+  /v0.1/roi/{projectId}/test-images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |
+        이미지 폴더를 서버에 저장합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 학습 이미지 폴더 내 파일들
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResUpload'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 이미지 폴더 업로드
+      tags:
+      - roi
 swagger: "2.0"
