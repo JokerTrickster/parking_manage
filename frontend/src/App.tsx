@@ -4,6 +4,7 @@ import ProjectSelectionView from './views/ProjectSelectionView';
 import DashboardView from './views/DashboardView';
 import ParkingTestView from './views/ParkingTestView';
 import LearningResultsPage from './views/LearningResultsPage';
+import { RoiWorkView } from './views/RoiWorkView';
 import { Project } from './models/Project';
 import { CctvInfo } from './models/Learning';
 
@@ -89,13 +90,12 @@ function App() {
 
       
       case 'roi-work':
-        return (
-          <div>
-            <h2>ROI 작업 페이지</h2>
-            <p>ROI 작업 기능이 개발 중입니다.</p>
-            <button onClick={handleBackToDashboard}>대시보드로 돌아가기</button>
-          </div>
-        );
+        return selectedProject ? (
+          <RoiWorkView
+            projectId={selectedProject.id}
+            onBack={handleBackToDashboard}
+          />
+        ) : null;
       
       case 'live-parking':
         return (

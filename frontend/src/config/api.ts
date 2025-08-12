@@ -48,6 +48,16 @@ export const API_ENDPOINTS = {
   // 학습 결과 조회 관련
   LEARNING_RESULTS: (projectId: string, folderPath: string) => `/v0.1/parking/${projectId}/learning-results/${folderPath}`,
   
+  // ROI 관련
+  GET_ROI_IMAGES: (projectId: string, folderPath: string) => `/v0.1/roi/${projectId}/${folderPath}/images`,
+  CREATE_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft?file=${roiFileName}`,
+  GET_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft?file=${roiFileName}`,
+  SAVE_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft/save?file=${roiFileName}`,
+  CREATE_ROI: (projectId: string) => `/v0.1/roi/${projectId}/create`,
+  READ_ROI: (projectId: string) => `/v0.1/roi/${projectId}/read`,
+  UPDATE_ROI: (projectId: string) => `/v0.1/roi/${projectId}/update`,
+  DELETE_ROI: (projectId: string) => `/v0.1/roi/${projectId}/delete`,
+  
   // Swagger
   SWAGGER: '/swagger/index.html'
 };
