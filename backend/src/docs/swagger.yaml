@@ -810,6 +810,51 @@ paths:
       summary: 테스트 이미지 파일 조회
       tags:
       - roi
+  /v0.1/roi/{projectId}/draft:
+    post:
+      consumes:
+      - application/json
+      description: |
+        지정된 ROI 파일을 기반으로 draft 폴더에 초안을 생성합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: ROI File Name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 드래프트 생성
+      tags:
+      - roi
   /v0.1/roi/{projectId}/test-images:
     post:
       consumes:

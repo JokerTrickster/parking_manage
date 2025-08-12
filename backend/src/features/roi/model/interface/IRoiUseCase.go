@@ -13,3 +13,7 @@ type IUploadRoiUseCase interface {
 type ITestStatsRoiUseCase interface {
 	GetTestStats(ctx context.Context, projectID string, folderPath string) (response.ResTestStatsRoi, error)
 }
+
+type IDraftRoiUseCase interface {
+	CreateDraftRoi(ctx context.Context, projectID string, originFile string) error
+}

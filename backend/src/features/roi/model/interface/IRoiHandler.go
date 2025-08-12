@@ -9,3 +9,7 @@ type IUploadRoiHandler interface {
 type ITestStatsRoiHandler interface {
 	GetTestStats(c echo.Context) error
 }
+
+type IDraftRoiHandler interface {
+	CreateDraftRoi(c echo.Context) error
+}
