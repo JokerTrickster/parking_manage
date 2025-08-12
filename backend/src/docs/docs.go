@@ -719,6 +719,57 @@ const docTemplate_swagger = `{
             }
         },
         "/v0.1/roi/{projectId}/draft": {
+            "get": {
+                "description": "초안 JSON 파일을 읽어서 필요한 정보만 응답합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 초안 조회",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ROI File Name",
+                        "name": "file",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResDraftRoi"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "지정된 ROI 파일을 기반으로 draft 폴더에 초안을 생성합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
                 "consumes": [
@@ -753,6 +804,59 @@ const docTemplate_swagger = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/roi/{projectId}/draft/save": {
+            "post": {
+                "description": "초안 JSON 파일을 현재 날짜를 붙여서 roi 폴더에 저장합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "ROI 초안 저장",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ROI File Name",
+                        "name": "file",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResSaveDraft"
                         }
                     },
                     "400": {
@@ -953,6 +1057,21 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "response.CctvRoiInfo": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "type": "string"
+                },
+                "parking_id": {
+                    "type": "string"
+                },
+                "roi_coords": {
+                    "type": "array",
+                    "items": {}
+                }
+            }
+        },
         "response.FolderInfo": {
             "type": "object",
             "properties": {
@@ -1046,6 +1165,17 @@ const docTemplate_swagger = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "response.ResDraftRoi": {
+            "type": "object",
+            "properties": {
+                "cctv_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CctvRoiInfo"
+                    }
                 }
             }
         },
@@ -1166,6 +1296,20 @@ const docTemplate_swagger = `{
                 },
                 "total_files": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.ResSaveDraft": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },

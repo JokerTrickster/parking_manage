@@ -6,5 +6,11 @@ type IUploadRoiRepository interface {
 type ITestStatsRoiRepository interface {
 }
 
-type IDraftRoiRepository interface {
+type ICreateDraftRoiRepository interface {
+}
+
+type IGetDraftRoiRepository interface {
+}
+
+type ISaveDraftRoiRepository interface {
 }

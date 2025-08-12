@@ -10,6 +10,14 @@ type ITestStatsRoiHandler interface {
 	GetTestStats(c echo.Context) error
 }
 
-type IDraftRoiHandler interface {
+type ICreateDraftRoiHandler interface {
 	CreateDraftRoi(c echo.Context) error
+}
+
+type IGetDraftRoiHandler interface {
+	GetDraftRoi(c echo.Context) error
+}
+
+type ISaveDraftRoiHandler interface {
+	SaveDraftRoi(c echo.Context) error
 }

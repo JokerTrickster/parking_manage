@@ -12,6 +12,12 @@ type TestStatsRoiRepository struct {
 	GormDB *gorm.DB
 }
 
-type DraftRoiRepository struct {
+type CreateDraftRoiRepository struct {
+	GormDB *gorm.DB
+}
+type GetDraftRoiRepository struct {
+	GormDB *gorm.DB
+}
+type SaveDraftRoiRepository struct {
 	GormDB *gorm.DB
 }

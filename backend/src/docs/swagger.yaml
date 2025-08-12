@@ -46,6 +46,16 @@ definitions:
       has_images:
         type: boolean
     type: object
+  response.CctvRoiInfo:
+    properties:
+      cctv_id:
+        type: string
+      parking_id:
+        type: string
+      roi_coords:
+        items: {}
+        type: array
+    type: object
   response.FolderInfo:
     properties:
       fileCount:
@@ -107,6 +117,13 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  response.ResDraftRoi:
+    properties:
+      cctv_list:
+        items:
+          $ref: '#/definitions/response.CctvRoiInfo'
+        type: array
     type: object
   response.ResGetLabel:
     properties:
@@ -184,6 +201,15 @@ definitions:
         type: integer
       total_files:
         type: integer
+    type: object
+  response.ResSaveDraft:
+    properties:
+      file_name:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   response.ResSaveLabel:
     properties:
@@ -811,6 +837,48 @@ paths:
       tags:
       - roi
   /v0.1/roi/{projectId}/draft:
+    get:
+      consumes:
+      - application/json
+      description: |
+        초안 JSON 파일을 읽어서 필요한 정보만 응답합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: ROI File Name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResDraftRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 초안 조회
+      tags:
+      - roi
     post:
       consumes:
       - application/json
@@ -853,6 +921,49 @@ paths:
             additionalProperties: true
             type: object
       summary: ROI 드래프트 생성
+      tags:
+      - roi
+  /v0.1/roi/{projectId}/draft/save:
+    post:
+      consumes:
+      - application/json
+      description: |
+        초안 JSON 파일을 현재 날짜를 붙여서 roi 폴더에 저장합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: ROI File Name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResSaveDraft'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ROI 초안 저장
       tags:
       - roi
   /v0.1/roi/{projectId}/test-images:
