@@ -83,6 +83,13 @@ definitions:
       var_threshold:
         type: number
     type: object
+  response.ImageInfo:
+    properties:
+      name:
+        type: string
+      path:
+        type: string
+    type: object
   response.LearningResultsData:
     properties:
       cctv_list:
@@ -190,6 +197,15 @@ definitions:
       folders:
         items:
           $ref: '#/definitions/response.FolderInfo'
+        type: array
+      total:
+        type: integer
+    type: object
+  response.ResTestStatsRoi:
+    properties:
+      images:
+        items:
+          $ref: '#/definitions/response.ImageInfo'
         type: array
       total:
         type: integer
@@ -750,6 +766,50 @@ paths:
       summary: 학습 이미지 폴더 업로드
       tags:
       - parking
+  /v0.1/roi/{projectId}/{folderPath}/images:
+    get:
+      consumes:
+      - application/json
+      description: |
+        프로젝트의 특정 폴더 내 이미지 파일 목록을 조회합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Folder Path
+        in: path
+        name: folderPath
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResTestStatsRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 테스트 이미지 파일 조회
+      tags:
+      - roi
   /v0.1/roi/{projectId}/test-images:
     post:
       consumes:

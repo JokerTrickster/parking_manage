@@ -770,6 +770,59 @@ const docTemplate_swagger = `{
                     }
                 }
             }
+        },
+        "/v0.1/roi/{projectId}/{folderPath}/images": {
+            "get": {
+                "description": "프로젝트의 특정 폴더 내 이미지 파일 목록을 조회합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roi"
+                ],
+                "summary": "테스트 이미지 파일 조회",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Folder Path",
+                        "name": "folderPath",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResTestStatsRoi"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -900,6 +953,17 @@ const docTemplate_swagger = `{
                 },
                 "var_threshold": {
                     "type": "number"
+                }
+            }
+        },
+        "response.ImageInfo": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
                 }
             }
         },
@@ -1069,6 +1133,20 @@ const docTemplate_swagger = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/response.FolderInfo"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.ResTestStatsRoi": {
+            "type": "object",
+            "properties": {
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.ImageInfo"
                     }
                 },
                 "total": {
