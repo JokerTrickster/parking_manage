@@ -27,3 +27,6 @@ type IUpdateRoiRepository interface {
 
 type IDeleteRoiRepository interface {
 }
+
+type IGetImageRoiRepository interface {
+}

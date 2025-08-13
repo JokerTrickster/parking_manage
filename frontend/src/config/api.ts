@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
   
   // ROI 관련
   GET_ROI_IMAGES: (projectId: string, folderPath: string) => `/v0.1/roi/${projectId}/${folderPath}/images`,
+  GET_ROI_IMAGE: (projectId: string, folderPath: string, fileName: string) => `/v0.1/roi/${projectId}/${folderPath}?file=${fileName}`,
   CREATE_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft?file=${roiFileName}`,
   GET_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft?file=${roiFileName}`,
   SAVE_DRAFT_ROI: (projectId: string, roiFileName: string) => `/v0.1/roi/${projectId}/draft/save?file=${roiFileName}`,

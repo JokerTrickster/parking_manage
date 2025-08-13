@@ -181,6 +181,13 @@ definitions:
           $ref: '#/definitions/response.CctvRoiInfo'
         type: array
     type: object
+  response.ResGetImageRoi:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   response.ResGetLabel:
     properties:
       labels:
@@ -865,6 +872,54 @@ paths:
       summary: 학습 이미지 폴더 업로드
       tags:
       - parking
+  /v0.1/roi/{projectId}/{folderPath}:
+    get:
+      consumes:
+      - application/json
+      description: |
+        프로젝트의 특정 폴더에서 이미지 파일을 조회합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Folder Path
+        in: path
+        name: folderPath
+        required: true
+        type: string
+      - description: File Name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResGetImageRoi'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 이미지 파일 조회
+      tags:
+      - roi
   /v0.1/roi/{projectId}/{folderPath}/images:
     get:
       consumes:

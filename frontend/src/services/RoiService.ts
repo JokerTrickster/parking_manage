@@ -27,6 +27,14 @@ export class RoiService {
     return response.data;
   }
 
+  // 특정 이미지 가져오기
+  static async getImageRoi(projectId: string, folderPath: string, fileName: string): Promise<Blob> {
+    const response = await api.get(API_ENDPOINTS.GET_ROI_IMAGE(projectId, folderPath, fileName), {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
   // ROI 파일 목록 조회
   static async getRoiFiles(projectId: string): Promise<any[]> {
     const response = await api.get(API_ENDPOINTS.GET_ROI_FOLDERS(projectId));

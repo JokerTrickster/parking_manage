@@ -35,3 +35,7 @@ type UpdateRoiRepository struct {
 type DeleteRoiRepository struct {
 	GormDB *gorm.DB
 }
+
+type GetImageRoiRepository struct {
+	GormDB *gorm.DB
+}

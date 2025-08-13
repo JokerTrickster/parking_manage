@@ -43,3 +43,7 @@ type IUpdateRoiUseCase interface {
 type IDeleteRoiUseCase interface {
 	DeleteRoi(ctx context.Context, projectID string, req request.DeleteRoiRequest) (response.ResDeleteRoi, error)
 }
+
+type IGetImageRoiUseCase interface {
+	GetImageRoi(ctx context.Context, projectID string, folderPath string, fileName string) (response.ResGetImageRoi, error)
+}

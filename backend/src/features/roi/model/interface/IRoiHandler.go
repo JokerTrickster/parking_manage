@@ -38,3 +38,7 @@ type IUpdateRoiHandler interface {
 type IDeleteRoiHandler interface {
 	DeleteRoi(c echo.Context) error
 }
+
+type IGetImageRoiHandler interface {
+	GetImageRoi(c echo.Context) error
+}

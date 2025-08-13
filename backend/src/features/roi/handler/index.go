@@ -20,6 +20,7 @@ func NewRoiHandler(e *echo.Echo) error {
 	readRoiRepo := repository.NewReadRoiRepository(mysql.GormMysqlDB)
 	updateRoiRepo := repository.NewUpdateRoiRepository(mysql.GormMysqlDB)
 	deleteRoiRepo := repository.NewDeleteRoiRepository(mysql.GormMysqlDB)
+	getImageRoiRepo := repository.NewGetImageRoiRepository(mysql.GormMysqlDB)
 	// UseCase 초기화
 	uploadRoiUseCase := usecase.NewUploadRoiUseCase(uploadRoiRepo, 30*time.Second)
 	testStatsRoiUseCase := usecase.NewTestStatsRoiUseCase(testStatsRoiRepo, 30*time.Second)
@@ -30,6 +31,7 @@ func NewRoiHandler(e *echo.Echo) error {
 	readRoiUseCase := usecase.NewReadRoiUseCase(readRoiRepo, 30*time.Second)
 	updateRoiUseCase := usecase.NewUpdateRoiUseCase(updateRoiRepo, 30*time.Second)
 	deleteRoiUseCase := usecase.NewDeleteRoiUseCase(deleteRoiRepo, 30*time.Second)
+	getImageRoiUseCase := usecase.NewGetImageRoiUseCase(getImageRoiRepo, 30*time.Second)
 
 	// Handler 초기화
 	NewUploadRoiHandler(e, uploadRoiUseCase)
@@ -41,5 +43,6 @@ func NewRoiHandler(e *echo.Echo) error {
 	NewReadRoiHandler(e, readRoiUseCase)
 	NewUpdateRoiHandler(e, updateRoiUseCase)
 	NewDeleteRoiHandler(e, deleteRoiUseCase)
+	NewGetImageRoiHandler(e, getImageRoiUseCase)
 	return nil
 }

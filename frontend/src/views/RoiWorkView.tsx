@@ -27,6 +27,7 @@ import {
   ImageFile, 
   ReadRoiResponse
 } from '../models/Roi';
+import RoiCanvas from '../components/RoiCanvas';
 
 interface RoiWorkViewProps {
   projectId: string;
@@ -41,7 +42,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const [roiFiles, setRoiFiles] = useState<any[]>([]);
   const [selectedRoiFile, setSelectedRoiFile] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
-  const [roiData, setRoiData] = useState<ReadRoiResponse | null>(null);
+  const [roiData, setRoiData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -51,6 +52,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const [newRoiCoords, setNewRoiCoords] = useState<number[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [draftCreated, setDraftCreated] = useState(false);
+  const [selectedRoiId, setSelectedRoiId] = useState<string>('');
 
   useEffect(() => {
     loadTestFolders();
@@ -98,29 +100,61 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   };
 
   // 이미지 선택
-  const handleImageSelect = (image: ImageFile) => {
-    setSelectedImage(image);
-    // 이미지 선택 시 ROI 데이터 자동 로드
-    if (selectedRoiFile) {
-      loadRoiData(image, selectedRoiFile);
+  const handleImageSelect = async (image: ImageFile) => {
+    try {
+      setLoading(true);
+      // 새로운 이미지 API로 이미지 가져오기
+      const imageBlob = await RoiService.getImageRoi(projectId, selectedFolder, image.name);
+      const imageUrl = URL.createObjectURL(imageBlob);
+      
+      // ImageFile 객체 업데이트
+      const updatedImage: ImageFile = {
+        ...image,
+        path: imageUrl
+      };
+      
+      setSelectedImage(updatedImage);
+      
+      // 이미지 선택 시 ROI 데이터 자동 로드
+      if (selectedRoiFile) {
+        loadRoiData(updatedImage, selectedRoiFile);
+      }
+    } catch (err) {
+      setError('이미지를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // ROI 파일 선택
   const handleRoiFileSelect = (fileName: string) => {
-    setSelectedRoiFile(fileName);
+    // 확장자 제거 (.json)
+    const roiFileName = fileName.replace(/\.json$/, '');
+    setSelectedRoiFile(roiFileName);
     // ROI 파일 선택 시 ROI 데이터 자동 로드
     if (selectedImage) {
-      loadRoiData(selectedImage, fileName);
+      loadRoiData(selectedImage, roiFileName);
     }
+  };
+
+  // 이미지 파일명에서 _Current 제거
+  const getDisplayImageName = (imageName: string) => {
+    return imageName.replace(/_Current$/, '');
+  };
+
+  // ROI 클릭 핸들러
+  const handleRoiClick = (roiId: string) => {
+    setSelectedRoiId(roiId);
   };
 
   // ROI 데이터 로드
   const loadRoiData = async (image: ImageFile, roiFile: string) => {
     try {
       setLoading(true);
+      
+      // 항상 readRoi API 사용 (백엔드에서 draft 파일 유무에 따라 처리)
       const response = await RoiService.readRoi(projectId, {
-        cctv_id: image.name.split('.')[0], // 이미지 이름에서 CCTV ID 추출
+        cctv_id: getDisplayImageName(image.name).split('.')[0], // 이미지 이름에서 CCTV ID 추출 (_Current 제거 후)
         project_id: projectId,
         roi_file: roiFile
       });
@@ -209,11 +243,16 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
 
     try {
       setLoading(true);
-      // ROI Draft 생성
+      // ROI Draft 생성 (확장자 제거된 파일명 사용)
       await RoiService.createDraftRoi(projectId, selectedRoiFile);
       setEditMode(true);
       setDraftCreated(true);
       setError('');
+      
+      // 편집 모드로 전환 후 ROI 데이터 다시 로드 (초안 파일 사용)
+      if (selectedImage) {
+        await loadRoiData(selectedImage, selectedRoiFile);
+      }
     } catch (err) {
       setError('편집 모드 시작에 실패했습니다.');
     } finally {
@@ -229,12 +268,17 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   };
 
   // 편집 모드 종료
-  const handleEndEdit = () => {
+  const handleEndEdit = async () => {
     setEditMode(false);
     setDraftCreated(false);
     setEditingRoi('');
     setNewRoiId('');
     setNewRoiCoords([]);
+    
+    // 편집 모드 종료 후 원본 파일로 ROI 데이터 다시 로드
+    if (selectedImage && selectedRoiFile) {
+      await loadRoiData(selectedImage, selectedRoiFile);
+    }
   };
 
   // 파일 저장
@@ -243,6 +287,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
 
     try {
       setLoading(true);
+      // 확장자 제거된 파일명 사용
       await RoiService.saveDraftRoi(projectId, selectedRoiFile);
       setError('');
       alert('파일이 성공적으로 저장되었습니다.');
@@ -320,15 +365,19 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                 <FormControl fullWidth>
                   <InputLabel>ROI 파일 선택</InputLabel>
                   <Select
-                    value={selectedRoiFile}
+                    value={selectedRoiFile ? selectedRoiFile + '.json' : ''}
                     onChange={(e) => handleRoiFileSelect(e.target.value)}
                     label="ROI 파일 선택"
                   >
-                    {roiFiles.map((file) => (
-                      <MenuItem key={file.name || file} value={file.name || file}>
-                        {file.name || file}
-                      </MenuItem>
-                    ))}
+                    {roiFiles.map((file) => {
+                      const fileName = typeof file === 'string' ? file : file.name;
+                      const displayName = fileName.replace(/\.json$/, '');
+                      return (
+                        <MenuItem key={fileName} value={fileName}>
+                          {displayName}
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               </CardContent>
@@ -354,7 +403,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                   >
                     {folderImages.map((image) => (
                       <MenuItem key={image.name} value={image.name}>
-                        {image.name}
+                        {getDisplayImageName(image.name)}
                       </MenuItem>
                     ))}
                   </Select>
@@ -393,15 +442,24 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                       overflow: 'hidden'
                     }}
                   >
-                    <img
-                      src={selectedImage.path}
-                      alt="원본"
-                      style={{ 
-                        maxWidth: '100%', 
-                        maxHeight: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
+                    {roiData && roiData.rois ? (
+                      <RoiCanvas
+                        imageSrc={selectedImage.path}
+                        rois={roiData.rois}
+                        editable={false}
+                        selectedRoiId={selectedRoiId}
+                      />
+                    ) : (
+                      <img
+                        src={selectedImage.path}
+                        alt="원본"
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '100%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    )}
                   </Box>
                 </CardContent>
               </Card>
@@ -428,15 +486,25 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                       position: 'relative'
                     }}
                   >
-                    <img
-                      src={selectedImage.path}
-                      alt="편집"
-                      style={{ 
-                        maxWidth: '100%', 
-                        maxHeight: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
+                    {roiData && roiData.rois ? (
+                      <RoiCanvas
+                        imageSrc={selectedImage.path}
+                        rois={roiData.rois}
+                        editable={editMode}
+                        onRoiClick={handleRoiClick}
+                        selectedRoiId={selectedRoiId}
+                      />
+                    ) : (
+                      <img
+                        src={selectedImage.path}
+                        alt="편집"
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '100%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    )}
                   </Box>
 
                   {/* 편집 시작 버튼 */}
