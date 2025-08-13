@@ -18,6 +18,25 @@ import {
 import { CctvInfo } from '../models/Learning';
 import LearningService from '../services/LearningService';
 
+// CCTV ID에서 _Current 제거하는 함수
+const removeCurrentFromCctvId = (cctvId: string): string => {
+  if (!cctvId) return cctvId;
+  
+  // 파일 확장자 분리
+  const lastDotIndex = cctvId.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    // 확장자가 없는 경우
+    return cctvId.replace(/_Current$/, '');
+  }
+  
+  const nameWithoutExt = cctvId.substring(0, lastDotIndex);
+  const extension = cctvId.substring(lastDotIndex);
+  
+  // _Current 제거 후 확장자 다시 붙이기
+  const cleanedName = nameWithoutExt.replace(/_Current$/, '');
+  return cleanedName + extension;
+};
+
 interface LearningResultsViewProps {
   projectId: string;
   folderPath: string;
@@ -56,7 +75,9 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
     setLoadingImages(prev => new Set(prev).add(cctvId));
     
     try {
-      const response = await LearningService.getCctvImages(projectId, folderPath, cctvId);
+      // CCTV ID에서 _Current 제거
+      const cleanedCctvId = removeCurrentFromCctvId(cctvId);
+      const response = await LearningService.getCctvImages(projectId, folderPath, cleanedCctvId);
       setCctvImages(prev => new Map(prev).set(cctvId, {
         roiResultImage: response.data.roi_result_image,
         fgMaskImage: response.data.fg_mask_image,
@@ -114,7 +135,7 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6" component="h3">
-                      {cctv.cctv_id}
+                      {removeCurrentFromCctvId(cctv.cctv_id)}
                     </Typography>
                     <Chip 
                       label={cctv.has_images ? "이미지 있음" : "이미지 없음"}

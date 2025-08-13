@@ -59,10 +59,14 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
     setHistoryLoading(true);
     try {
       const response = await HistoryService.getHistory(project.id);
-      setHistory(response.results || []);
+      // 응답 데이터 안전 처리
+      const results = response?.results || [];
+      setHistory(results);
     } catch (error) {
       console.error('히스토리 로드 실패:', error);
-      setHistory([]);
+      setHistory(null); // null로 설정하여 안전 처리
+      // 에러 상태를 설정하여 사용자에게 알림
+      setState(prev => ({ ...prev, error: '학습 히스토리를 불러오는데 실패했습니다.' }));
     } finally {
       setHistoryLoading(false);
     }
@@ -110,8 +114,8 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
       const folderPathParts = historyItem.folder_path.split('/');
       const folderName = folderPathParts[folderPathParts.length - 1];
       
-      // CCTV 리스트를 CctvInfo 형태로 변환
-      const cctvList = historyItem.cctv_list.map(cctvId => ({
+      // CCTV 리스트를 CctvInfo 형태로 변환 (null 안전 처리)
+      const cctvList = (historyItem.cctv_list || []).map(cctvId => ({
         cctv_id: cctvId,
         has_images: true
       }));
@@ -285,7 +289,7 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
                                   {item.name}
                                 </Typography>
                                 <Chip 
-                                  label={`${item.cctv_list.length}개 CCTV`} 
+                                  label={`${item.cctv_list?.length || 0}개 CCTV`} 
                                   size="small" 
                                   color="primary" 
                                   variant="outlined"
@@ -299,10 +303,10 @@ const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack, onSh
                                 </Typography>
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                                   <Typography variant="caption" color="text.secondary">
-                                    Var Threshold: {item.varThreshold}
+                                    Var Threshold: {item.var_threshold}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
-                                    Learning Rate: {item.learningRate}
+                                    Learning Rate: {item.learning_rate}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
                                     Epoch: {item.epoch}

@@ -49,9 +49,14 @@ string get_current_timestamp() {
 
 // 파일명에서 CCTV ID 추출 (예: P1_B2_3_1_Current.jpg -> P1_B2_3_1)
 string extract_cctv_id_from_filename(const string& filename) {
-    regex pattern(R"(([A-Z]\d+_[A-Z]\d+_\d+_\d+)_Current\.jpg)");
+    // _Current가 있는 경우와 없는 경우 모두 처리
+    regex pattern_current(R"(([A-Z]\d+_[A-Z]\d+_\d+_\d+)_Current\.jpg)");
+    regex pattern_no_current(R"(([A-Z]\d+_[A-Z]\d+_\d+_\d+)\.jpg)");
+    
     smatch match;
-    if (regex_search(filename, match, pattern)) {
+    if (regex_search(filename, match, pattern_current)) {
+        return match[1].str();
+    } else if (regex_search(filename, match, pattern_no_current)) {
         return match[1].str();
     }
     return "";
@@ -381,8 +386,8 @@ int main(int argc, char* argv[]) {
             if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
                 string filename = entry.path().filename().string();
                 
-                // _Current.jpg 파일만 처리
-                if (filename.find("_Current.jpg") != string::npos) {
+                // jpg 파일 처리 (_Current가 있든 없든)
+                if (filename.find(".jpg") != string::npos) {
                     ParkingResult result = process_single_test_image(
                         entry.path().string(), learning_rate, iterations, var_threshold,
                         learning_base_path, roi_path, results_dir
