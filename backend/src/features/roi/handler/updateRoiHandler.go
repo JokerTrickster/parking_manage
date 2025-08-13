@@ -17,7 +17,7 @@ func NewUpdateRoiHandler(c *echo.Echo, useCase _interface.IUpdateRoiUseCase) _in
 	handler := &UpdateRoiHandler{
 		UseCase: useCase,
 	}
-	c.PUT("/v0.1/roi/{projectId}/update", handler.UpdateRoi)
+	c.PUT("/v0.1/roi/:projectId/update", handler.UpdateRoi)
 	return handler
 }
 

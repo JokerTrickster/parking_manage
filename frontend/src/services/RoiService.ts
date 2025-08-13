@@ -59,9 +59,13 @@ export class RoiService {
     return response.data;
   }
 
+
+
   // ROI 생성
-  static async createRoi(projectId: string, request: CreateRoiRequest): Promise<RoiResponse> {
-    const response = await api.post(API_ENDPOINTS.CREATE_ROI(projectId), request);
+  static async createRoi(projectId: string, request: { roi_id: string; cctv_id: string; roi_file: string; coords: number[] }): Promise<RoiResponse> {
+    const url = `/v0.1/roi/${projectId}/create`;
+    console.log('🔧 ROI Create Request:', { url, request });
+    const response = await api.post(url, request);
     return response.data;
   }
 
@@ -72,14 +76,18 @@ export class RoiService {
   }
 
   // ROI 수정
-  static async updateRoi(projectId: string, request: UpdateRoiRequest): Promise<RoiResponse> {
-    const response = await api.put(API_ENDPOINTS.UPDATE_ROI(projectId), request);
+  static async updateRoi(projectId: string, request: { roi_id: string; cctv_id: string; roi_file: string; coords: number[] }): Promise<RoiResponse> {
+    const url = `/v0.1/roi/${projectId}/update`;
+    console.log('🔧 ROI Update Request:', { url, request });
+    const response = await api.put(url, request);
     return response.data;
   }
 
   // ROI 삭제
-  static async deleteRoi(projectId: string, request: DeleteRoiRequest): Promise<RoiResponse> {
-    const response = await api.delete(API_ENDPOINTS.DELETE_ROI(projectId), { data: request });
+  static async deleteRoi(projectId: string, request: { roi_id: string; cctv_id: string; roi_file: string }): Promise<RoiResponse> {
+    const url = `/v0.1/roi/${projectId}/delete`;
+    console.log('🔧 ROI Delete Request:', { url, request });
+    const response = await api.delete(url, { data: request });
     return response.data;
   }
 }

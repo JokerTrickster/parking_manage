@@ -33,16 +33,16 @@ func NewRoiHandler(e *echo.Echo) error {
 	deleteRoiUseCase := usecase.NewDeleteRoiUseCase(deleteRoiRepo, 30*time.Second)
 	getImageRoiUseCase := usecase.NewGetImageRoiUseCase(getImageRoiRepo, 30*time.Second)
 
-	// Handler 초기화
-	NewUploadRoiHandler(e, uploadRoiUseCase)
-	NewTestStatsRoiHandler(e, testStatsRoiUseCase)
-	NewCreateDraftRoiHandler(e, createDraftRoiUseCase)
-	NewGetDraftRoiHandler(e, getDraftRoiUseCase)
-	NewSaveDraftRoiHandler(e, saveDraftRoiUseCase)
+	// Handler 초기화 (구체적인 라우팅을 먼저 등록)
 	NewCreateRoiHandler(e, createRoiUseCase)
 	NewReadRoiHandler(e, readRoiUseCase)
 	NewUpdateRoiHandler(e, updateRoiUseCase)
 	NewDeleteRoiHandler(e, deleteRoiUseCase)
+	NewCreateDraftRoiHandler(e, createDraftRoiUseCase)
+	NewGetDraftRoiHandler(e, getDraftRoiUseCase)
+	NewSaveDraftRoiHandler(e, saveDraftRoiUseCase)
+	NewUploadRoiHandler(e, uploadRoiUseCase)
+	NewTestStatsRoiHandler(e, testStatsRoiUseCase)
 	NewGetImageRoiHandler(e, getImageRoiUseCase)
 	return nil
 }

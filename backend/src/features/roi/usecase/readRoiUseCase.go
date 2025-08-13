@@ -66,35 +66,18 @@ func (d *ReadRoiUseCase) ReadRoi(c context.Context, projectID string, req reques
 		return response.ResReadRoi{}, fmt.Errorf("JSON 파싱 실패: %v", err)
 	}
 
-	// 응답 데이터 구성 (CCTV ID에서 _Current 제거)
-	responseCctvID := req.CctvID
-	if len(responseCctvID) > 8 && responseCctvID[len(responseCctvID)-8:] == "_Current" {
-		responseCctvID = responseCctvID[:len(responseCctvID)-8]
-	}
-
 	result := response.ResReadRoi{
-		CctvID: responseCctvID,
+		CctvID: req.CctvID,
 		Rois:   make(map[string][]interface{}),
 	}
 
-	// CCTV ID에 해당하는 데이터 찾기 (CCTV ID에서 _Current 제거)
+	// CCTV ID에 해당하는 데이터 찾기
 	cctvFound := false
-	// 요청된 CCTV ID에서 _Current 제거
-	requestedCctvID := req.CctvID
-	if len(requestedCctvID) > 8 && requestedCctvID[len(requestedCctvID)-8:] == "_Current" {
-		requestedCctvID = requestedCctvID[:len(requestedCctvID)-8]
-	}
 
 	for _, cctvData := range roiData {
 		if cctvMap, ok := cctvData.(map[string]interface{}); ok {
 			if cctvID, ok := cctvMap["cctv_id"].(string); ok {
-				// 파일의 CCTV ID에서도 _Current 제거
-				fileCctvID := cctvID
-				if len(fileCctvID) > 8 && fileCctvID[len(fileCctvID)-8:] == "_Current" {
-					fileCctvID = fileCctvID[:len(fileCctvID)-8]
-				}
-
-				if fileCctvID == requestedCctvID {
+				if cctvID == req.CctvID {
 					cctvFound = true
 
 					// matches 배열에서 각 ROI의 좌표 추출

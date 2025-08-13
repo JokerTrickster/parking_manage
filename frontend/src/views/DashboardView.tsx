@@ -29,18 +29,18 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ project, onBack, onNavigate }) => {
   const menuItems = [
     {
-      id: 'parking-test',
-      title: '주차면 테스트',
-      description: '학습 데이터와 테스트 이미지를 사용하여 주차면 감지 테스트를 수행합니다.',
-      icon: <TestIcon />,
-      color: '#1976d2',
-    },
-    {
       id: 'roi-work',
       title: 'ROI 작업',
       description: '관심 영역(ROI)을 설정하고 관리합니다.',
       icon: <RoiIcon />,
       color: '#388e3c',
+    },
+    {
+      id: 'parking-test',
+      title: '주차면 테스트',
+      description: '학습 데이터와 테스트 이미지를 사용하여 주차면 감지 테스트를 수행합니다.',
+      icon: <TestIcon />,
+      color: '#1976d2',
     },
     {
       id: 'live-parking',

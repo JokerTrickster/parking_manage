@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Container,
@@ -12,7 +12,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Snackbar
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -27,7 +28,7 @@ import {
   ImageFile, 
   ReadRoiResponse
 } from '../models/Roi';
-import RoiCanvas from '../components/RoiCanvas';
+import RoiCanvas, { RoiCanvasRef } from '../components/RoiCanvas';
 
 interface RoiWorkViewProps {
   projectId: string;
@@ -45,14 +46,23 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const [roiData, setRoiData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
 
   // ROI 편집 상태
-  const [editingRoi, setEditingRoi] = useState<string>('');
-  const [newRoiId, setNewRoiId] = useState('');
-  const [newRoiCoords, setNewRoiCoords] = useState<number[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [draftCreated, setDraftCreated] = useState(false);
   const [selectedRoiId, setSelectedRoiId] = useState<string>('');
+  const [draftRoiData, setDraftRoiData] = useState<{ [cctvId: string]: any }>({});
+  const [roiEditMode, setRoiEditMode] = useState<'create' | 'update' | null>(null);
+  const [tempRoiId, setTempRoiId] = useState<string>('');
+  const [tempRoiNumber, setTempRoiNumber] = useState<string>('');
+  const roiCanvasRef = useRef<RoiCanvasRef>(null);
+
+  // Snackbar 닫기 핸들러
+  const handleCloseSnackbar = () => {
+    setSuccess('');
+    setError('');
+  };
 
   useEffect(() => {
     loadTestFolders();
@@ -152,13 +162,34 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     try {
       setLoading(true);
       
-      // 항상 readRoi API 사용 (백엔드에서 draft 파일 유무에 따라 처리)
-      const response = await RoiService.readRoi(projectId, {
-        cctv_id: getDisplayImageName(image.name).split('.')[0], // 이미지 이름에서 CCTV ID 추출 (_Current 제거 후)
-        project_id: projectId,
-        roi_file: roiFile
-      });
-      setRoiData(response);
+      const cctvId = getDisplayImageName(image.name).split('.')[0]; // 이미지 이름에서 CCTV ID 추출 (_Current 제거 후)
+      
+      if (draftCreated) {
+        // Draft 모드일 때: 저장된 Draft 데이터가 있으면 사용, 없으면 API에서 로드
+        if (draftRoiData[cctvId]) {
+          setRoiData(draftRoiData[cctvId]);
+        } else {
+          // Draft 데이터가 없으면 API에서 로드하고 Draft에 저장
+          const response = await RoiService.readRoi(projectId, {
+            cctv_id: cctvId,
+            project_id: projectId,
+            roi_file: roiFile
+          });
+          setRoiData(response);
+          setDraftRoiData(prev => ({
+            ...prev,
+            [cctvId]: response
+          }));
+        }
+      } else {
+        // 일반 모드일 때: API에서 데이터 로드
+        const response = await RoiService.readRoi(projectId, {
+          cctv_id: cctvId,
+          project_id: projectId,
+          roi_file: roiFile
+        });
+        setRoiData(response);
+      }
     } catch (err) {
       setError('ROI 데이터를 불러오는데 실패했습니다.');
     } finally {
@@ -168,33 +199,57 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
 
   // ROI 생성
   const handleCreateRoi = () => {
-    setEditingRoi('create');
-    setNewRoiId('');
-    setNewRoiCoords([]);
+    setRoiEditMode('create');
+    setTempRoiId('');
+    setTempRoiNumber('');
   };
 
   // ROI 수정
   const handleUpdateRoi = (roiId: string) => {
-    setEditingRoi('update');
-    setNewRoiId(roiId);
-    setNewRoiCoords(roiData?.rois[roiId] || []);
+    setRoiEditMode('update');
+    setSelectedRoiId(roiId);
   };
 
   // ROI 삭제
   const handleDeleteRoi = async (roiId: string) => {
     if (!selectedImage || !selectedRoiFile || !roiData) return;
 
+    const cctvId = getDisplayImageName(selectedImage.name).split('.')[0];
+
     try {
       setLoading(true);
-      await RoiService.deleteRoi(projectId, {
-        roi_id: roiId,
-        cctv_id: roiData.cctv_id,
-        project_id: projectId,
-        roi_file: selectedRoiFile
-      });
       
-      // ROI 데이터 새로고침
-      await loadRoiData(selectedImage, selectedRoiFile);
+      // Draft 파일에서 ROI 삭제 (로컬 상태 업데이트)
+      const updatedRois = { ...roiData.rois };
+      delete updatedRois[roiId];
+      const updatedRoiData = {
+        ...roiData,
+        rois: updatedRois
+      };
+      
+      setRoiData(updatedRoiData);
+      
+      // Draft 데이터에도 저장
+      setDraftRoiData(prev => ({
+        ...prev,
+        [cctvId]: updatedRoiData
+      }));
+      
+      // Draft 파일에 실제로 저장 (기존 API 활용)
+      try {
+        // Draft 모드에서는 원본 파일명으로 호출하되 Draft 파일에 저장됨
+        await RoiService.deleteRoi(projectId, {
+          roi_id: roiId,
+          cctv_id: cctvId,
+          roi_file: selectedRoiFile // 원본 파일명으로 호출
+        });
+      } catch (draftErr) {
+        console.warn('Draft 파일 저장 실패:', draftErr);
+        // Draft 파일 저장 실패해도 로컬 상태는 유지
+      }
+      
+      setSuccess('ROI가 성공적으로 삭제되었습니다. (Draft에서 삭제됨)');
+      setError(''); // 에러 메시지 초기화
     } catch (err) {
       setError('ROI 삭제에 실패했습니다.');
     } finally {
@@ -202,40 +257,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
-  // ROI 저장
-  const handleSaveRoi = async () => {
-    if (!selectedImage || !selectedRoiFile || !roiData) return;
 
-    try {
-      setLoading(true);
-      
-      if (editingRoi === 'create') {
-        await RoiService.createRoi(projectId, {
-          roi_id: newRoiId,
-          cctv_id: roiData.cctv_id,
-          project_id: projectId,
-          roi_file: selectedRoiFile,
-          coords: newRoiCoords
-        });
-      } else if (editingRoi === 'update') {
-        await RoiService.updateRoi(projectId, {
-          roi_id: newRoiId,
-          cctv_id: roiData.cctv_id,
-          project_id: projectId,
-          roi_file: selectedRoiFile,
-          coords: newRoiCoords
-        });
-      }
-
-      // ROI 데이터 새로고침
-      await loadRoiData(selectedImage, selectedRoiFile);
-      setEditingRoi('');
-    } catch (err) {
-      setError('ROI 저장에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 편집 시작
   const handleStartEdit = async () => {
@@ -260,20 +282,153 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
+  // ROI 생성 완료
+  const handleRoiCreate = async (coordinates: number[]) => {
+    if (!tempRoiNumber.trim()) {
+      setError('ROI 번호를 입력해주세요.');
+      return;
+    }
+    
+    if (!selectedImage || !selectedRoiFile || !roiData) {
+      setError('필수 정보가 누락되었습니다.');
+      return;
+    }
+    
+    const roiId = `PARKINGLOCATIONS_${tempRoiNumber}`;
+    const cctvId = getDisplayImageName(selectedImage.name).split('.')[0];
+    
+    // 좌표를 정수형으로 반올림
+    const roundedCoordinates = coordinates.map(coord => Math.round(coord));
+    
+    try {
+      setLoading(true);
+      
+      // Draft 파일에 ROI 추가 (로컬 상태 업데이트)
+      const updatedRois = { ...roiData.rois };
+      updatedRois[roiId] = roundedCoordinates;
+      const updatedRoiData = {
+        ...roiData,
+        rois: updatedRois
+      };
+      
+      setRoiData(updatedRoiData);
+      
+      // Draft 데이터에도 저장
+      setDraftRoiData(prev => ({
+        ...prev,
+        [cctvId]: updatedRoiData
+      }));
+      
+      // Draft 파일에 실제로 저장 (기존 API 활용)
+      try {
+        // Draft 모드에서는 원본 파일명으로 호출하되 Draft 파일에 저장됨
+        await RoiService.createRoi(projectId, {
+          roi_id: roiId,
+          cctv_id: cctvId,
+          roi_file: selectedRoiFile, // 원본 파일명으로 호출
+          coords: roundedCoordinates
+        });
+      } catch (draftErr) {
+        console.warn('Draft 파일 저장 실패:', draftErr);
+        // Draft 파일 저장 실패해도 로컬 상태는 유지
+      }
+      
+      setRoiEditMode(null);
+      setTempRoiId('');
+      setTempRoiNumber('');
+      setSuccess('ROI가 성공적으로 생성되었습니다. (Draft에 저장됨)');
+      setError(''); // 에러 메시지 초기화
+    } catch (err) {
+      setError('ROI 생성에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ROI 수정 완료
+  const handleRoiUpdate = async (roiId: string, coordinates: number[]) => {
+    if (!selectedImage || !selectedRoiFile || !roiData) {
+      setError('필수 정보가 누락되었습니다.');
+      return;
+    }
+    
+    const cctvId = getDisplayImageName(selectedImage.name).split('.')[0];
+    
+    // 좌표를 정수형으로 반올림
+    const roundedCoordinates = coordinates.map(coord => Math.round(coord));
+    
+    try {
+      setLoading(true);
+      
+      // Draft 파일에 ROI 수정 (로컬 상태 업데이트)
+      const updatedRois = { ...roiData.rois };
+      updatedRois[roiId] = roundedCoordinates;
+      const updatedRoiData = {
+        ...roiData,
+        rois: updatedRois
+      };
+      
+      setRoiData(updatedRoiData);
+      
+      // Draft 데이터에도 저장
+      setDraftRoiData(prev => ({
+        ...prev,
+        [cctvId]: updatedRoiData
+      }));
+      
+      // Draft 파일에 실제로 저장 (기존 API 활용)
+      try {
+        // Draft 모드에서는 원본 파일명으로 호출하되 Draft 파일에 저장됨
+        await RoiService.updateRoi(projectId, {
+          roi_id: roiId,
+          cctv_id: cctvId,
+          roi_file: selectedRoiFile, // 원본 파일명으로 호출
+          coords: roundedCoordinates
+        });
+      } catch (draftErr) {
+        console.warn('Draft 파일 저장 실패:', draftErr);
+        // Draft 파일 저장 실패해도 로컬 상태는 유지
+      }
+      
+      setRoiEditMode(null);
+      setSuccess('ROI가 성공적으로 수정되었습니다. (Draft에 저장됨)');
+      setError(''); // 에러 메시지 초기화
+    } catch (err) {
+      setError('ROI 수정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ROI 편집 저장
+  const handleSaveRoiEdit = () => {
+    if (roiCanvasRef.current) {
+      roiCanvasRef.current.completeRoi();
+    }
+  };
+
+  // ROI 편집 취소
+  const handleCancelRoiEdit = () => {
+    if (roiCanvasRef.current) {
+      roiCanvasRef.current.cancelRoiEdit();
+    }
+    setRoiEditMode(null);
+    setTempRoiId('');
+    setTempRoiNumber('');
+  };
+
   // 편집 취소
   const handleCancelEdit = () => {
-    setEditingRoi('');
-    setNewRoiId('');
-    setNewRoiCoords([]);
+    setRoiEditMode(null);
+    setTempRoiId('');
+    setTempRoiNumber('');
   };
 
   // 편집 모드 종료
   const handleEndEdit = async () => {
     setEditMode(false);
     setDraftCreated(false);
-    setEditingRoi('');
-    setNewRoiId('');
-    setNewRoiCoords([]);
+    setDraftRoiData({}); // Draft 데이터 초기화
     
     // 편집 모드 종료 후 원본 파일로 ROI 데이터 다시 로드
     if (selectedImage && selectedRoiFile) {
@@ -287,13 +442,20 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
 
     try {
       setLoading(true);
-      // 확장자 제거된 파일명 사용
+      
+      // 기존 saveDraftRoi API 사용 (Draft 파일을 원본 파일로 복사)
       await RoiService.saveDraftRoi(projectId, selectedRoiFile);
+      
       setError('');
-      alert('파일이 성공적으로 저장되었습니다.');
+      setSuccess('파일이 성공적으로 저장되었습니다.');
       setDraftCreated(false);
       setEditMode(false);
+      setDraftRoiData({}); // Draft 데이터 초기화
+      
+      // ROI 파일 리스트 새로고침
+      await loadRoiFiles();
     } catch (err) {
+      console.error('파일 저장 실패:', err);
       setError('파일 저장에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -318,11 +480,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
         </Typography>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+
 
       {/* 파일 선택 섹션 */}
       <Box sx={{ mb: 4 }}>
@@ -444,10 +602,14 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                   >
                     {roiData && roiData.rois ? (
                       <RoiCanvas
+                        ref={roiCanvasRef}
                         imageSrc={selectedImage.path}
                         rois={roiData.rois}
                         editable={false}
                         selectedRoiId={selectedRoiId}
+                        editMode={roiEditMode}
+                        onRoiCreate={handleRoiCreate}
+                        onRoiUpdate={handleRoiUpdate}
                       />
                     ) : (
                       <img
@@ -488,11 +650,15 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                   >
                     {roiData && roiData.rois ? (
                       <RoiCanvas
+                        ref={roiCanvasRef}
                         imageSrc={selectedImage.path}
                         rois={roiData.rois}
                         editable={editMode}
                         onRoiClick={handleRoiClick}
                         selectedRoiId={selectedRoiId}
+                        editMode={roiEditMode}
+                        onRoiCreate={handleRoiCreate}
+                        onRoiUpdate={handleRoiUpdate}
                       />
                     ) : (
                       <img
@@ -521,14 +687,80 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                     </Box>
                   )}
 
-                  {/* ROI 편집 컨트롤 */}
+                  {/* 편집 모드 종료 버튼 */}
                   {editMode && (
                     <Box sx={{ mt: 2 }}>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={handleEndEdit}
+                        fullWidth
+                      >
+                        편집 모드 종료
+                      </Button>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          {/* ROI 편집 프레임 */}
+          {editMode && (
+            <Box sx={{ mt: 4 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    ROI 편집 도구
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* ROI 생성 섹션 */}
+                    <Box>
                       <Typography variant="subtitle1" gutterBottom>
-                        ROI 편집
+                        ROI 생성
                       </Typography>
                       
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                             {roiEditMode === 'create' ? (
+                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                             <Typography variant="body1" sx={{ whiteSpace: 'nowrap' }}>
+                               PARKINGLOCATIONS_
+                             </Typography>
+                             <TextField
+                               label="번호"
+                               value={tempRoiNumber}
+                               onChange={(e) => {
+                                 const value = e.target.value.replace(/[^0-9]/g, '');
+                                 setTempRoiNumber(value);
+                               }}
+                               placeholder="숫자만 입력"
+                               fullWidth
+                               inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                             />
+                           </Box>
+                           <Typography variant="body2" color="text.secondary">
+                             이미지에서 클릭하여 ROI를 그리세요. 최소 3개 점이 필요합니다.
+                           </Typography>
+                           <Box sx={{ display: 'flex', gap: 1 }}>
+                                                            <Button
+                                 variant="contained"
+                                 onClick={handleSaveRoiEdit}
+                                 disabled={!tempRoiNumber.trim()}
+                                 sx={{ flex: 1 }}
+                               >
+                                 저장
+                               </Button>
+                             <Button
+                               variant="outlined"
+                               onClick={handleCancelRoiEdit}
+                               sx={{ flex: 1 }}
+                             >
+                               취소
+                             </Button>
+                           </Box>
+                         </Box>
+                       ) : (
                         <Button
                           variant="outlined"
                           startIcon={<AddIcon />}
@@ -537,95 +769,71 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                         >
                           ROI 생성
                         </Button>
-                        
-                        {roiData && Object.keys(roiData.rois).map((roiId) => (
-                          <Box key={roiId} sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => handleUpdateRoi(roiId)}
-                              sx={{ flex: 1 }}
-                            >
-                              수정: {roiId}
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              startIcon={<DeleteIcon />}
-                              onClick={() => handleDeleteRoi(roiId)}
-                              sx={{ flex: 1 }}
-                            >
-                              삭제
-                            </Button>
-                          </Box>
-                        ))}
-
-                        {/* 편집 모드 종료 버튼 */}
-                        <Button
-                          variant="outlined"
-                          color="secondary"
-                          onClick={handleEndEdit}
-                          fullWidth
-                        >
-                          편집 모드 종료
-                        </Button>
-                      </Box>
+                      )}
                     </Box>
-                  )}
+
+                    {/* ROI 수정/삭제 섹션 */}
+                    {roiData && Object.keys(roiData.rois).length > 0 && (
+                      <Box>
+                        <Typography variant="subtitle1" gutterBottom>
+                          ROI 수정/삭제
+                        </Typography>
+                        
+                        {roiEditMode === 'update' ? (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {selectedRoiId} 수정 중: 이미지에서 클릭하여 새 ROI를 그리세요. 최소 3개 점이 필요합니다.
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                onClick={handleSaveRoiEdit}
+                                sx={{ flex: 1 }}
+                              >
+                                저장
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                onClick={handleCancelRoiEdit}
+                                sx={{ flex: 1 }}
+                              >
+                                취소
+                              </Button>
+                            </Box>
+                          </Box>
+                        ) : (
+                          Object.keys(roiData.rois).map((roiId) => (
+                            <Box key={roiId} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                              <Button
+                                variant="outlined"
+                                startIcon={<EditIcon />}
+                                onClick={() => handleUpdateRoi(roiId)}
+                                sx={{ flex: 1 }}
+                                disabled={roiEditMode !== null}
+                              >
+                                수정: {roiId}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                onClick={() => handleDeleteRoi(roiId)}
+                                sx={{ flex: 1 }}
+                                disabled={roiEditMode !== null}
+                              >
+                                삭제
+                              </Button>
+                            </Box>
+                          ))
+                        )}
+                      </Box>
+                    )}
+
+
+                  </Box>
                 </CardContent>
               </Card>
             </Box>
-          </Box>
-
-          {/* ROI 편집 폼 */}
-          {editingRoi && (
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {editingRoi === 'create' ? 'ROI 생성' : 'ROI 수정'}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    label="ROI ID"
-                    value={newRoiId}
-                    onChange={(e) => setNewRoiId(e.target.value)}
-                    fullWidth
-                  />
-                  
-                  <TextField
-                    label="좌표 (쉼표로 구분)"
-                    value={newRoiCoords.join(', ')}
-                    onChange={(e) => {
-                      const coords = e.target.value.split(',').map(c => parseInt(c.trim())).filter(n => !isNaN(n));
-                      setNewRoiCoords(coords);
-                    }}
-                    fullWidth
-                    placeholder="예: 100, 200, 300, 400"
-                  />
-                  
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<SaveIcon />}
-                      onClick={handleSaveRoi}
-                      sx={{ flex: 1 }}
-                    >
-                      저장
-                    </Button>
-                    
-                    <Button
-                      variant="outlined"
-                      startIcon={<CancelIcon />}
-                      onClick={handleCancelEdit}
-                      sx={{ flex: 1 }}
-                    >
-                      취소
-                    </Button>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
           )}
 
           {/* 파일 저장 버튼 */}
@@ -664,6 +872,39 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
           <CircularProgress />
         </Box>
       )}
+
+      {/* 성공/에러 알림 Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity="success" 
+          sx={{ width: '100%' }}
+          elevation={6}
+        >
+          {success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity="error" 
+          sx={{ width: '100%' }}
+          elevation={6}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

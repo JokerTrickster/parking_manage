@@ -54,6 +54,7 @@ func (d *CreateRoiUseCase) CreateRoi(c context.Context, projectID string, req re
 
 	// CCTV ID에 해당하는 데이터 찾기
 	cctvFound := false
+	roiFound := false
 	for ipAddr, cctvData := range roiData {
 		if cctvMap, ok := cctvData.(map[string]interface{}); ok {
 			if cctvID, ok := cctvMap["cctv_id"].(string); ok && cctvID == req.CctvID {
@@ -64,7 +65,7 @@ func (d *CreateRoiUseCase) CreateRoi(c context.Context, projectID string, req re
 					for i, match := range matches {
 						if matchMap, ok := match.(map[string]interface{}); ok {
 							if parkingID, ok := matchMap["parking_id"].(string); ok && parkingID == req.RoiID {
-								// 좌표 업데이트
+								// 기존 ROI 수정
 								matchMap["original_roi"] = req.Coords
 								matchMap["img_center_roi"] = req.Coords
 
@@ -72,9 +73,22 @@ func (d *CreateRoiUseCase) CreateRoi(c context.Context, projectID string, req re
 								matches[i] = matchMap
 								cctvMap["matches"] = matches
 								roiData[ipAddr] = cctvMap
+								roiFound = true
 								break
 							}
 						}
+					}
+
+					// ROI를 찾지 못했다면 새로운 ROI 추가
+					if !roiFound {
+						newRoi := map[string]interface{}{
+							"parking_id":     req.RoiID,
+							"original_roi":   req.Coords,
+							"img_center_roi": req.Coords,
+						}
+						matches = append(matches, newRoi)
+						cctvMap["matches"] = matches
+						roiData[ipAddr] = cctvMap
 					}
 				}
 				break
@@ -96,8 +110,13 @@ func (d *CreateRoiUseCase) CreateRoi(c context.Context, projectID string, req re
 		return response.ResCreateRoi{}, fmt.Errorf("파일 저장 실패: %v", err)
 	}
 
+	message := "ROI가 성공적으로 생성되었습니다"
+	if roiFound {
+		message = "ROI가 성공적으로 수정되었습니다"
+	}
+
 	return response.ResCreateRoi{
 		Success: true,
-		Message: "ROI가 성공적으로 생성되었습니다",
+		Message: message,
 	}, nil
 }
