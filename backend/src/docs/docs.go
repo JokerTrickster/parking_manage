@@ -591,6 +591,68 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/parking/{projectId}/{folderPath}": {
+            "delete": {
+                "description": "지정된 프로젝트의 파일/폴더를 삭제합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "parking"
+                ],
+                "summary": "파일/폴더 삭제",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Folder Path",
+                        "name": "folderPath",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "삭제할 파일/폴더 정보",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReqDeleteFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResDeleteFile"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/{folderPath}/{cctvId}/images/{imageType}": {
             "get": {
                 "description": "Gets a specific image (roi_result or fgmask) for a CCTV",
@@ -1320,6 +1382,17 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "request.ReqDeleteFile": {
+            "type": "object",
+            "required": [
+                "deleteName"
+            ],
+            "properties": {
+                "deleteName": {
+                    "type": "string"
+                }
+            }
+        },
         "request.ReqLabelSave": {
             "type": "object",
             "properties": {
@@ -1514,6 +1587,17 @@ const docTemplate_swagger = `{
             }
         },
         "response.ResCreateRoi": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "response.ResDeleteFile": {
             "type": "object",
             "properties": {
                 "message": {

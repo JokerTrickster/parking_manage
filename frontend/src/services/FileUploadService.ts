@@ -104,7 +104,19 @@ export class FileUploadService {
         }
       }
       
-      const endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
+      // fileType에 따라 적절한 엔드포인트 선택
+      let endpoint: string;
+      switch (fileType) {
+        case 'learning':
+          endpoint = API_ENDPOINTS.UPLOAD_LEARNING(projectId);
+          break;
+        case 'test':
+          endpoint = API_ENDPOINTS.UPLOAD_TEST(projectId);
+          break;
+        default:
+          throw new Error('지원하지 않는 파일 타입입니다.');
+      }
+      
       const response = await api.post(endpoint, formData);
       return response.data;
     } catch (error) {
@@ -120,8 +132,28 @@ export class FileUploadService {
     folderName: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const endpoint = API_ENDPOINTS.DELETE_FILE_OR_FOLDER(projectId, fileType, folderName);
-      const response = await api.delete(endpoint);
+      // fileType에 따라 folderPath 결정 (백엔드 실제 폴더 경로와 일치)
+      let folderPath: string;
+      switch (fileType) {
+        case 'learning':
+          folderPath = 'learningImages';
+          break;
+        case 'test':
+          folderPath = 'testImages';
+          break;
+        case 'roi':
+          folderPath = 'roi';
+          break;
+        default:
+          throw new Error('지원하지 않는 파일 타입입니다.');
+      }
+      
+      const endpoint = API_ENDPOINTS.DELETE_FILE_OR_FOLDER(projectId, folderPath);
+      const response = await api.delete(endpoint, {
+        data: {
+          deleteName: folderName
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('파일/폴더 삭제 실패:', error);

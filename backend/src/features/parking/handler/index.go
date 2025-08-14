@@ -24,6 +24,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	historyRepo := repository.NewHistoryParkingRepository(mysql.GormMysqlDB)
 	labelGetRepo := repository.NewLabelGetParkingRepository(mysql.GormMysqlDB)
 	labelSaveRepo := repository.NewLabelSaveParkingRepository(mysql.GormMysqlDB)
+	deleteFileRepo := repository.NewDeleteFileParkingRepository(mysql.GormMysqlDB)
 
 	// UseCase 초기화
 	learningUploadUseCase := usecase.NewLearningUploadParkingUseCase(learningUploadRepo, 30*time.Second)
@@ -39,6 +40,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	historyUseCase := usecase.NewHistoryParkingUseCase(historyRepo, 30*time.Second)
 	labelGetUseCase := usecase.NewLabelGetParkingUseCase(labelGetRepo)
 	labelSaveUseCase := usecase.NewLabelSaveParkingUseCase(labelSaveRepo)
+	deleteFileUseCase := usecase.NewDeleteFileParkingUseCase(deleteFileRepo)
 
 	// Handler 초기화
 	NewLearningUploadParkingHandler(e, learningUploadUseCase)
@@ -54,6 +56,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	NewHistoryParkingHandler(e, historyUseCase)
 	NewLabelGetParkingHandler(e, labelGetUseCase)
 	NewLabelSaveParkingHandler(e, labelSaveUseCase)
+	NewDeleteFileParkingHandler(e, deleteFileUseCase)
 
 	return nil
 }

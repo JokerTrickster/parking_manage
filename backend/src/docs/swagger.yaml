@@ -35,6 +35,13 @@ definitions:
       roi_file:
         type: string
     type: object
+  request.ReqDeleteFile:
+    properties:
+      deleteName:
+        type: string
+    required:
+    - deleteName
+    type: object
   request.ReqLabelSave:
     properties:
       labels:
@@ -161,6 +168,13 @@ definitions:
         type: boolean
     type: object
   response.ResCreateRoi:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  response.ResDeleteFile:
     properties:
       message:
         type: string
@@ -383,6 +397,56 @@ paths:
             additionalProperties: true
             type: object
       summary: Get CCTV Images
+      tags:
+      - parking
+  /v0.1/parking/{projectId}/{folderPath}:
+    delete:
+      consumes:
+      - application/json
+      description: |
+        지정된 프로젝트의 파일/폴더를 삭제합니다.
+
+        ■ errCode with 400
+        PARAM_BAD : 파라미터 오류
+
+        ■ errCode with 500
+        INTERNAL_SERVER : 내부 로직 처리 실패
+        INTERNAL_DB : DB 처리 실패
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Folder Path
+        in: path
+        name: folderPath
+        required: true
+        type: string
+      - description: 삭제할 파일/폴더 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ReqDeleteFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResDeleteFile'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 파일/폴더 삭제
       tags:
       - parking
   /v0.1/parking/{projectId}/{folderPath}/{cctvId}/images/{imageType}:

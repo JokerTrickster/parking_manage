@@ -100,18 +100,8 @@ const LearningDataView: React.FC<LearningDataViewProps> = ({ project, onBack }) 
       );
       
       if (result.success) {
-        // 로컬 상태에서 제거
-        switch (itemToDelete.type) {
-          case 'learning':
-            setLearningFolders(prev => prev.filter(f => f.name !== itemToDelete.folder.name));
-            break;
-          case 'test':
-            setTestFolders(prev => prev.filter(f => f.name !== itemToDelete.folder.name));
-            break;
-          case 'roi':
-            setRoiFolders(prev => prev.filter(f => f.name !== itemToDelete.folder.name));
-            break;
-        }
+        // 삭제 성공 후 목록 새로고침
+        await loadFolders();
         
         setSuccess(result.message);
         setTimeout(() => setSuccess(null), 3000);

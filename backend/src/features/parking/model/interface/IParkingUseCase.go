@@ -62,3 +62,7 @@ type ILabelGetParkingUseCase interface {
 type ILabelSaveParkingUseCase interface {
 	SaveLabels(ctx context.Context, projectID string, folderPath string, cctvID string, labels []request.LabelData) (response.ResSaveLabel, error)
 }
+
+type IDeleteFileParkingUseCase interface {
+	DeleteFile(ctx context.Context, projectID string, folderPath string, req request.ReqDeleteFile) (response.ResDeleteFile, error)
+}

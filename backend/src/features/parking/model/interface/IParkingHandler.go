@@ -53,3 +53,7 @@ type ILabelGetParkingHandler interface {
 type ILabelSaveParkingHandler interface {
 	SaveLabels(c echo.Context) error
 }
+
+type IDeleteFileParkingHandler interface {
+	DeleteFile(c echo.Context) error
+}

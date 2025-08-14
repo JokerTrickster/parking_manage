@@ -51,3 +51,6 @@ type ILabelGetParkingRepository interface {
 
 type ILabelSaveParkingRepository interface {
 }
+
+type IDeleteFileParkingRepository interface {
+}
