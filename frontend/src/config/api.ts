@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   GET_LEARNING_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/train-folders`,
   GET_TEST_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/test-folders`,
   GET_ROI_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/roi-folders`,
+  DELETE_FILE_OR_FOLDER: (projectId: string, fileType: string, folderName: string) => `/v0.1/parking/${projectId}/delete/${fileType}/${folderName}`,
   
   // 주차 테스트 관련
   PARKING_TEST: '/api/parking-test',

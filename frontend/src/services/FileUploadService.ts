@@ -112,4 +112,20 @@ export class FileUploadService {
       throw error;
     }
   }
+
+  // 파일/폴더 삭제
+  static async deleteFileOrFolder(
+    projectId: string, 
+    fileType: 'learning' | 'test' | 'roi', 
+    folderName: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = API_ENDPOINTS.DELETE_FILE_OR_FOLDER(projectId, fileType, folderName);
+      const response = await api.delete(endpoint);
+      return response.data;
+    } catch (error) {
+      console.error('파일/폴더 삭제 실패:', error);
+      throw error;
+    }
+  }
 } 

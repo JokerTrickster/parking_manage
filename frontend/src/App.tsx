@@ -5,6 +5,7 @@ import DashboardView from './views/DashboardView';
 import ParkingTestView from './views/ParkingTestView';
 import LearningResultsPage from './views/LearningResultsPage';
 import { RoiWorkView } from './views/RoiWorkView';
+import LearningDataView from './views/LearningDataView';
 import { Project } from './models/Project';
 import { CctvInfo } from './models/Learning';
 
@@ -107,13 +108,12 @@ function App() {
         );
       
       case 'learning-data':
-        return (
-          <div>
-            <h2>학습 데이터 등록 페이지</h2>
-            <p>학습 데이터 등록 기능이 개발 중입니다1..</p>
-            <button onClick={handleBackToDashboard}>대시보드로 돌아가기</button>
-          </div>
-        );
+        return selectedProject ? (
+          <LearningDataView
+            project={selectedProject}
+            onBack={handleBackToDashboard}
+          />
+        ) : null;
       
       default:
         return <ProjectSelectionView onProjectSelect={handleProjectSelect} />;
