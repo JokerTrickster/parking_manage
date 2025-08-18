@@ -6,9 +6,9 @@ export const API_CONFIG = {
     UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://172.16.32.20:8080/v0.1/parking',
     SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://172.16.32.20:8080/swagger/index.html'
   },
-  // 프로덕션 환경
+  // 프로덕션 환경 (도커)
   production: {
-    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080', // 실제 배포 시 변경 필요
+    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
     UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://localhost:8080/v0.1/parking',
     SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://localhost:8080/swagger/index.html'
   }

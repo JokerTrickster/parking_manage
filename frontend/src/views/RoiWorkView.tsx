@@ -100,10 +100,22 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     try {
       setLoading(true);
       setSelectedFolder(folderName);
+      setError(''); // 에러 메시지 초기화
+      
       const response = await RoiService.getTestImages(projectId, folderName);
-      setFolderImages(response.images);
+      setFolderImages(response.images || []);
+      
+      // 선택된 이미지와 ROI 파일 초기화
+      setSelectedImage(null);
+      setRoiData(null);
+      setSelectedRoiId('');
+      
     } catch (err) {
-      setError('이미지 목록을 불러오는데 실패했습니다.');
+      console.error('폴더 선택 에러:', err);
+      setError(`폴더 '${folderName}'의 이미지 목록을 불러오는데 실패했습니다. 폴더가 존재하지 않거나 접근할 수 없습니다.`);
+      setFolderImages([]);
+      setSelectedImage(null);
+      setRoiData(null);
     } finally {
       setLoading(false);
     }
@@ -113,6 +125,8 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const handleImageSelect = async (image: ImageFile) => {
     try {
       setLoading(true);
+      setError(''); // 에러 메시지 초기화
+      
       // 새로운 이미지 API로 이미지 가져오기
       const imageBlob = await RoiService.getImageRoi(projectId, selectedFolder, image.name);
       const imageUrl = URL.createObjectURL(imageBlob);
@@ -130,7 +144,10 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
         loadRoiData(updatedImage, selectedRoiFile);
       }
     } catch (err) {
-      setError('이미지를 불러오는데 실패했습니다.');
+      console.error('이미지 선택 에러:', err);
+      setError(`이미지 '${image.name}'을 불러오는데 실패했습니다.`);
+      setSelectedImage(null);
+      setRoiData(null);
     } finally {
       setLoading(false);
     }
@@ -141,6 +158,8 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     // 확장자 제거 (.json)
     const roiFileName = fileName.replace(/\.json$/, '');
     setSelectedRoiFile(roiFileName);
+    setError(''); // 에러 메시지 초기화
+    
     // ROI 파일 선택 시 ROI 데이터 자동 로드
     if (selectedImage) {
       loadRoiData(selectedImage, roiFileName);
@@ -161,6 +180,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const loadRoiData = async (image: ImageFile, roiFile: string) => {
     try {
       setLoading(true);
+      setError(''); // 에러 메시지 초기화
       
       const cctvId = getDisplayImageName(image.name).split('.')[0]; // 이미지 이름에서 CCTV ID 추출 (_Current 제거 후)
       
@@ -191,7 +211,9 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
         setRoiData(response);
       }
     } catch (err) {
-      setError('ROI 데이터를 불러오는데 실패했습니다.');
+      console.error('ROI 데이터 로드 에러:', err);
+      setError(`ROI 데이터를 불러오는데 실패했습니다. 이미지 '${image.name}'과 ROI 파일 '${roiFile}'의 조합을 확인해주세요.`);
+      setRoiData(null);
     } finally {
       setLoading(false);
     }
@@ -220,7 +242,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       setLoading(true);
       
       // Draft 파일에서 ROI 삭제 (로컬 상태 업데이트)
-      const updatedRois = { ...roiData.rois };
+      const updatedRois = { ...(roiData.rois || {}) };
       delete updatedRois[roiId];
       const updatedRoiData = {
         ...roiData,
@@ -304,7 +326,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       setLoading(true);
       
       // Draft 파일에 ROI 추가 (로컬 상태 업데이트)
-      const updatedRois = { ...roiData.rois };
+      const updatedRois = { ...(roiData.rois || {}) };
       updatedRois[roiId] = roundedCoordinates;
       const updatedRoiData = {
         ...roiData,
@@ -361,7 +383,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       setLoading(true);
       
       // Draft 파일에 ROI 수정 (로컬 상태 업데이트)
-      const updatedRois = { ...roiData.rois };
+      const updatedRois = { ...(roiData.rois || {}) };
       updatedRois[roiId] = roundedCoordinates;
       const updatedRoiData = {
         ...roiData,
@@ -773,7 +795,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                     </Box>
 
                     {/* ROI 수정/삭제 섹션 */}
-                    {roiData && Object.keys(roiData.rois).length > 0 && (
+                    {roiData && roiData.rois && Object.keys(roiData.rois).length > 0 && (
                       <Box>
                         <Typography variant="subtitle1" gutterBottom>
                           ROI 수정/삭제
@@ -802,7 +824,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                             </Box>
                           </Box>
                         ) : (
-                          Object.keys(roiData.rois).map((roiId) => (
+                          roiData.rois && Object.keys(roiData.rois).map((roiId) => (
                             <Box key={roiId} sx={{ display: 'flex', gap: 1, mb: 1 }}>
                               <Button
                                 variant="outlined"
