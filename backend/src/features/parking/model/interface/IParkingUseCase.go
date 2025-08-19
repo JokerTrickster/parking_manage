@@ -70,3 +70,7 @@ type IDeleteFileParkingUseCase interface {
 type IBatchImagesParkingUseCase interface {
 	BatchImages(ctx context.Context, projectID string) error
 }
+
+type ILiveLearningParkingUseCase interface {
+	LiveLearning(ctx context.Context, req request.ReqLiveLearning) (response.ResLiveLearning, error)
+}

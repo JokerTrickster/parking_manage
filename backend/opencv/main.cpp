@@ -156,7 +156,9 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     // 파일명에서 CCTV ID 추출
     string cctv_id = extract_cctv_id_from_filename(result.test_image_name);
     if (cctv_id.empty()) {
-        return result;
+        // CCTV ID를 추출할 수 없는 경우, 파일명에서 확장자를 제거한 것을 사용
+        cctv_id = fs::path(result.test_image_name).stem().string();
+        cout << "CCTV ID를 추출할 수 없어 파일명을 사용합니다: " << cctv_id << endl;
     }
     result.cctv_id = cctv_id;
     
@@ -167,7 +169,13 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     // 해당 CCTV의 학습 폴더 경로
     string learning_folder_path = fs::path(learning_base_path) / "learningBackImg" / cctv_id;
     if (!fs::exists(learning_folder_path)) {
-        return result;
+        // 특정 CCTV 폴더가 없는 경우, learningBackImg 폴더의 모든 이미지를 사용
+        learning_folder_path = fs::path(learning_base_path) / "learningBackImg";
+        if (!fs::exists(learning_folder_path)) {
+            cout << "학습 폴더를 찾을 수 없습니다: " << learning_folder_path << endl;
+            return result;
+        }
+        cout << "특정 CCTV 폴더가 없어 전체 학습 폴더를 사용합니다: " << learning_folder_path << endl;
     }
     
     // 1️⃣ MOG2 초기화
@@ -213,6 +221,18 @@ ParkingResult process_single_test_image(const string& test_image_path, double le
     // 6️⃣ 해당 CCTV의 ROI 정보 JSON에서 읽기
     vector<RoiInfo> rois = get_rois_from_json(roi_path, cctv_id);
     if (rois.empty()) {
+        cout << "CCTV " << cctv_id << "의 ROI 정보를 찾을 수 없어 처리를 건너뜁니다." << endl;
+        
+        // ROI 정보가 없어도 기본 이미지는 저장
+        string roiImagePath = cctv_output_dir + "/roi_result.jpg";
+        string fgMaskPath = cctv_output_dir + "/fgmask.jpg";
+        
+        Mat fgMaskColored;
+        cvtColor(fgMask, fgMaskColored, COLOR_GRAY2BGR);
+        
+        imwrite(roiImagePath, testImg);
+        imwrite(fgMaskPath, fgMaskColored);
+        
         return result;
     }
 
@@ -354,8 +374,8 @@ void save_result_to_json(const vector<ParkingResult>& results, const string& out
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 8) {
-        cout << "사용법: " << argv[0] << " <learning_rate> <iterations> <var_threshold> <project_id> <learning_base_path> <test_images_path> <roi_path>" << endl;
+    if (argc != 9) {
+        cout << "사용법: " << argv[0] << " <learning_rate> <iterations> <var_threshold> <project_id> <learning_base_path> <test_images_path> <roi_path> <results_dir>" << endl;
         return 1;
     }
     
@@ -366,6 +386,7 @@ int main(int argc, char* argv[]) {
     string learning_base_path = argv[5];
     string test_images_path = argv[6];
     string roi_path = argv[7];
+    string results_dir = argv[8];  // 전체 결과 디렉토리 경로
     
     // 테스트 이미지 폴더 확인
     if (!fs::exists(test_images_path)) {
@@ -374,7 +395,6 @@ int main(int argc, char* argv[]) {
     }
     
     // 결과 디렉토리 생성
-    string results_dir = "../../shared/" + project_id + "/results/" + get_current_timestamp();
     fs::create_directories(results_dir);
     
     vector<ParkingResult> all_results;

@@ -6,10 +6,13 @@ import (
 	"io/fs"
 	"main/features/parking/model/request"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -46,23 +49,10 @@ func countFilesInDirectory(dirPath string) (int, error) {
 	return count, err
 }
 
-// 입력 파일 경로 검증
-func validatePaths(req request.ReqLearning) error {
-	// 학습 이미지 경로 확인
-	if _, err := os.Stat(req.LearningPath); os.IsNotExist(err) {
-		return fmt.Errorf("학습 이미지 경로가 존재하지 않습니다: %s", req.LearningPath)
+func validatePaths(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("경로가 존재하지 않습니다: %s", path)
 	}
-
-	// 테스트 이미지 경로 확인
-	if _, err := os.Stat(req.TestPath); os.IsNotExist(err) {
-		return fmt.Errorf("테스트 이미지 경로가 존재하지 않습니다: %s", req.TestPath)
-	}
-
-	// ROI 파일 경로 확인
-	if _, err := os.Stat(req.RoiPath); os.IsNotExist(err) {
-		return fmt.Errorf("ROI 파일 경로가 존재하지 않습니다: %s", req.RoiPath)
-	}
-
 	return nil
 }
 
@@ -128,4 +118,68 @@ func downloadFile(client *ssh.Client, remotePath, localPath string) error {
 	}
 
 	return nil
+}
+
+// 파라미터 검증 함수
+func ValidateLearningRequest(req request.ReqLearning) error {
+	// LearningRate 검증 (0.0 ~ 1.0)
+	if req.LearningRate < 0.0 || req.LearningRate > 1.0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningRate는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.LearningRate))
+	}
+
+	// Iterations 검증 (1 ~ 10000)
+	if req.Iterations < 1 || req.Iterations > 10000 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Iterations는 1에서 10000 사이의 값이어야 합니다. %d", req.Iterations))
+	}
+
+	// VarThreshold 검증 (1이상)
+	if req.VarThreshold <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("VarThreshold는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.VarThreshold))
+	}
+
+	// 경로 검증
+	if req.LearningPath == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningPath는 필수입니다. %s", req.LearningPath))
+	}
+	if req.TestPath == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("TestPath는 필수입니다. %s", req.TestPath))
+	}
+	if req.RoiPath == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("RoiPath는 필수입니다. %s", req.RoiPath))
+	}
+
+	return nil
+}
+
+// 파라미터 검증 함수
+func ValidateLiveLearningRequest(req request.ReqLiveLearning) error {
+	// LearningRate 검증 (0.0 ~ 1.0)
+	if req.LearningRate < 0.0 || req.LearningRate > 1.0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningRate는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.LearningRate))
+	}
+
+	// Iterations 검증 (1 ~ 10000)
+	if req.Iterations < 1 || req.Iterations > 10000 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Iterations는 1에서 10000 사이의 값이어야 합니다. %d", req.Iterations))
+	}
+
+	// VarThreshold 검증 (1이상)
+	if req.VarThreshold <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("VarThreshold는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.VarThreshold))
+	}
+
+	// 경로 검증
+	if req.LearningPath == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningPath는 필수입니다. %s", req.LearningPath))
+	}
+
+	if req.RoiPath == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("RoiPath는 필수입니다. %s", req.RoiPath))
+	}
+
+	return nil
+}
+
+func getCurrentTimestamp() string {
+	return time.Now().Format("20060102150405")
 }

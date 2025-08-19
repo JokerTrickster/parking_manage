@@ -61,3 +61,7 @@ type IDeleteFileParkingHandler interface {
 type IBatchImagesParkingHandler interface {
 	BatchImages(c echo.Context) error
 }
+
+type ILiveLearningParkingHandler interface {
+	LiveLearning(c echo.Context) error
+}

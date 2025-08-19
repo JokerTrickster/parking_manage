@@ -42,20 +42,25 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 	// Go 백엔드가 backend/src에서 실행되므로 상위 디렉토리로 이동
 	backendDir := filepath.Join(currentDir, "..")
 	opencvPath := filepath.Join(backendDir, "opencv", "build", "main")
+	fmt.Println(req.TestPath)
 
-	// 디버깅을 위한 로그 출력
-	fmt.Printf("현재 디렉토리: %s\n", currentDir)
-	fmt.Printf("Backend 디렉토리: %s\n", backendDir)
-	fmt.Printf("OpenCV 경로: %s\n", opencvPath)
-
-	if _, err := os.Stat(opencvPath); os.IsNotExist(err) {
+	if err := validatePaths(opencvPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
 		}, nil
 	}
 
-	// 입력 파일 경로들 확인
-	if err := validatePaths(req); err != nil {
+	if err := validatePaths(req.LearningPath); err != nil {
+		return response.ResLearning{
+			FolderPath: "",
+		}, nil
+	}
+	if err := validatePaths(req.TestPath); err != nil {
+		return response.ResLearning{
+			FolderPath: "",
+		}, nil
+	}
+	if err := validatePaths(req.RoiPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
 		}, nil
@@ -82,6 +87,7 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 		req.LearningPath,                    // learning_base_path
 		req.TestPath,                        // test_images_path (폴더)
 		req.RoiPath,                         // roi_path
+		"../../shared/" + req.ProjectID + "/results/" + getCurrentTimestamp(), // results_dir
 	}
 
 	// 명령어 실행

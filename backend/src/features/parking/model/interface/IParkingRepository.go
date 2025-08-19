@@ -57,3 +57,6 @@ type IDeleteFileParkingRepository interface {
 
 type IBatchImagesParkingRepository interface {
 }
+
+type ILiveLearningParkingRepository interface {
+}

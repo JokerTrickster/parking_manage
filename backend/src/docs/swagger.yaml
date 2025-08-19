@@ -66,6 +66,21 @@ definitions:
       varThreshold:
         type: number
     type: object
+  request.ReqLiveLearning:
+    properties:
+      iterations:
+        type: integer
+      learningPath:
+        type: string
+      learningRate:
+        type: number
+      projectId:
+        type: string
+      roiPath:
+        type: string
+      varThreshold:
+        type: number
+    type: object
   request.UpdateRoiRequest:
     properties:
       cctv_id:
@@ -260,6 +275,11 @@ definitions:
         type: integer
       total_files:
         type: integer
+    type: object
+  response.ResLiveLearning:
+    properties:
+      folder_path:
+        type: string
     type: object
   response.ResReadRoi:
     properties:
@@ -797,6 +817,8 @@ paths:
             additionalProperties: true
             type: object
       summary: 학습 실행
+      tags:
+      - parking
   /v0.1/parking/{projectId}/learning-results/{folder}:
     get:
       consumes:
@@ -831,6 +853,43 @@ paths:
             additionalProperties: true
             type: object
       summary: Get Learning Results
+      tags:
+      - parking
+  /v0.1/parking/{projectId}/learning/live:
+    post:
+      consumes:
+      - application/json
+      description: OpenCV를 사용하여 주차면 학습을 실행합니다.
+      parameters:
+      - description: 프로젝트 ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 학습 요청 데이터
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ReqLiveLearning'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResLiveLearning'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 실시간 이미지 학습 실행
       tags:
       - parking
   /v0.1/parking/{projectId}/roi-files:

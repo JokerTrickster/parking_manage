@@ -45,3 +45,7 @@ type LabelSaveParkingRepository struct {
 type BatchImageParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type LiveLearningParkingRepository struct {
+	GormDB *gorm.DB
+}
