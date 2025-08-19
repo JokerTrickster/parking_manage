@@ -57,3 +57,7 @@ type ILabelSaveParkingHandler interface {
 type IDeleteFileParkingHandler interface {
 	DeleteFile(c echo.Context) error
 }
+
+type IBatchImagesParkingHandler interface {
+	BatchImages(c echo.Context) error
+}

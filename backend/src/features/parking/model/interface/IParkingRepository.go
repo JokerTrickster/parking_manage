@@ -54,3 +54,6 @@ type ILabelSaveParkingRepository interface {
 
 type IDeleteFileParkingRepository interface {
 }
+
+type IBatchImagesParkingRepository interface {
+}

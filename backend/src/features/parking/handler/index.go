@@ -25,7 +25,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	labelGetRepo := repository.NewLabelGetParkingRepository(mysql.GormMysqlDB)
 	labelSaveRepo := repository.NewLabelSaveParkingRepository(mysql.GormMysqlDB)
 	deleteFileRepo := repository.NewDeleteFileParkingRepository(mysql.GormMysqlDB)
-
+	batchImagesRepo := repository.NewBatchImagesParkingRepository(mysql.GormMysqlDB)
 	// UseCase 초기화
 	learningUploadUseCase := usecase.NewLearningUploadParkingUseCase(learningUploadRepo, 30*time.Second)
 	testUploadUseCase := usecase.NewTestUploadParkingUseCase(testUploadRepo, 30*time.Second)
@@ -41,7 +41,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	labelGetUseCase := usecase.NewLabelGetParkingUseCase(labelGetRepo)
 	labelSaveUseCase := usecase.NewLabelSaveParkingUseCase(labelSaveRepo)
 	deleteFileUseCase := usecase.NewDeleteFileParkingUseCase(deleteFileRepo)
-
+	batchImagesUseCase := usecase.NewBatchImagesParkingUseCase(batchImagesRepo, 30*time.Second)
 	// Handler 초기화
 	NewLearningUploadParkingHandler(e, learningUploadUseCase)
 	NewTestUploadParkingHandler(e, testUploadUseCase)
@@ -57,6 +57,7 @@ func NewParkingHandler(e *echo.Echo) error {
 	NewLabelGetParkingHandler(e, labelGetUseCase)
 	NewLabelSaveParkingHandler(e, labelSaveUseCase)
 	NewDeleteFileParkingHandler(e, deleteFileUseCase)
+	NewBatchImagesParkingHandler(e, batchImagesUseCase)
 
 	return nil
 }

@@ -66,3 +66,7 @@ type ILabelSaveParkingUseCase interface {
 type IDeleteFileParkingUseCase interface {
 	DeleteFile(ctx context.Context, projectID string, folderPath string, req request.ReqDeleteFile) (response.ResDeleteFile, error)
 }
+
+type IBatchImagesParkingUseCase interface {
+	BatchImages(ctx context.Context, projectID string) error
+}
