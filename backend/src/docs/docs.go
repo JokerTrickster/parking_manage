@@ -62,6 +62,53 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/parking/{projectId}/images/batch": {
+            "post": {
+                "description": "배치로 이미지 저장하기",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "parking"
+                ],
+                "summary": "배치로 이미지 저장하기",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/images/roi-folders": {
             "get": {
                 "description": "프로젝트의 ROI 파일 폴더 목록과 통계를 조회합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
@@ -336,6 +383,9 @@ const docTemplate_swagger = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "parking"
+                ],
                 "summary": "학습 실행",
                 "parameters": [
                     {
@@ -413,6 +463,61 @@ const docTemplate_swagger = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.ResLearningResults"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/parking/{projectId}/learning/live": {
+            "post": {
+                "description": "OpenCV를 사용하여 주차면 학습을 실행합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "parking"
+                ],
+                "summary": "실시간 이미지 학습 실행",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "프로젝트 ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "학습 요청 데이터",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ReqLiveLearning"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResLiveLearning"
                         }
                     },
                     "400": {
@@ -1430,6 +1535,29 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "request.ReqLiveLearning": {
+            "type": "object",
+            "properties": {
+                "iterations": {
+                    "type": "integer"
+                },
+                "learningPath": {
+                    "type": "string"
+                },
+                "learningRate": {
+                    "type": "number"
+                },
+                "projectId": {
+                    "type": "string"
+                },
+                "roiPath": {
+                    "type": "string"
+                },
+                "varThreshold": {
+                    "type": "number"
+                }
+            }
+        },
         "request.UpdateRoiRequest": {
             "type": "object",
             "properties": {
@@ -1730,6 +1858,14 @@ const docTemplate_swagger = `{
                 },
                 "total_files": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.ResLiveLearning": {
+            "type": "object",
+            "properties": {
+                "folder_path": {
+                    "type": "string"
                 }
             }
         },

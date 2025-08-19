@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	_interface "main/features/parking/model/interface"
 	"main/features/parking/model/request"
 	"main/features/parking/model/response"
+	"main/features/parking/usecase"
 
 	"github.com/labstack/echo/v4"
 )
@@ -34,6 +34,7 @@ func NewLearningParkingHandler(c *echo.Echo, useCase _interface.ILearningParking
 // @Success 200 {object} response.ResLearning
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Tags parking
 func (d *LearningParkingHandler) Learning(c echo.Context) error {
 	// 프로젝트 ID 가져오기
 	projectID := c.Param("projectId")
@@ -52,7 +53,7 @@ func (d *LearningParkingHandler) Learning(c echo.Context) error {
 	}
 
 	// 파라미터 검증
-	if err := validateLearningRequest(req); err != nil {
+	if err := usecase.ValidateLearningRequest(req); err != nil {
 		return c.JSON(http.StatusBadRequest, response.ResLearning{
 			FolderPath: "",
 		})
@@ -67,35 +68,4 @@ func (d *LearningParkingHandler) Learning(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result)
-}
-
-// 파라미터 검증 함수
-func validateLearningRequest(req request.ReqLearning) error {
-	// LearningRate 검증 (0.0 ~ 1.0)
-	if req.LearningRate < 0.0 || req.LearningRate > 1.0 {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningRate는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.LearningRate))
-	}
-
-	// Iterations 검증 (1 ~ 10000)
-	if req.Iterations < 1 || req.Iterations > 10000 {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Iterations는 1에서 10000 사이의 값이어야 합니다. %d", req.Iterations))
-	}
-
-	// VarThreshold 검증 (1이상)
-	if req.VarThreshold <= 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("VarThreshold는 0.0에서 1.0 사이의 값이어야 합니다. %f", req.VarThreshold))
-	}
-
-	// 경로 검증
-	if req.LearningPath == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("LearningPath는 필수입니다. %s", req.LearningPath))
-	}
-	if req.TestPath == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("TestPath는 필수입니다. %s", req.TestPath))
-	}
-	if req.RoiPath == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("RoiPath는 필수입니다. %s", req.RoiPath))
-	}
-
-	return nil
 }
