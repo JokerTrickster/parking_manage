@@ -88,13 +88,11 @@ class LearningService {
   async getLearningHistory(projectId: string): Promise<any> {
     try {
       const url = API_ENDPOINTS.LEARNING_HISTORY(projectId);
-      console.log('히스토리 API 호출 URL:', url);
       const response = await this.api.get(url);
-      console.log('히스토리 API 응답:', response.data);
+      // axios는 response.data에 실제 응답 데이터가 있음
       return response.data;
     } catch (error) {
       console.error('학습 히스토리 조회 실패:', error);
-      console.error('에러 상세:', error);
       throw error;
     }
   }

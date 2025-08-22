@@ -108,17 +108,22 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
     }
   };
 
+  // folderPath나 cctvList가 변경될 때마다 이미지 캐시 초기화
   useEffect(() => {
-    console.log('LearningResultsView useEffect 실행');
-    console.log('currentCctvList:', currentCctvList);
+    // 새로운 히스토리 선택 시 이미지 캐시 초기화
+    setCctvImages(new Map());
+    setLoadingImages(new Set());
+    setCurrentPage(1); // 페이지도 1로 초기화
+  }, [folderPath, cctvList]);
+
+  useEffect(() => {
     // 현재 페이지의 CCTV 이미지들을 자동으로 로드
     currentCctvList.forEach(cctv => {
-      console.log(`CCTV ${cctv.cctv_id} has_images:`, cctv.has_images);
       if (cctv.has_images) {
         loadCctvImages(cctv.cctv_id);
       }
     });
-  }, [currentPage, cctvList, projectId, folderPath]); // 의존성 배열 수정
+  }, [currentPage, currentCctvList, folderPath]); // folderPath 추가로 히스토리 변경 시 재로드
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);

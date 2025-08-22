@@ -41,10 +41,10 @@ export class ProjectSelectionViewModel {
           status: 'inactive',
         },
         {
-          id: 'mokpo',
-          name: '목포',
-          description: '목포 주차장 관리 시스템',
-          location: '전라남도 목포시',
+          id: 'osong',
+          name: '오송',
+          description: '오송 주차장 관리 시스템',
+          location: '오송 주차장',
           status: 'active',
         },
         {

@@ -18,7 +18,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Chip
 } from '@mui/material';
 import {
   ArrowBack as BackIcon
@@ -63,18 +64,7 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
   const [state, setState] = useState(ParkingTestViewModel.getInitialState());
   const [activeTab, setActiveTab] = useState(0);
   
-  // 상태 변경 추적
-  useEffect(() => {
-    console.log('state.learningHistory 변경됨:', state.learningHistory);
-  }, [state.learningHistory]);
-  
-  useEffect(() => {
-    console.log('state.learningResult 변경됨:', state.learningResult);
-  }, [state.learningResult]);
-  
-  useEffect(() => {
-    console.log('state.learningResultsData 변경됨:', state.learningResultsData);
-  }, [state.learningResultsData]);
+
   const [availableFolders, setAvailableFolders] = useState({
     learning: [] as string[],
     test: [] as string[],
@@ -82,6 +72,7 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
   });
   const [selectedHistory, setSelectedHistory] = useState<any>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyResultLoading, setHistoryResultLoading] = useState(false);
 
   useEffect(() => {
     loadAvailableFolders();
@@ -109,31 +100,16 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
   const loadLearningHistory = async () => {
     try {
       setHistoryLoading(true);
-      const history = await ParkingTestViewModel.loadLearningHistory(project.id);
-      console.log('받아온 히스토리 데이터:', history);
-      console.log('받아온 히스토리 길이:', history.length);
+      // 히스토리 로드 시 선택된 히스토리 초기화
+      setSelectedHistory(null);
+      setState(prev => ({ ...prev, selectedHistoryResults: null }));
       
-      // 테스트를 위해 임시 데이터 추가 (실제 데이터가 없을 경우)
-      const testData = history.length === 0 ? [
-        {
-          folder_path: 'test_20241201_123456',
-          timestamp: new Date().toISOString(),
-          name: '테스트 학습',
-          cctv_list: ['cctv1', 'cctv2']
-        },
-        {
-          folder_path: 'test_20241201_234567', 
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          name: '이전 학습',
-          cctv_list: ['cctv1']
-        }
-      ] : history;
+      const history = await ParkingTestViewModel.loadLearningHistory(project.id);
       
       setState(prev => ({ 
         ...prev, 
-        learningHistory: testData 
+        learningHistory: history 
       }));
-      console.log('상태 업데이트 완료, 최종 데이터:', testData);
     } catch (error) {
       console.error('학습 히스토리 로드 실패:', error);
       setState(prev => ({ ...prev, error: '학습 히스토리를 불러오는데 실패했습니다.' }));
@@ -164,20 +140,17 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
 
       // 학습 완료 후 상세 결과 로드
       if (result.folder_path) {
-        console.log('학습 완료, 결과 로드 시작:', result.folder_path);
-        
         const detailedResults = await ParkingTestViewModel.loadLearningResults(project.id, result.folder_path);
-        console.log('로드된 상세 결과:', detailedResults);
         
         if (detailedResults) {
           setState(prev => ({ 
             ...prev, 
             learningResultsData: detailedResults,
-            showResults: true
+            showResults: true,
+            // 최신 학습 결과로 업데이트
+            lastLearningFolderPath: result.folder_path
           }));
-          console.log('상태 업데이트 완료');
         } else {
-          console.error('상세 결과 로드 실패');
           setState(prev => ({ 
             ...prev, 
             error: '학습 결과를 불러오는데 실패했습니다.'
@@ -185,7 +158,7 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
         }
       }
 
-      // 히스토리 새로고침
+      // 히스토리 새로고침 (새로운 학습 결과 포함)
       await loadLearningHistory();
     } catch (error: any) {
       setState(prev => ({ ...prev, error: error.message }));
@@ -196,14 +169,30 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
 
   const handleHistorySelect = async (historyItem: any) => {
     try {
+      setHistoryResultLoading(true);
       setSelectedHistory(historyItem);
+      
+      // 이전 결과 초기화
+      setState(prev => ({ 
+        ...prev, 
+        selectedHistoryResults: null
+      }));
+      
       const detailedResults = await ParkingTestViewModel.loadLearningResults(project.id, historyItem.folder_path);
+      
       setState(prev => ({ 
         ...prev, 
         selectedHistoryResults: detailedResults
       }));
     } catch (error) {
       console.error('히스토리 결과 로드 실패:', error);
+      setState(prev => ({ 
+        ...prev, 
+        selectedHistoryResults: null,
+        error: '히스토리 결과를 불러오는데 실패했습니다.'
+      }));
+    } finally {
+      setHistoryResultLoading(false);
     }
   };
 
@@ -212,7 +201,6 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
     
     // 학습 히스토리 탭으로 이동할 때 히스토리 데이터 로드
     if (newValue === 1) {
-      console.log('학습 히스토리 탭 선택됨, 히스토리 로드 시작');
       await loadLearningHistory();
     }
   };
@@ -399,37 +387,53 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
               <Typography variant="h6" gutterBottom>
                 학습 히스토리
               </Typography>
-              {(() => {
-                console.log('렌더링 시점 - historyLoading:', historyLoading);
-                console.log('렌더링 시점 - state.learningHistory:', state.learningHistory);
-                console.log('렌더링 시점 - 히스토리 길이:', state.learningHistory?.length);
-                return null;
-              })()}
+
+
               {historyLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                   <CircularProgress />
                 </Box>
               ) : state.learningHistory && state.learningHistory.length > 0 ? (
                 <List sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-                  {state.learningHistory.map((item, index) => {
-                    console.log(`히스토리 아이템 ${index}:`, item);
-                    return (
-                      <ListItem key={index} disablePadding>
+                  {state.learningHistory.map((item, index) => (
+                      <ListItem key={item.id || index} disablePadding>
                         <ListItemButton
                           selected={selectedHistory?.folder_path === item.folder_path}
                           onClick={() => handleHistorySelect(item)}
                         >
                           <ListItemText
-                            primary={`학습 ${index + 1}${item.name ? ` - ${item.name}` : ''}`}
-                            secondary={item.timestamp || item.created_at || item.date ? 
-                              new Date(item.timestamp || item.created_at || item.date).toLocaleString() : 
-                              `폴더: ${item.folder_path || '정보 없음'}`
+                            primary={
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="subtitle2" fontWeight="bold">
+                                  {item.name || `학습 ${index + 1}`}
+                                </Typography>
+                                {item.cctv_list && Array.isArray(item.cctv_list) && item.cctv_list.length > 0 && (
+                                  <Chip 
+                                    label={`${item.cctv_list.length}개`} 
+                                    size="small" 
+                                    color="primary"
+                                    variant="outlined"
+                                  />
+                                )}
+                              </Box>
+                            }
+                            secondary={
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="caption" display="block" color="text.primary">
+                                  📅 {item.created_at ? 
+                                    new Date(item.created_at).toLocaleString('ko-KR') : 
+                                    '시간 정보 없음'
+                                  }
+                                </Typography>
+                                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                  🎯 학습률: {item.learning_rate || 'N/A'} | 🔄 반복: {item.epoch || 'N/A'} | 📊 임계값: {item.var_threshold || 'N/A'}
+                                </Typography>
+                              </Box>
                             }
                           />
                         </ListItemButton>
                       </ListItem>
-                    );
-                  })}
+                  ))}
                 </List>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
@@ -441,13 +445,29 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
 
           {/* 히스토리 결과 */}
           <Box sx={{ flex: 1 }}>
-            {selectedHistory && state.selectedHistoryResults ? (
-              <LearningResultsView
-                projectId={project.id}
-                folderPath={selectedHistory.folder_path}
-                cctvList={state.selectedHistoryResults.cctv_list}
-                timestamp={state.selectedHistoryResults.timestamp}
-              />
+            {historyResultLoading ? (
+              <Card sx={{ height: '100%' }}>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <CircularProgress sx={{ mb: 2 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    학습 결과를 불러오는 중...
+                  </Typography>
+                </CardContent>
+              </Card>
+            ) : selectedHistory && state.selectedHistoryResults ? (
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {selectedHistory.name || `학습 결과`} - {selectedHistory.created_at ? new Date(selectedHistory.created_at).toLocaleString() : ''}
+                  </Typography>
+                  <LearningResultsView
+                    projectId={project.id}
+                    folderPath={selectedHistory.folder_path}
+                    cctvList={state.selectedHistoryResults.cctv_list}
+                    timestamp={state.selectedHistoryResults.timestamp}
+                  />
+                </CardContent>
+              </Card>
             ) : (
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>

@@ -41,9 +41,9 @@ export class ParkingTestViewModel {
   static getInitialState(): ParkingTestState {
     return {
       loading: false,
-      varThreshold: 50.0,
+      varThreshold: 100.0,
       learningRate: 0.001,
-      iterations: 1000,
+      iterations: 10,
       testResult: null,
       learningResult: null,
       learningResultsData: null,
@@ -207,22 +207,17 @@ export class ParkingTestViewModel {
 
   static async loadLearningHistory(projectId: string): Promise<any[]> {
     try {
-      console.log('ParkingTestViewModel.loadLearningHistory 호출됨, projectId:', projectId);
       const response = await LearningService.getLearningHistory(projectId);
-      console.log('히스토리 응답 전체:', response);
-      console.log('히스토리 응답 data:', response.data);
-      console.log('히스토리 응답 타입:', typeof response.data);
-      console.log('히스토리 응답 길이:', Array.isArray(response.data) ? response.data.length : 'Not array');
       
-      // 응답 데이터 구조에 따라 적절히 반환
-      if (response.data && Array.isArray(response.data)) {
-        return response.data;
-      } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+      // 응답 구조: { results: [...] }
+      if (response && response.results && Array.isArray(response.results)) {
+        return response.results;
+      } else if (response && response.data && response.data.results && Array.isArray(response.data.results)) {
         return response.data.results;
       } else if (response && Array.isArray(response)) {
         return response;
       } else {
-        console.log('예상하지 못한 응답 구조:', response);
+        console.error('예상하지 못한 응답 구조:', response);
         return [];
       }
     } catch (error) {
