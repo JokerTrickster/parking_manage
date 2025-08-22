@@ -39,8 +39,8 @@ type ILearningResultsParkingUseCase interface {
 	GetLearningResults(ctx context.Context, projectID string, folderPath string) (response.ResLearningResults, error)
 }
 
-type ICctvImagesParkingUseCase interface {
-	GetCctvImages(ctx context.Context, projectID string, folderPath string, cctvID string) (response.ResCctvImages, error)
+type ICctvImageParkingUseCase interface {
+	GetCctvImage(ctx context.Context, projectID string, cctvID string, imageType string) (response.ResCctvImage, error)
 }
 
 type IResultLearningParkingUseCase interface {

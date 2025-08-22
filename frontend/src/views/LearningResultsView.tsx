@@ -73,10 +73,12 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<ImageModalData | null>(null);
 
-  const totalPages = Math.ceil(cctvList.length / ITEMS_PER_PAGE);
+  // cctvList가 undefined이거나 빈 배열인 경우 안전하게 처리
+  const safeCctvList = cctvList || [];
+  const totalPages = Math.ceil(safeCctvList.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCctvList = cctvList.slice(startIndex, endIndex);
+  const currentCctvList = safeCctvList.slice(startIndex, endIndex);
 
   const loadCctvImages = async (cctvId: string) => {
     if (cctvImages.has(cctvId) || loadingImages.has(cctvId)) {
@@ -144,7 +146,7 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
           {timestamp}
         </Typography>
         <Chip 
-          label={`총 ${cctvList.length}개 CCTV`} 
+          label={`총 ${safeCctvList.length}개 CCTV`} 
           color="primary" 
           variant="outlined" 
         />
@@ -157,140 +159,148 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
         )}
 
         {/* CCTV 목록 - 한 페이지당 4개, 2x2 그리드 */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
-          {currentCctvList.map((cctv) => (
-            <Box key={cctv.cctv_id}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" component="h3">
-                      {removeCurrentFromCctvId(cctv.cctv_id)}
-                    </Typography>
-                    <Chip 
-                      label={cctv.has_images ? "이미지 있음" : "이미지 없음"}
-                      color={cctv.has_images ? "success" : "default"}
-                      size="small"
-                    />
-                  </Box>
-
-                  {cctv.has_images && (
-                    <Box>
-                      {loadingImages.has(cctv.cctv_id) ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                          <CircularProgress size={40} />
-                        </Box>
-                      ) : cctvImages.has(cctv.cctv_id) ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          {/* ROI 결과 이미지 - 왼쪽 */}
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
-                              ROI 결과
-                            </Typography>
-                            <Box sx={{ position: 'relative', cursor: 'pointer' }}>
-                              <img 
-                                src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
-                                alt={`ROI Result - ${cctv.cctv_id}`}
-                                style={{ 
-                                  width: '100%', 
-                                  height: 'auto', 
-                                  maxHeight: '150px', 
-                                  objectFit: 'contain',
-                                  border: '1px solid #e0e0e0',
-                                  borderRadius: '4px',
-                                  transition: 'opacity 0.2s'
-                                }}
-                                onError={(e) => {
-                                  console.error(`ROI 이미지 로드 실패: ${cctv.cctv_id}`);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                                onClick={() => handleImageClick(
-                                  cctvImages.get(cctv.cctv_id)?.roiResultImage || '',
-                                  `ROI Result - ${cctv.cctv_id}`,
-                                  `${removeCurrentFromCctvId(cctv.cctv_id)} - ROI 결과`
-                                )}
-                                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                              />
-                              <ZoomInIcon 
-                                sx={{ 
-                                  position: 'absolute', 
-                                  top: 4, 
-                                  right: 4, 
-                                  color: 'white', 
-                                  backgroundColor: 'rgba(0,0,0,0.5)', 
-                                  borderRadius: '50%', 
-                                  padding: '2px',
-                                  fontSize: '16px'
-                                }} 
-                              />
-                            </Box>
-                          </Box>
-                          {/* Foreground 마스크 이미지 - 오른쪽 */}
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
-                              Foreground 마스크
-                            </Typography>
-                            <Box sx={{ position: 'relative', cursor: 'pointer' }}>
-                              <img 
-                                src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
-                                alt={`Foreground Mask - ${cctv.cctv_id}`}
-                                style={{ 
-                                  width: '100%', 
-                                  height: 'auto', 
-                                  maxHeight: '150px', 
-                                  objectFit: 'contain',
-                                  border: '1px solid #e0e0e0',
-                                  borderRadius: '4px',
-                                  transition: 'opacity 0.2s'
-                                }}
-                                onError={(e) => {
-                                  console.error(`Foreground 마스크 이미지 로드 실패: ${cctv.cctv_id}`);
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                                onClick={() => handleImageClick(
-                                  cctvImages.get(cctv.cctv_id)?.fgMaskImage || '',
-                                  `Foreground Mask - ${cctv.cctv_id}`,
-                                  `${removeCurrentFromCctvId(cctv.cctv_id)} - Foreground 마스크`
-                                )}
-                                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                              />
-                              <ZoomInIcon 
-                                sx={{ 
-                                  position: 'absolute', 
-                                  top: 4, 
-                                  right: 4, 
-                                  color: 'white', 
-                                  backgroundColor: 'rgba(0,0,0,0.5)', 
-                                  borderRadius: '50%', 
-                                  padding: '2px',
-                                  fontSize: '16px'
-                                }} 
-                              />
-                            </Box>
-                          </Box>
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                          이미지를 로드하는 중...
-                        </Typography>
-                      )}
+        {safeCctvList.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              CCTV 데이터가 없습니다.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+            {currentCctvList.map((cctv) => (
+              <Box key={cctv.cctv_id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" component="h3">
+                        {removeCurrentFromCctvId(cctv.cctv_id)}
+                      </Typography>
+                      <Chip 
+                        label={cctv.has_images ? "이미지 있음" : "이미지 없음"}
+                        color={cctv.has_images ? "success" : "default"}
+                        size="small"
+                      />
                     </Box>
-                  )}
 
-                  {!cctv.has_images && (
-                    <Typography variant="body2" color="text.secondary">
-                      이 CCTV에 대한 이미지가 없습니다.
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Box>
+                    {cctv.has_images && (
+                      <Box>
+                        {loadingImages.has(cctv.cctv_id) ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                            <CircularProgress size={40} />
+                          </Box>
+                        ) : cctvImages.has(cctv.cctv_id) ? (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            {/* ROI 결과 이미지 - 왼쪽 */}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
+                                ROI 결과
+                              </Typography>
+                              <Box sx={{ position: 'relative', cursor: 'pointer' }}>
+                                <img 
+                                  src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
+                                  alt={`ROI Result - ${cctv.cctv_id}`}
+                                  style={{ 
+                                    width: '100%', 
+                                    height: 'auto', 
+                                    maxHeight: '150px', 
+                                    objectFit: 'contain',
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: '4px',
+                                    transition: 'opacity 0.2s'
+                                  }}
+                                  onError={(e) => {
+                                    console.error(`ROI 이미지 로드 실패: ${cctv.cctv_id}`);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                  onClick={() => handleImageClick(
+                                    cctvImages.get(cctv.cctv_id)?.roiResultImage || '',
+                                    `ROI Result - ${cctv.cctv_id}`,
+                                    `${removeCurrentFromCctvId(cctv.cctv_id)} - ROI 결과`
+                                  )}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                />
+                                <ZoomInIcon 
+                                  sx={{ 
+                                    position: 'absolute', 
+                                    top: 4, 
+                                    right: 4, 
+                                    color: 'white', 
+                                    backgroundColor: 'rgba(0,0,0,0.5)', 
+                                    borderRadius: '50%', 
+                                    padding: '2px',
+                                    fontSize: '16px'
+                                  }} 
+                                />
+                              </Box>
+                            </Box>
+                            {/* Foreground 마스크 이미지 - 오른쪽 */}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
+                                Foreground 마스크
+                              </Typography>
+                              <Box sx={{ position: 'relative', cursor: 'pointer' }}>
+                                <img 
+                                  src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
+                                  alt={`Foreground Mask - ${cctv.cctv_id}`}
+                                  style={{ 
+                                    width: '100%', 
+                                    height: 'auto', 
+                                    maxHeight: '150px', 
+                                    objectFit: 'contain',
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: '4px',
+                                    transition: 'opacity 0.2s'
+                                  }}
+                                  onError={(e) => {
+                                    console.error(`Foreground 마스크 이미지 로드 실패: ${cctv.cctv_id}`);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                  onClick={() => handleImageClick(
+                                    cctvImages.get(cctv.cctv_id)?.fgMaskImage || '',
+                                    `Foreground Mask - ${cctv.cctv_id}`,
+                                    `${removeCurrentFromCctvId(cctv.cctv_id)} - Foreground 마스크`
+                                  )}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                />
+                                <ZoomInIcon 
+                                  sx={{ 
+                                    position: 'absolute', 
+                                    top: 4, 
+                                    right: 4, 
+                                    color: 'white', 
+                                    backgroundColor: 'rgba(0,0,0,0.5)', 
+                                    borderRadius: '50%', 
+                                    padding: '2px',
+                                    fontSize: '16px'
+                                  }} 
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            이미지를 로드하는 중...
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+
+                    {!cctv.has_images && (
+                      <Typography variant="body2" color="text.secondary">
+                        이 CCTV에 대한 이미지가 없습니다.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* 페이지네이션 */}
-        {totalPages > 1 && (
+        {safeCctvList.length > 0 && totalPages > 1 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
             <Pagination 
               count={totalPages} 

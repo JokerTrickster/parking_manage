@@ -9,49 +9,42 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type CctvImagesParkingHandler struct {
-	UseCase _interface.ICctvImagesParkingUseCase
+type CctvImageParkingHandler struct {
+	UseCase _interface.ICctvImageParkingUseCase
 }
 
-func NewCctvImagesParkingHandler(c *echo.Echo, useCase _interface.ICctvImagesParkingUseCase) _interface.ICctvImagesParkingHandler {
-	handler := &CctvImagesParkingHandler{
+func NewCctvImageParkingHandler(c *echo.Echo, useCase _interface.ICctvImageParkingUseCase) _interface.ICctvImageParkingHandler {
+	handler := &CctvImageParkingHandler{
 		UseCase: useCase,
 	}
-	c.GET("/v0.1/parking/:projectId/:folder/:cctvId/images", handler.GetCctvImages)
+	c.GET("/v0.1/parking/:projectId/:cctvId/images/:imageType", handler.GetCctvImage)
 	return handler
 }
 
-// Get CCTV Images
-// @Router /v0.1/parking/{projectId}/{folder}/{cctvId}/images [get]
-// @Summary Get CCTV Images
-// @Description Gets the ROI result and foreground mask images for a specific CCTV
+// 실시간 이미지 가져오기
+// @Router /v0.1/parking/{projectId}/{cctvId}/images/{imageType} [get]
+// @Summary 실시간 이미지 가져오기
+// @Description 실시간 이미지 가져오기
 // @Accept json
 // @Produce json
 // @Param projectId path string true "Project ID"
-// @Param folder path string true "Learning result folder"
 // @Param cctvId path string true "CCTV ID"
-// @Success 200 {object} response.ResCctvImages
+// @Param imageType path string true "Image type (roi_result or fgmask)"
+// @Success 200 {object} response.ResCctvImage
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Tags parking
-func (d *CctvImagesParkingHandler) GetCctvImages(c echo.Context) error {
+func (d *CctvImageParkingHandler) GetCctvImage(c echo.Context) error {
 	ctx, _, _ := common.CtxGenerate(c)
 
 	projectID := c.Param("projectId")
-	folder := c.Param("folder")
 	cctvID := c.Param("cctvId")
+	imageType := c.Param("imageType")
 
 	if projectID == "" {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
 			"message": "projectId is required",
-		})
-	}
-
-	if folder == "" {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"success": false,
-			"message": "folder is required",
 		})
 	}
 
@@ -62,13 +55,32 @@ func (d *CctvImagesParkingHandler) GetCctvImages(c echo.Context) error {
 		})
 	}
 
-	res, err := d.UseCase.GetCctvImages(ctx, projectID, folder, cctvID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+	if imageType == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
-			"message": "Error getting CCTV images: " + err.Error(),
+			"message": "imageType is required",
 		})
 	}
 
-	return c.JSON(http.StatusOK, res)
+	res, err := d.UseCase.GetCctvImage(ctx, projectID, cctvID, imageType)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"message": "Error getting CCTV image: " + err.Error(),
+		})
+	}
+	if res.Success {
+		// 이미지 데이터를 직접 응답으로 전송
+		c.Response().Header().Set("Content-Type", res.ContentType)
+		c.Response().Header().Set("Cache-Control", "public, max-age=3600") // 1시간 캐시
+		c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+		c.Response().Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		return c.Blob(http.StatusOK, res.ContentType, res.Image)
+	} else {
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"success": false,
+			"message": res.Message,
+		})
+	}
 }

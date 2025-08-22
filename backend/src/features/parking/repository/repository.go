@@ -49,3 +49,7 @@ type BatchImageParkingRepository struct {
 type LiveLearningParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type CctvImageParkingRepository struct {
+	GormDB *gorm.DB
+}

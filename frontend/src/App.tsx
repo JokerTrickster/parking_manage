@@ -6,6 +6,7 @@ import { ParkingTestView } from './views/ParkingTestView';
 import LearningResultsPage from './views/LearningResultsPage';
 import { RoiWorkView } from './views/RoiWorkView';
 import LearningDataView from './views/LearningDataView';
+import RealtimeParkingView from './views/RealtimeParkingView';
 import { Project } from './models/Project';
 import { CctvInfo } from './models/Learning';
 
@@ -98,13 +99,12 @@ function App() {
         ) : null;
       
       case 'live-parking':
-        return (
-          <div>
-            <h2>실시간 주차면 페이지</h2>
-            <p>실시간 주차면 기능이 개발 중입니다.</p>
-            <button onClick={handleBackToDashboard}>대시보드로 돌아가기</button>
-          </div>
-        );
+        return selectedProject ? (
+          <RealtimeParkingView
+            project={selectedProject}
+            onBack={handleBackToDashboard}
+          />
+        ) : null;
       
       case 'learning-data':
         return selectedProject ? (

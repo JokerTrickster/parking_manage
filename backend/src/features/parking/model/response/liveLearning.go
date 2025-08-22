@@ -1,5 +1,6 @@
 package response
 
 type ResLiveLearning struct {
-	FolderPath string `json:"folder_path"`
+	Cctvs      []string `json:"cctvs"`
+	TotalCctvs int      `json:"total_cctvs"`
 }

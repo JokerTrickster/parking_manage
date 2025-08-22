@@ -696,6 +696,66 @@ const docTemplate_swagger = `{
                 }
             }
         },
+        "/v0.1/parking/{projectId}/{cctvId}/images/{imageType}": {
+            "get": {
+                "description": "실시간 이미지 가져오기",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "parking"
+                ],
+                "summary": "실시간 이미지 가져오기",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CCTV ID",
+                        "name": "cctvId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image type (roi_result or fgmask)",
+                        "name": "imageType",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResCctvImage"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/{folderPath}": {
             "delete": {
                 "description": "지정된 프로젝트의 파일/폴더를 삭제합니다.\n\n■ errCode with 400\nPARAM_BAD : 파라미터 오류\n\n■ errCode with 500\nINTERNAL_SERVER : 내부 로직 처리 실패\nINTERNAL_DB : DB 처리 실패\n",
@@ -806,66 +866,6 @@ const docTemplate_swagger = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.ResImage"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/v0.1/parking/{projectId}/{folder}/{cctvId}/images": {
-            "get": {
-                "description": "Gets the ROI result and foreground mask images for a specific CCTV",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "parking"
-                ],
-                "summary": "Get CCTV Images",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Project ID",
-                        "name": "projectId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Learning result folder",
-                        "name": "folder",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "CCTV ID",
-                        "name": "cctvId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResCctvImages"
                         }
                     },
                     "400": {
@@ -1578,20 +1578,6 @@ const docTemplate_swagger = `{
                 }
             }
         },
-        "response.CctvImagesData": {
-            "type": "object",
-            "properties": {
-                "cctv_id": {
-                    "type": "string"
-                },
-                "fg_mask_image": {
-                    "type": "string"
-                },
-                "roi_result_image": {
-                    "type": "string"
-                }
-            }
-        },
         "response.CctvResultInfo": {
             "type": "object",
             "properties": {
@@ -1700,11 +1686,20 @@ const docTemplate_swagger = `{
                 }
             }
         },
-        "response.ResCctvImages": {
+        "response.ResCctvImage": {
             "type": "object",
             "properties": {
-                "data": {
-                    "$ref": "#/definitions/response.CctvImagesData"
+                "cctv_id": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "message": {
                     "type": "string"
@@ -1864,8 +1859,14 @@ const docTemplate_swagger = `{
         "response.ResLiveLearning": {
             "type": "object",
             "properties": {
-                "folder_path": {
-                    "type": "string"
+                "cctvs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "total_cctvs": {
+                    "type": "integer"
                 }
             }
         },

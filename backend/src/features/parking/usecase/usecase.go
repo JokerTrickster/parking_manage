@@ -211,3 +211,20 @@ func buildFullPaths(req request.ReqLearning) request.ReqLearning {
 		RoiPath:      roiPath,
 	}
 }
+
+func liveBuildFullPaths(req request.ReqLiveLearning) request.ReqLiveLearning {
+	basePath := common.Env.UploadPath
+	projectPath := filepath.Join(basePath, req.ProjectID)
+
+	learningPath := filepath.Join(projectPath, "uploads", "learningImages", req.LearningPath)
+	roiPath := filepath.Join(projectPath, "uploads", "roi", req.RoiPath)
+
+	return request.ReqLiveLearning{
+		ProjectID:    req.ProjectID,
+		LearningRate: req.LearningRate,
+		Iterations:   req.Iterations,
+		VarThreshold: req.VarThreshold,
+		LearningPath: learningPath,
+		RoiPath:      roiPath,
+	}
+}

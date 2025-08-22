@@ -34,8 +34,8 @@ type ILearningResultsParkingHandler interface {
 	GetLearningResults(c echo.Context) error
 }
 
-type ICctvImagesParkingHandler interface {
-	GetCctvImages(c echo.Context) error
+type ICctvImageParkingHandler interface {
+	GetCctvImage(c echo.Context) error
 }
 
 type IImageParkingHandler interface {

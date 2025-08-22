@@ -35,7 +35,6 @@ type ILearningResultsParkingRepository interface {
 }
 
 type ICctvImagesParkingRepository interface {
-	GetCctvImages(ctx context.Context, projectID string, timestamp string, cctvID string) (response.ResCctvImages, error)
 }
 
 type IImageParkingRepository interface {
@@ -59,4 +58,7 @@ type IBatchImagesParkingRepository interface {
 }
 
 type ILiveLearningParkingRepository interface {
+}
+
+type ICctvImageParkingRepository interface {
 }

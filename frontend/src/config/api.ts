@@ -2,22 +2,22 @@
 export const API_CONFIG = {
   // 개발 환경
   development: {
-    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://172.16.32.168:8080',
-    UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://172.16.32.168:8080/v0.1/parking',
-    SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://172.16.32.168:8080/swagger/index.html'
+    BASE_URL: 'http://172.16.32.168:8080',
+    UPLOAD_URL: 'http://172.16.32.168:8080/v0.1/parking',
+    SWAGGER_URL: 'http://172.16.32.168:8080/swagger/index.html'
   },
   // 프로덕션 환경 (도커)
   production: {
-    BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
-    UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL || 'http://localhost:8080/v0.1/parking',
-    SWAGGER_URL: process.env.REACT_APP_SWAGGER_URL || 'http://localhost:8080/swagger/index.html'
+    BASE_URL: 'http://localhost:8080',
+    UPLOAD_URL: 'http://localhost:8080/v0.1/parking',
+    SWAGGER_URL: 'http://localhost:8080/swagger/index.html'
   }
 };
 
 // 현재 환경에 따른 설정 반환
 const getCurrentConfig = () => {
-  const env = process.env.NODE_ENV || 'development';
-  return API_CONFIG[env as keyof typeof API_CONFIG] || API_CONFIG.development;
+  // 강제로 개발 환경 사용
+  return API_CONFIG.development;
 };
 
 // API 설정 객체
@@ -45,6 +45,10 @@ export const API_ENDPOINTS = {
   
   // 학습 실행 관련
   LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/learning`,
+  LEARNING_LIVE: (projectId: string) => `/v0.1/parking/${projectId}/learning/live`,
+  
+  // 배치 이미지 다운로드
+  BATCH_IMAGES: (projectId: string) => `/v0.1/parking/${projectId}/images/batch`,
   
   // 학습 결과 조회 관련
   LEARNING_RESULTS: (projectId: string, folderPath: string) => `/v0.1/parking/${projectId}/learning-results/${folderPath}`,
@@ -53,6 +57,9 @@ export const API_ENDPOINTS = {
   // CCTV 이미지 조회 관련
   CCTV_IMAGE: (projectId: string, folderPath: string, cctvId: string, imageType: string) => 
     `/v0.1/parking/${projectId}/${folderPath}/${cctvId}/images/${imageType}`,
+  // 실시간 CCTV 이미지 조회
+  REALTIME_CCTV_IMAGE: (projectId: string, cctvId: string, imageType: string) => 
+    `/v0.1/parking/${projectId}/${cctvId}/images/${imageType}`,
   
   // ROI 관련
   GET_ROI_IMAGES: (projectId: string, folderPath: string) => `/v0.1/roi/${projectId}/${folderPath}/images`,

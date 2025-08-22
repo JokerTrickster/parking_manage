@@ -94,15 +94,6 @@ definitions:
       roi_id:
         type: string
     type: object
-  response.CctvImagesData:
-    properties:
-      cctv_id:
-        type: string
-      fg_mask_image:
-        type: string
-      roi_result_image:
-        type: string
-    type: object
   response.CctvResultInfo:
     properties:
       cctv_id:
@@ -173,10 +164,16 @@ definitions:
       timestamp:
         type: string
     type: object
-  response.ResCctvImages:
+  response.ResCctvImage:
     properties:
-      data:
-        $ref: '#/definitions/response.CctvImagesData'
+      cctv_id:
+        type: string
+      content_type:
+        type: string
+      image:
+        items:
+          type: integer
+        type: array
       message:
         type: string
       success:
@@ -278,8 +275,12 @@ definitions:
     type: object
   response.ResLiveLearning:
     properties:
-      folder_path:
-        type: string
+      cctvs:
+        items:
+          type: string
+        type: array
+      total_cctvs:
+        type: integer
     type: object
   response.ResReadRoi:
     properties:
@@ -378,25 +379,25 @@ definitions:
 info:
   contact: {}
 paths:
-  /v0.1/parking/{projectId}/{folder}/{cctvId}/images:
+  /v0.1/parking/{projectId}/{cctvId}/images/{imageType}:
     get:
       consumes:
       - application/json
-      description: Gets the ROI result and foreground mask images for a specific CCTV
+      description: 실시간 이미지 가져오기
       parameters:
       - description: Project ID
         in: path
         name: projectId
         required: true
         type: string
-      - description: Learning result folder
-        in: path
-        name: folder
-        required: true
-        type: string
       - description: CCTV ID
         in: path
         name: cctvId
+        required: true
+        type: string
+      - description: Image type (roi_result or fgmask)
+        in: path
+        name: imageType
         required: true
         type: string
       produces:
@@ -405,7 +406,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.ResCctvImages'
+            $ref: '#/definitions/response.ResCctvImage'
         "400":
           description: Bad Request
           schema:
@@ -416,7 +417,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get CCTV Images
+      summary: 실시간 이미지 가져오기
       tags:
       - parking
   /v0.1/parking/{projectId}/{folderPath}:
