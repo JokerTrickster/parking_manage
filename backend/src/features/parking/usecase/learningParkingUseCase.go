@@ -42,32 +42,36 @@ func (d *LearningParkingUseCase) Learning(c context.Context, req request.ReqLear
 	// Go 백엔드가 backend/src에서 실행되므로 상위 디렉토리로 이동
 	backendDir := filepath.Join(currentDir, "..")
 	opencvPath := filepath.Join(backendDir, "opencv", "build", "main")
-	fmt.Println(req.TestPath)
+	fmt.Println("원본 요청:", req)
+
+	// 폴더명/파일명을 전체 경로로 변환
+	fullPaths := buildFullPaths(req)
+	fmt.Println("변환된 전체 경로:", fullPaths)
 
 	if err := validatePaths(opencvPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
-		}, nil
+		}, err
 	}
 
-	if err := validatePaths(req.LearningPath); err != nil {
+	if err := validatePaths(fullPaths.LearningPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
-		}, nil
+		}, err
 	}
-	if err := validatePaths(req.TestPath); err != nil {
+	if err := validatePaths(fullPaths.TestPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
-		}, nil
+		}, err
 	}
-	if err := validatePaths(req.RoiPath); err != nil {
+	if err := validatePaths(fullPaths.RoiPath); err != nil {
 		return response.ResLearning{
 			FolderPath: "",
-		}, nil
+		}, err
 	}
 
-	// OpenCV 실행
-	success, message, resultPath := d.executeOpenCV(c, req, backendDir)
+	// OpenCV 실행 (전체 경로로 변환된 요청 사용)
+	success, message, resultPath := d.executeOpenCV(c, fullPaths, backendDir)
 	fmt.Println(success, message)
 	return response.ResLearning{
 		FolderPath: resultPath,
@@ -182,7 +186,6 @@ func (d *LearningParkingUseCase) executeOpenCV(ctx context.Context, req request.
 		}
 	}
 
-	// JSON 파일의 디렉토리 경로 반환
-	resultDir := filepath.Dir(jsonFilename)
-	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result), resultDir
+	// 폴더명만 반환 (전체 경로가 아닌)
+	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result), folderName
 }

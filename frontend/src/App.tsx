@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LayoutView from './views/LayoutView';
 import ProjectSelectionView from './views/ProjectSelectionView';
 import DashboardView from './views/DashboardView';
-import ParkingTestView from './views/ParkingTestView';
+import { ParkingTestView } from './views/ParkingTestView';
 import LearningResultsPage from './views/LearningResultsPage';
 import { RoiWorkView } from './views/RoiWorkView';
 import LearningDataView from './views/LearningDataView';
@@ -68,14 +68,13 @@ function App() {
           />
         ) : null;
       
-      case 'parking-test':
-        return selectedProject ? (
-          <ParkingTestView
-            project={selectedProject}
-            onBack={handleBackToDashboard}
-            onShowLearningResults={handleShowLearningResults}
-          />
-        ) : null;
+              case 'parking-test':
+          return selectedProject ? (
+            <ParkingTestView
+              project={selectedProject}
+              onBack={handleBackToDashboard}
+            />
+          ) : null;
       
       case 'learning-results':
         return learningResultsData ? (

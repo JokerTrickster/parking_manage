@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"main/common"
 	"main/features/parking/model/request"
 	"mime/multipart"
 	"net/http"
@@ -182,4 +183,31 @@ func ValidateLiveLearningRequest(req request.ReqLiveLearning) error {
 
 func getCurrentTimestamp() string {
 	return time.Now().Format("20060102150405")
+}
+
+// buildFullPaths 폴더명/파일명을 전체 경로로 변환하는 함수
+func buildFullPaths(req request.ReqLearning) request.ReqLearning {
+	// UPLOAD_PATH 환경 변수 사용
+	basePath := common.Env.UploadPath
+	projectPath := filepath.Join(basePath, req.ProjectID)
+
+	// 학습 이미지 경로: {UPLOAD_PATH}/{projectId}/learningImages/{folderName}
+	learningPath := filepath.Join(projectPath, "uploads", "learningImages", req.LearningPath)
+
+	// 테스트 이미지 경로: {UPLOAD_PATH}/{projectId}/testImages/{folderName}
+	testPath := filepath.Join(projectPath, "uploads", "testImages", req.TestPath)
+
+	// ROI 파일 경로: {UPLOAD_PATH}/{projectId}/roi/{fileName}
+	roiPath := filepath.Join(projectPath, "uploads", "roi", req.RoiPath)
+
+	// 새로운 요청 객체 생성 (전체 경로로 변환)
+	return request.ReqLearning{
+		ProjectID:    req.ProjectID,
+		LearningRate: req.LearningRate,
+		Iterations:   req.Iterations,
+		VarThreshold: req.VarThreshold,
+		LearningPath: learningPath,
+		TestPath:     testPath,
+		RoiPath:      roiPath,
+	}
 }

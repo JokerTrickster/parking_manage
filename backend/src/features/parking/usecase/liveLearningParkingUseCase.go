@@ -133,7 +133,6 @@ func (d *LiveLearningParkingUseCase) executeOpenCV(ctx context.Context, req requ
 		log.Fatal(err)
 	}
 
-	// JSON 파일의 디렉토리 경로 반환
-	resultDir := filepath.Dir(jsonFilename)
-	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result), resultDir
+	// 폴더명만 반환 (전체 경로가 아닌)
+	return true, fmt.Sprintf("학습이 성공적으로 완료되었습니다.\n생성된 JSON 파일: %v", result), folderName
 }

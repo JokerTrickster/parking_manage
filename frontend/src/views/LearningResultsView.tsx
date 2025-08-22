@@ -10,10 +10,14 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Modal,
+  IconButton,
 } from '@mui/material';
 import {
   NavigateBefore as PrevIcon,
   NavigateNext as NextIcon,
+  Close as CloseIcon,
+  ZoomIn as ZoomInIcon,
 } from '@mui/icons-material';
 import { CctvInfo } from '../models/Learning';
 import LearningService from '../services/LearningService';
@@ -49,6 +53,12 @@ interface CctvImages {
   fgMaskImage: string;
 }
 
+interface ImageModalData {
+  src: string;
+  alt: string;
+  title: string;
+}
+
 const ITEMS_PER_PAGE = 4;
 
 const LearningResultsView: React.FC<LearningResultsViewProps> = ({
@@ -61,6 +71,7 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
   const [cctvImages, setCctvImages] = useState<Map<string, CctvImages>>(new Map());
   const [loadingImages, setLoadingImages] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [modalImage, setModalImage] = useState<ImageModalData | null>(null);
 
   const totalPages = Math.ceil(cctvList.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -77,6 +88,9 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
     try {
       // CCTV ID에서 _Current 제거
       const cleanedCctvId = removeCurrentFromCctvId(cctvId);
+      
+      console.log(`CCTV 이미지 경로: ${projectId}/${folderPath}/${cleanedCctvId}`);
+      
       const response = await LearningService.getCctvImages(projectId, folderPath, cleanedCctvId);
       setCctvImages(prev => new Map(prev).set(cctvId, {
         roiResultImage: response.data.roi_result_image,
@@ -95,31 +109,41 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
   };
 
   useEffect(() => {
-    // 현재 페이지의 CCTV 이미지들을 로드
+    console.log('LearningResultsView useEffect 실행');
+    console.log('currentCctvList:', currentCctvList);
+    // 현재 페이지의 CCTV 이미지들을 자동으로 로드
     currentCctvList.forEach(cctv => {
+      console.log(`CCTV ${cctv.cctv_id} has_images:`, cctv.has_images);
       if (cctv.has_images) {
         loadCctvImages(cctv.cctv_id);
       }
     });
-  }, [currentPage, currentCctvList]);
+  }, [currentPage, cctvList, projectId, folderPath]); // 의존성 배열 수정
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
   };
 
+  const handleImageClick = (src: string, alt: string, title: string) => {
+    setModalImage({ src, alt, title });
+  };
+
+  const handleCloseModal = () => {
+    setModalImage(null);
+  };
+
   return (
-    <Card sx={{ mt: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">
-            학습 결과 상세 - {timestamp}
-          </Typography>
-          <Chip 
-            label={`총 ${cctvList.length}개 CCTV`} 
-            color="primary" 
-            variant="outlined" 
-          />
-        </Box>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="subtitle1">
+          {timestamp}
+        </Typography>
+        <Chip 
+          label={`총 ${cctvList.length}개 CCTV`} 
+          color="primary" 
+          variant="outlined" 
+        />
+      </Box>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -127,8 +151,8 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
           </Alert>
         )}
 
-        {/* CCTV 목록 */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+        {/* CCTV 목록 - 한 페이지당 4개, 2x2 그리드 */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
           {currentCctvList.map((cctv) => (
             <Box key={cctv.cctv_id}>
               <Card variant="outlined">
@@ -151,36 +175,100 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
                           <CircularProgress size={40} />
                         </Box>
                       ) : cctvImages.has(cctv.cctv_id) ? (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                              ROI 결과 이미지
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {/* ROI 결과 이미지 - 왼쪽 */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
+                              ROI 결과
                             </Typography>
-                            <img 
-                              src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
-                              alt={`ROI Result - ${cctv.cctv_id}`}
-                              style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }}
-                            />
+                            <Box sx={{ position: 'relative', cursor: 'pointer' }}>
+                              <img 
+                                src={cctvImages.get(cctv.cctv_id)?.roiResultImage} 
+                                alt={`ROI Result - ${cctv.cctv_id}`}
+                                style={{ 
+                                  width: '100%', 
+                                  height: 'auto', 
+                                  maxHeight: '150px', 
+                                  objectFit: 'contain',
+                                  border: '1px solid #e0e0e0',
+                                  borderRadius: '4px',
+                                  transition: 'opacity 0.2s'
+                                }}
+                                onError={(e) => {
+                                  console.error(`ROI 이미지 로드 실패: ${cctv.cctv_id}`);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                                onClick={() => handleImageClick(
+                                  cctvImages.get(cctv.cctv_id)?.roiResultImage || '',
+                                  `ROI Result - ${cctv.cctv_id}`,
+                                  `${removeCurrentFromCctvId(cctv.cctv_id)} - ROI 결과`
+                                )}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              />
+                              <ZoomInIcon 
+                                sx={{ 
+                                  position: 'absolute', 
+                                  top: 4, 
+                                  right: 4, 
+                                  color: 'white', 
+                                  backgroundColor: 'rgba(0,0,0,0.5)', 
+                                  borderRadius: '50%', 
+                                  padding: '2px',
+                                  fontSize: '16px'
+                                }} 
+                              />
+                            </Box>
                           </Box>
-                          <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Foreground 마스크 이미지
+                          {/* Foreground 마스크 이미지 - 오른쪽 */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '0.75rem' }}>
+                              Foreground 마스크
                             </Typography>
-                            <img 
-                              src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
-                              alt={`Foreground Mask - ${cctv.cctv_id}`}
-                              style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }}
-                            />
+                            <Box sx={{ position: 'relative', cursor: 'pointer' }}>
+                              <img 
+                                src={cctvImages.get(cctv.cctv_id)?.fgMaskImage} 
+                                alt={`Foreground Mask - ${cctv.cctv_id}`}
+                                style={{ 
+                                  width: '100%', 
+                                  height: 'auto', 
+                                  maxHeight: '150px', 
+                                  objectFit: 'contain',
+                                  border: '1px solid #e0e0e0',
+                                  borderRadius: '4px',
+                                  transition: 'opacity 0.2s'
+                                }}
+                                onError={(e) => {
+                                  console.error(`Foreground 마스크 이미지 로드 실패: ${cctv.cctv_id}`);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                                onClick={() => handleImageClick(
+                                  cctvImages.get(cctv.cctv_id)?.fgMaskImage || '',
+                                  `Foreground Mask - ${cctv.cctv_id}`,
+                                  `${removeCurrentFromCctvId(cctv.cctv_id)} - Foreground 마스크`
+                                )}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              />
+                              <ZoomInIcon 
+                                sx={{ 
+                                  position: 'absolute', 
+                                  top: 4, 
+                                  right: 4, 
+                                  color: 'white', 
+                                  backgroundColor: 'rgba(0,0,0,0.5)', 
+                                  borderRadius: '50%', 
+                                  padding: '2px',
+                                  fontSize: '16px'
+                                }} 
+                              />
+                            </Box>
                           </Box>
                         </Box>
                       ) : (
-                        <Button 
-                          variant="outlined" 
-                          onClick={() => loadCctvImages(cctv.cctv_id)}
-                          fullWidth
-                        >
-                          이미지 로드
-                        </Button>
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                          이미지를 로드하는 중...
+                        </Typography>
                       )}
                     </Box>
                   )}
@@ -208,8 +296,56 @@ const LearningResultsView: React.FC<LearningResultsViewProps> = ({
             />
           </Box>
         )}
-      </CardContent>
-    </Card>
+
+        {/* 이미지 확대 Modal */}
+        <Modal
+          open={!!modalImage}
+          onClose={handleCloseModal}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              bgcolor: 'background.paper',
+              boxShadow: 24,
+              borderRadius: 2,
+              outline: 'none',
+            }}
+          >
+            {modalImage && (
+              <>
+                <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6" component="h2">
+                      {modalImage.title}
+                    </Typography>
+                    <IconButton onClick={handleCloseModal} size="small">
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                  <img
+                    src={modalImage.src}
+                    alt={modalImage.alt}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '70vh',
+                      objectFit: 'contain',
+                    }}
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
+        </Modal>
+    </Box>
   );
 };
 

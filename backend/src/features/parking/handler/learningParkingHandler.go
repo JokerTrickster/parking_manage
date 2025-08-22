@@ -47,25 +47,27 @@ func (d *LearningParkingHandler) Learning(c echo.Context) error {
 	// 요청 데이터 파싱
 	var req request.ReqLearning
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, response.ResLearning{
-			FolderPath: "",
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "요청 데이터 파싱 실패",
+			"error":   err.Error(),
 		})
 	}
 
 	// 파라미터 검증
 	if err := usecase.ValidateLearningRequest(req); err != nil {
-		return c.JSON(http.StatusBadRequest, response.ResLearning{
-			FolderPath: "",
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "파라미터 검증 실패",
+			"error":   err.Error(),
 		})
 	}
 
 	// UseCase 호출
 	result, err := d.UseCase.Learning(c.Request().Context(), req)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, response.ResLearning{
-			FolderPath: "",
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"message": "학습 실패",
+			"error":   err.Error(),
 		})
 	}
-
 	return c.JSON(http.StatusOK, result)
 }

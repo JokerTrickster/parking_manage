@@ -42,6 +42,17 @@ export class FileUploadService {
     }
   }
 
+  // 폴더 목록 조회 (간단한 문자열 배열 반환)
+  static async getFolders(projectId: string, fileType: 'learning' | 'test' | 'roi'): Promise<string[]> {
+    try {
+      const folders = await this.getExistingFolders(projectId, fileType);
+      return folders.map(folder => folder.name);
+    } catch (error) {
+      console.error('폴더 목록 조회 실패:', error);
+      return [];
+    }
+  }
+
   // 파일 업로드 (ROI 파일용)
   static async uploadFile(file: File, projectId: string, fileType: 'roi'): Promise<FileUploadResponse> {
     try {

@@ -21,6 +21,12 @@ export interface ParkingTestState {
   selectedRoiPath: string;
   // 최근 학습 정보
   lastLearningFolderPath: string | null;
+  // 새로운 필드들
+  selectedLearningFolder: string;
+  selectedRoiFile: string;
+  selectedTestFolder: string;
+  learningHistory: any[];
+  selectedHistoryResults: LearningResultsData | null;
 }
 
 export class ParkingTestViewModel {
@@ -30,6 +36,29 @@ export class ParkingTestViewModel {
   constructor(project: Project, state: ParkingTestState, setState: React.Dispatch<React.SetStateAction<ParkingTestState>>) {
     this._project = project;
     this._setState = setState;
+  }
+
+  static getInitialState(): ParkingTestState {
+    return {
+      loading: false,
+      varThreshold: 50.0,
+      learningRate: 0.001,
+      iterations: 1000,
+      testResult: null,
+      learningResult: null,
+      learningResultsData: null,
+      showResults: false,
+      error: null,
+      selectedLearningPath: '',
+      selectedTestPath: '',
+      selectedRoiPath: '',
+      lastLearningFolderPath: null,
+      selectedLearningFolder: '',
+      selectedRoiFile: '',
+      selectedTestFolder: '',
+      learningHistory: [],
+      selectedHistoryResults: null,
+    };
   }
 
   // Setters
@@ -141,6 +170,65 @@ export class ParkingTestViewModel {
     // 경로에서 마지막 폴더명만 추출
     const pathParts = fullPath.split('/');
     return pathParts[pathParts.length - 1];
+  }
+
+  // 정적 메서드들
+  static async startLearning(
+    projectId: string,
+    learningFolder: string,
+    roiFile: string,
+    testFolder: string,
+    varThreshold: number,
+    learningRate: number,
+    iterations: number
+  ): Promise<LearningResponse> {
+    const request: LearningRequest = {
+      projectId,
+      learningRate,
+      iterations,
+      varThreshold,
+      learningPath: learningFolder,
+      testPath: testFolder,
+      roiPath: roiFile,
+    };
+
+    return await LearningService.executeLearning(request);
+  }
+
+  static async loadLearningResults(projectId: string, folderPath: string): Promise<LearningResultsData | null> {
+    try {
+      const response = await LearningService.getLearningResults(projectId, folderPath);
+      return response.success ? response.data : null;
+    } catch (error) {
+      console.error('학습 결과 로드 실패:', error);
+      return null;
+    }
+  }
+
+  static async loadLearningHistory(projectId: string): Promise<any[]> {
+    try {
+      console.log('ParkingTestViewModel.loadLearningHistory 호출됨, projectId:', projectId);
+      const response = await LearningService.getLearningHistory(projectId);
+      console.log('히스토리 응답 전체:', response);
+      console.log('히스토리 응답 data:', response.data);
+      console.log('히스토리 응답 타입:', typeof response.data);
+      console.log('히스토리 응답 길이:', Array.isArray(response.data) ? response.data.length : 'Not array');
+      
+      // 응답 데이터 구조에 따라 적절히 반환
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+        return response.data.results;
+      } else if (response && Array.isArray(response)) {
+        return response;
+      } else {
+        console.log('예상하지 못한 응답 구조:', response);
+        return [];
+      }
+    } catch (error) {
+      console.error('학습 히스토리 로드 실패:', error);
+      return [];
+    }
   }
 
 } 
