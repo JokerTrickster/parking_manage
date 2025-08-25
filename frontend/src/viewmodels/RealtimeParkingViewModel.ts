@@ -98,8 +98,18 @@ export class RealtimeParkingViewModel {
 
   static async getRealtimeCctvImage(projectId: string, cctvId: string, imageType: string): Promise<string> {
     try {
-      const response = await fetch(`${apiConfig.BASE_URL}${API_ENDPOINTS.REALTIME_CCTV_IMAGE(projectId, cctvId, imageType)}`, {
+      // 캐시 방지를 위한 타임스탬프 추가
+      const timestamp = new Date().getTime();
+      const url = `${apiConfig.BASE_URL}${API_ENDPOINTS.REALTIME_CCTV_IMAGE(projectId, cctvId, imageType)}?t=${timestamp}`;
+      
+      const response = await fetch(url, {
         method: 'GET',
+        cache: 'no-cache', // 캐시 사용 안함
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
 
       if (!response.ok) {

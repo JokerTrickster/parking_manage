@@ -30,6 +30,7 @@ interface RealtimeParkingViewProps {
 
 const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBack }) => {
   
+  
   // UI 상태
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
   const [selectedCctv, setSelectedCctv] = useState<string>('');
   const [selectedCctvImages, setSelectedCctvImages] = useState<any>(null);
   const [loadingCctvImages, setLoadingCctvImages] = useState(false);
+  const [cctvImageError, setCctvImageError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{ src: string; title: string; alt: string } | null>(null);
   
   // 타이머 참조
@@ -118,21 +120,25 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
           setRealtimeResults(result);
           
           // CCTV 리스트 업데이트
+          let targetCctv = selectedCctv;
           if (result && result.cctvs) {
             setCctvList(result.cctvs);
-            // 현재 선택된 CCTV가 새로운 리스트에 없으면 첫 번째로 변경
-            if (result.cctvs.length > 0 && !result.cctvs.includes(selectedCctv)) {
-              setSelectedCctv(result.cctvs[0]);
+            // 현재 선택된 CCTV가 없거나 새로운 리스트에 없는 경우에만 첫 번째로 변경
+            if (result.cctvs.length > 0 && (!selectedCctv || !result.cctvs.includes(selectedCctv))) {
+              targetCctv = result.cctvs[0];
+              setSelectedCctv(targetCctv);
             }
           }
           
-          // 현재 선택된 CCTV의 이미지도 업데이트
-          if (selectedCctv) {
+          // 선택된 CCTV의 이미지만 업데이트 (CCTV 선택은 유지)
+          if (targetCctv) {
             try {
-              const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, selectedCctv);
+              const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, targetCctv);
               setSelectedCctvImages(images);
-            } catch (error) {
+              setCctvImageError(null);
+            } catch (error: any) {
               console.error('현재 CCTV 이미지 업데이트 실패:', error);
+              setCctvImageError(error.message || 'CCTV 이미지 업데이트 중 오류가 발생했습니다.');
             }
           }
           
@@ -154,14 +160,21 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
       if (initialResult && initialResult.cctvs) {
         setCctvList(initialResult.cctvs);
         if (initialResult.cctvs.length > 0) {
-          const firstCctv = initialResult.cctvs[0];
-          setSelectedCctv(firstCctv); // 첫 번째 CCTV 선택
-          // 첫 번째 CCTV의 이미지도 자동으로 로드
+          // 현재 선택된 CCTV가 있고 리스트에 포함되어 있으면 유지, 없으면 첫 번째 CCTV 선택
+          let targetCctv = selectedCctv;
+          if (!selectedCctv || !initialResult.cctvs.includes(selectedCctv)) {
+            targetCctv = initialResult.cctvs[0];
+            setSelectedCctv(targetCctv);
+          }
+          
+          // 선택된 CCTV의 이미지를 로드
           try {
-            const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, firstCctv);
+            const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, targetCctv);
             setSelectedCctvImages(images);
-          } catch (error) {
-            console.error('첫 번째 CCTV 이미지 로드 실패:', error);
+            setCctvImageError(null);
+          } catch (error: any) {
+            console.error('CCTV 이미지 로드 실패:', error);
+            setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
           }
         }
       }
@@ -219,13 +232,15 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
   const handleCctvSelect = async (cctvId: string) => {
     setSelectedCctv(cctvId);
     setLoadingCctvImages(true);
+    setCctvImageError(null);
     
     try {
       const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, cctvId);
       setSelectedCctvImages(images);
-    } catch (error) {
+    } catch (error: any) {
       console.error('CCTV 이미지 로드 실패:', error);
       setSelectedCctvImages(null);
+      setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
     } finally {
       setLoadingCctvImages(false);
     }
@@ -440,6 +455,21 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         <Typography variant="body1" sx={{ ml: 2 }}>
                           이미지 로딩 중...
                         </Typography>
+                      </Box>
+                    ) : cctvImageError ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '300px', justifyContent: 'center' }}>
+                        <Alert severity="error" sx={{ mb: 2, maxWidth: 600 }}>
+                          <Typography variant="body2">
+                            {cctvImageError}
+                          </Typography>
+                        </Alert>
+                        <Button 
+                          variant="outlined" 
+                          onClick={() => handleCctvSelect(selectedCctv)}
+                          sx={{ mt: 1 }}
+                        >
+                          다시 시도
+                        </Button>
                       </Box>
                     ) : selectedCctvImages ? (
                                               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
