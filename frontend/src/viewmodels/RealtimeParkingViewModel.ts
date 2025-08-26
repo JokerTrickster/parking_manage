@@ -102,23 +102,18 @@ export class RealtimeParkingViewModel {
       const timestamp = new Date().getTime();
       const url = `${apiConfig.BASE_URL}${API_ENDPOINTS.REALTIME_CCTV_IMAGE(projectId, cctvId, imageType)}?t=${timestamp}`;
       
+      // GET 요청으로 이미지 존재 확인
       const response = await fetch(url, {
         method: 'GET',
-        cache: 'no-cache', // 캐시 사용 안함
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        cache: 'no-cache'
       });
 
       if (!response.ok) {
-        throw new Error(`실시간 CCTV ${imageType} 이미지 조회 실패`);
+        throw new Error(`실시간 CCTV ${imageType} 이미지 조회 실패: ${response.status}`);
       }
 
-      // 이미지 데이터를 Blob으로 받아서 URL 생성
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
+      // 직접 URL 반환
+      return url;
     } catch (error) {
       console.error(`실시간 CCTV ${imageType} 이미지 조회 실패:`, error);
       throw error;

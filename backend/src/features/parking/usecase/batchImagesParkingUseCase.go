@@ -108,8 +108,6 @@ func (d *BatchImagesParkingUseCase) downloadFromServer(ctx context.Context, serv
 		return fmt.Errorf("다운로드할 파일이 없습니다")
 	}
 
-	fmt.Printf("서버 %s에서 %d개 파일 다운로드 시작\n", serverIP, len(fileList))
-
 	// 각 파일 다운로드
 	for _, remoteFilePath := range fileList {
 		if remoteFilePath == "" {
@@ -117,7 +115,7 @@ func (d *BatchImagesParkingUseCase) downloadFromServer(ctx context.Context, serv
 		}
 
 		// 원격 파일 정보 조회
-		fileInfo, err := getRemoteFileInfo(client, remoteFilePath)
+		_, err := getRemoteFileInfo(client, remoteFilePath)
 		if err != nil {
 			fmt.Printf("파일 정보 조회 실패 (%s@%s): %v\n", remoteFilePath, serverIP, err)
 			continue
@@ -133,7 +131,6 @@ func (d *BatchImagesParkingUseCase) downloadFromServer(ctx context.Context, serv
 			continue
 		}
 
-		fmt.Printf("다운로드 완료: %s@%s -> %s (%d bytes)\n", remoteFilePath, serverIP, localFilePath, fileInfo.Size)
 	}
 
 	return nil
