@@ -422,7 +422,7 @@ int main(int argc, char* argv[]) {
     }
     
     // 결과를 shared/{project_id}/results 폴더에 저장
-    save_result_to_json(all_results, results_dir);
+    // save_result_to_json(all_results, results_dir);
     
     return 0;
 }
