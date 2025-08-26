@@ -123,15 +123,9 @@ func (d *BatchImagesParkingUseCase) downloadFromServer(ctx context.Context, serv
 			continue
 		}
 
-		// 로컬 파일 경로 생성 (서버별로 구분하여 저장)
+		// 로컬 파일 경로 생성 (currentImages 폴더에 직접 저장)
 		fileName := filepath.Base(remoteFilePath)
-		serverFolder := filepath.Join(localBasePath, strings.Replace(serverIP, ".", "_", -1))
-		if err := os.MkdirAll(serverFolder, 0755); err != nil {
-			fmt.Printf("서버별 디렉토리 생성 실패 (%s): %v\n", serverIP, err)
-			continue
-		}
-
-		localFilePath := filepath.Join(serverFolder, fileName)
+		localFilePath := filepath.Join(localBasePath, fileName)
 
 		// 파일 다운로드
 		if err := downloadFile(client, remoteFilePath, localFilePath); err != nil {
