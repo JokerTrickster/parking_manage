@@ -1,128 +1,58 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LayoutView from './views/LayoutView';
 import ProjectSelectionView from './views/ProjectSelectionView';
-import DashboardView from './views/DashboardView';
-import { ParkingTestView } from './views/ParkingTestView';
-import LearningResultsPage from './views/LearningResultsPage';
-import { RoiWorkView } from './views/RoiWorkView';
-import LearningDataView from './views/LearningDataView';
-import RealtimeParkingView from './views/RealtimeParkingView';
-import { Project } from './models/Project';
-import { CctvInfo } from './models/Learning';
 
-type Page = 'project-selection' | 'dashboard' | 'parking-test' | 'learning-results' | 'roi-work' | 'live-parking' | 'learning-data';
+// Import existing views
+import { RoiWorkView } from './views/RoiWorkView';
+import { ParkingTestView } from './views/ParkingTestView';
+import RealtimeParkingView from './views/RealtimeParkingView';
+import LearningDataView from './views/LearningDataView';
+
+// Import new placeholder pages
+import MapEditorPage from './pages/MapEditorPage';
+import MapPropertiesPage from './pages/MapPropertiesPage';
+import ProjectFileRepositoryPage from './pages/ProjectFileRepositoryPage';
+import ProjectDashboardPage from './pages/ProjectDashboardPage';
+
+// Enhanced pages that will wrap existing views
+import ROIEditorPage from './pages/ROIEditorPage';
+import ParkingValidationPage from './pages/ParkingValidationPage';
+import LiveParkingStatusPage from './pages/LiveParkingStatusPage';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('project-selection');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [learningResultsData, setLearningResultsData] = useState<{
-    projectId: string;
-    folderPath: string;
-    cctvList: CctvInfo[];
-    timestamp: string;
-  } | null>(null);
-
-
-
-  const handleProjectSelect = (project: Project) => {
-    setSelectedProject(project);
-    setCurrentPage('dashboard');
-  };
-
-  const handleBackToProjectSelection = () => {
-    setSelectedProject(null);
-    setCurrentPage('project-selection');
-  };
-
-  const handleNavigate = (page: string) => {
-    setCurrentPage(page as Page);
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentPage('dashboard');
-  };
-
-  const handleShowLearningResults = (projectId: string, folderPath: string, cctvList: CctvInfo[], timestamp: string) => {
-    console.log('handleShowLearningResults 호출됨:', { projectId, folderPath, cctvList, timestamp });
-    setLearningResultsData({ projectId, folderPath, cctvList, timestamp });
-    setCurrentPage('learning-results');
-    console.log('페이지를 learning-results로 변경함');
-  };
-
-  const handleBackToParkingTest = () => {
-    setCurrentPage('parking-test');
-  };
-
-
-
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'project-selection':
-        return <ProjectSelectionView onProjectSelect={handleProjectSelect} />;
-      
-      case 'dashboard':
-        return selectedProject ? (
-          <DashboardView
-            project={selectedProject}
-            onBack={handleBackToProjectSelection}
-            onNavigate={handleNavigate}
-          />
-        ) : null;
-      
-              case 'parking-test':
-          return selectedProject ? (
-            <ParkingTestView
-              project={selectedProject}
-              onBack={handleBackToDashboard}
-            />
-          ) : null;
-      
-      case 'learning-results':
-        return learningResultsData ? (
-          <LearningResultsPage
-            projectId={learningResultsData.projectId}
-            folderPath={learningResultsData.folderPath}
-            cctvList={learningResultsData.cctvList}
-            timestamp={learningResultsData.timestamp}
-            onBack={handleBackToParkingTest}
-          />
-        ) : null;
-      
-
-      
-      case 'roi-work':
-        return selectedProject ? (
-          <RoiWorkView
-            projectId={selectedProject.id}
-            onBack={handleBackToDashboard}
-          />
-        ) : null;
-      
-      case 'live-parking':
-        return selectedProject ? (
-          <RealtimeParkingView
-            project={selectedProject}
-            onBack={handleBackToDashboard}
-          />
-        ) : null;
-      
-      case 'learning-data':
-        return selectedProject ? (
-          <LearningDataView
-            project={selectedProject}
-            onBack={handleBackToDashboard}
-          />
-        ) : null;
-      
-      default:
-        return <ProjectSelectionView onProjectSelect={handleProjectSelect} />;
-    }
-  };
-
   return (
-    <LayoutView>
-      {renderCurrentPage()}
-    </LayoutView>
+    <Router>
+      <Routes>
+        {/* Project Selection - No Layout */}
+        <Route path="/" element={<ProjectSelectionView />} />
+        <Route path="/projects" element={<ProjectSelectionView />} />
+
+        {/* Project Dashboard - No Layout */}
+        <Route path="/project/:projectId" element={<ProjectDashboardPage />} />
+
+        {/* Project-based routes with Layout */}
+        <Route path="/project/:projectId/*" element={
+          <LayoutView>
+            <Routes>
+              {/* Project Management Pages */}
+              <Route path="map-editor" element={<MapEditorPage />} />
+              <Route path="map-properties" element={<MapPropertiesPage />} />
+              <Route path="roi-editor" element={<ROIEditorPage />} />
+              <Route path="parking-validation" element={<ParkingValidationPage />} />
+              <Route path="live-status" element={<LiveParkingStatusPage />} />
+              <Route path="file-repository" element={<ProjectFileRepositoryPage />} />
+
+              {/* Legacy routes for backward compatibility */}
+              <Route path="roi-work" element={<ROIEditorPage />} />
+              <Route path="parking-test" element={<ParkingValidationPage />} />
+              <Route path="live-parking" element={<LiveParkingStatusPage />} />
+              <Route path="learning-data" element={<ProjectFileRepositoryPage />} />
+            </Routes>
+          </LayoutView>
+        } />
+      </Routes>
+    </Router>
   );
 }
 
