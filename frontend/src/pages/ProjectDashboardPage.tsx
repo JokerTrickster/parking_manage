@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import {
   Map as MapIcon,
-  Settings as SettingsIcon,
   Crop as RoiIcon,
   LiveTv as LiveIcon,
   Tune as TuneIcon,
@@ -37,18 +36,10 @@ const ProjectDashboardPage: React.FC = () => {
     {
       id: 'map-editor',
       title: '맵 에디터',
-      description: 'CAD 도면을 기반으로 주차장 맵을 생성하고 편집합니다',
+      description: 'CAD 파일 업로드, 맵 오브젝트 추출, 속성 정의 및 관계 설정',
       icon: <MapIcon />,
       color: '#1976d2',
       path: `/project/${projectId}/map-editor`,
-    },
-    {
-      id: 'map-properties',
-      title: '맵 관계 & 정의',
-      description: '주차장 맵의 속성과 관계를 정의하고 관리합니다',
-      icon: <SettingsIcon />,
-      color: '#388e3c',
-      path: `/project/${projectId}/map-properties`,
     },
     {
       id: 'roi-editor',
@@ -238,7 +229,7 @@ const ProjectDashboardPage: React.FC = () => {
           {/* 관리 기능 수 */}
           <Card sx={{ p: 2, textAlign: 'center', background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', color: '#2e7d32' }}>
             <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              6
+              5
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
               관리 기능

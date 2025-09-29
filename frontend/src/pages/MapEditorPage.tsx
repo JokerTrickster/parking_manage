@@ -58,10 +58,10 @@ const MapEditorPage: React.FC = () => {
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2 }}>
-            CAD 도면을 기반으로 주차장 맵을 생성하고 편집하는 방법을 학습합니다
+            CAD 파일 업로드부터 맵 오브젝트 추출, 속성 정의, 관계 설정까지
           </Typography>
           <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-            단계별 가이드를 따라 전문적인 주차장 맵을 만들어보세요
+            통합된 맵 에디터로 전문적인 주차장 맵을 완성하세요
           </Typography>
         </Box>
       </Paper>
@@ -149,7 +149,7 @@ const MapEditorPage: React.FC = () => {
                 2
               </Box>
               <Typography variant="h5" component="h2">
-                주차 공간 영역 설정
+                맵 오브젝트 추출 및 인식
               </Typography>
             </Box>
 
@@ -159,13 +159,13 @@ const MapEditorPage: React.FC = () => {
               </Typography>
               <Box sx={{ pl: 2, mb: 3 }}>
                 <Typography variant="body1" paragraph>
-                  • 드래그 앤 드롭으로 주차 구역 그리기
+                  • CAD 파일에서 주차 라인, 벽, 기둥 등 오브젝트 자동 인식
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  • 주차면 번호 자동 생성 및 수동 설정
+                  • 레이어별 오브젝트 분류 및 정리
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  • 일반/장애인/임직원 전용 구역 설정
+                  • 벡터 데이터를 실제 좌표계로 변환
                 </Typography>
               </Box>
 
@@ -174,13 +174,119 @@ const MapEditorPage: React.FC = () => {
                 disabled
                 sx={{ mt: 2 }}
               >
-                영역 설정 도구 (준비 중)
+                오브젝트 추출 (준비 중)
               </Button>
             </Box>
           </CardContent>
         </Card>
 
         {/* Step 3 */}
+        <Card elevation={2}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  bgcolor: 'warning.main',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  mr: 2,
+                }}
+              >
+                3
+              </Box>
+              <Typography variant="h5" component="h2">
+                오브젝트 속성 정의
+              </Typography>
+            </Box>
+
+            <Box sx={{ pl: 8 }}>
+              <Typography variant="h6" gutterBottom color="warning.main">
+                ⚙️ 이 단계에서 배울 내용
+              </Typography>
+              <Box sx={{ pl: 2, mb: 3 }}>
+                <Typography variant="body1" paragraph>
+                  • 주차면별 고유 ID 및 번호 설정
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  • 일반/장애인/임직원/전기차 전용 구역 분류
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  • 크기, 방향, 접근성 등 물리적 속성 정의
+                </Typography>
+              </Box>
+
+              <Button
+                variant="outlined"
+                disabled
+                sx={{ mt: 2 }}
+              >
+                속성 정의 도구 (준비 중)
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Step 4 */}
+        <Card elevation={2}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  bgcolor: 'info.main',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  mr: 2,
+                }}
+              >
+                4
+              </Box>
+              <Typography variant="h5" component="h2">
+                관계 정의 및 규칙 설정
+              </Typography>
+            </Box>
+
+            <Box sx={{ pl: 8 }}>
+              <Typography variant="h6" gutterBottom color="info.main">
+                🔗 이 단계에서 배울 내용
+              </Typography>
+              <Box sx={{ pl: 2, mb: 3 }}>
+                <Typography variant="body1" paragraph>
+                  • 주차면과 통로, 출입구 간의 접근 경로 정의
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  • 구역별 우선순위 및 사용 규칙 설정
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  • CCTV 커버리지와 주차면 매핑 관계 설정
+                </Typography>
+              </Box>
+
+              <Button
+                variant="outlined"
+                disabled
+                sx={{ mt: 2 }}
+              >
+                관계 설정 도구 (준비 중)
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Step 5 */}
         <Card elevation={2}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -199,7 +305,7 @@ const MapEditorPage: React.FC = () => {
                   mr: 2,
                 }}
               >
-                3
+                5
               </Box>
               <Typography variant="h5" component="h2">
                 맵 검증 및 완성
@@ -212,13 +318,13 @@ const MapEditorPage: React.FC = () => {
               </Typography>
               <Box sx={{ pl: 2, mb: 3 }}>
                 <Typography variant="body1" paragraph>
-                  • 설정된 주차 공간 검증 및 오류 확인
+                  • 전체 맵 구조의 논리적 일관성 검증
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  • 미리보기 모드로 완성된 맵 확인
+                  • 3D 미리보기로 완성된 맵 시각화
                 </Typography>
                 <Typography variant="body1" paragraph>
-                  • 맵 데이터 저장 및 다른 시스템과 연동
+                  • 맵 데이터 저장 및 시스템 연동 설정
                 </Typography>
               </Box>
 
@@ -237,7 +343,7 @@ const MapEditorPage: React.FC = () => {
         <Paper sx={{ p: 3, backgroundColor: 'grey.50' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="body1" color="text.secondary">
-              튜토리얼을 완료하고 맵 에디터 기능을 사용해보세요
+              5단계 튜토리얼을 완료하고 통합 맵 에디터 기능을 사용해보세요
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button

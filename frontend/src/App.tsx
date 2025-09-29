@@ -12,7 +12,6 @@ import LearningDataView from './views/LearningDataView';
 // Import new placeholder pages
 import MapEditorPage from './pages/MapEditorPage';
 import MapEditorActualPage from './pages/MapEditorActualPage';
-import MapPropertiesPage from './pages/MapPropertiesPage';
 import ProjectFileRepositoryPage from './pages/ProjectFileRepositoryPage';
 import ProjectDashboardPage from './pages/ProjectDashboardPage';
 
@@ -39,7 +38,6 @@ function App() {
               {/* Project Management Pages */}
               <Route path="map-editor" element={<MapEditorPage />} />
               <Route path="map-editor-actual" element={<MapEditorActualPage />} />
-              <Route path="map-properties" element={<MapPropertiesPage />} />
               <Route path="roi-editor" element={<ROIEditorPage />} />
               <Route path="parking-validation" element={<ParkingValidationPage />} />
               <Route path="live-status" element={<LiveParkingStatusPage />} />
