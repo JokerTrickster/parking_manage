@@ -13,6 +13,7 @@ import LearningDataView from './views/LearningDataView';
 import MapEditorPage from './pages/MapEditorPage';
 import MapEditorActualPage from './pages/MapEditorActualPage';
 import ProjectFileRepositoryPage from './pages/ProjectFileRepositoryPage';
+import ProjectFileRepositoryTutorialPage from './pages/ProjectFileRepositoryTutorialPage';
 import ProjectDashboardPage from './pages/ProjectDashboardPage';
 
 // Enhanced pages that will wrap existing views
@@ -41,7 +42,8 @@ function App() {
               <Route path="roi-editor" element={<ROIEditorPage />} />
               <Route path="parking-validation" element={<ParkingValidationPage />} />
               <Route path="live-status" element={<LiveParkingStatusPage />} />
-              <Route path="file-repository" element={<ProjectFileRepositoryPage />} />
+              <Route path="file-repository" element={<ProjectFileRepositoryTutorialPage />} />
+              <Route path="file-repository-actual" element={<ProjectFileRepositoryPage />} />
 
               {/* Actual functionality routes */}
               <Route path="roi-editor-actual" element={

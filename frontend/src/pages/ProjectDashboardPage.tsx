@@ -68,7 +68,7 @@ const ProjectDashboardPage: React.FC = () => {
     {
       id: 'file-repository',
       title: '프로젝트 파일 보관함',
-      description: '프로젝트 관련 파일을 관리하고 보관합니다',
+      description: '5가지 파일 카테고리별 체계적 관리 시스템',
       icon: <FolderIcon />,
       color: '#455a64',
       path: `/project/${projectId}/file-repository`,

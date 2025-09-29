@@ -337,6 +337,7 @@ const ProjectFileRepositoryPage: React.FC = () => {
         </Box>
       </Paper>
 
+
       {/* File Category Selection */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
