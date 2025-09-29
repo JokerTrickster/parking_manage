@@ -323,35 +323,6 @@ const ProjectDashboardPage: React.FC = () => {
           </Card>
         </Box>
 
-        {/* 빠른 액션 */}
-        <Box sx={{ mt: 3, p: 2, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 2 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-            🚀 빠른 액션
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => navigate(`/project/${projectId}/live-status`)}
-            >
-              실시간 현황 보기
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => navigate(`/project/${projectId}/roi-editor`)}
-            >
-              ROI 편집
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => navigate(`/project/${projectId}/file-repository`)}
-            >
-              파일 관리
-            </Button>
-          </Box>
-        </Box>
       </Paper>
     </Container>
   );

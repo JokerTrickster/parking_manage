@@ -238,7 +238,7 @@ const MapEditorPage: React.FC = () => {
         <Paper sx={{ p: 3, backgroundColor: 'grey.50' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="body1" color="text.secondary">
-              다른 기능으로 이동하거나 프로젝트 대시보드로 돌아가세요
+              튜토리얼을 완료하고 맵 에디터 기능을 사용해보세요
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
@@ -250,9 +250,9 @@ const MapEditorPage: React.FC = () => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => navigate(`/project/${projectId}/roi-editor`)}
+                onClick={() => alert('맵 에디터 기능은 개발 중입니다.')}
               >
-                다음: ROI 편집기
+                맵 에디터 시작하기
               </Button>
             </Box>
           </Box>

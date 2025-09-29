@@ -208,21 +208,21 @@ const MapPropertiesPage: React.FC = () => {
         {/* Navigation Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mt: 3 }}>
           <Typography variant="body1" color="text.secondary">
-            관련 기능을 둘러보세요
+            튜토리얼을 완료하고 맵 속성 관리 기능을 사용해보세요
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
-              onClick={() => navigate('/map-editor')}
+              onClick={() => navigate(`/project/${projectId}`)}
             >
-              맵 에디터로
+              🏠 대시보드로
             </Button>
             <Button
               variant="contained"
               color="primary"
-              onClick={() => navigate('/roi-editor')}
+              onClick={() => alert('맵 속성 관리 기능은 개발 중입니다.')}
             >
-              ROI 편집기로
+              맵 속성 관리 시작하기
             </Button>
           </Box>
         </Box>
