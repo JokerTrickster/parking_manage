@@ -52,19 +52,34 @@ function App() {
               } />
               <Route path="parking-validation-actual" element={
                 <ParkingTestView
-                  projectId={window.location.pathname.split('/')[2]}
+                  project={{
+                    id: window.location.pathname.split('/')[2],
+                    name: 'Current Project',
+                    description: 'Current working project',
+                    location: 'Seoul'
+                  }}
                   onBack={() => window.history.back()}
                 />
               } />
               <Route path="live-status-actual" element={
                 <RealtimeParkingView
-                  project={{ id: window.location.pathname.split('/')[2], name: 'Current Project' }}
+                  project={{
+                    id: window.location.pathname.split('/')[2],
+                    name: 'Current Project',
+                    description: 'Current working project',
+                    location: 'Seoul'
+                  }}
                   onBack={() => window.history.back()}
                 />
               } />
               <Route path="file-repository-actual" element={
                 <LearningDataView
-                  projectId={window.location.pathname.split('/')[2]}
+                  project={{
+                    id: window.location.pathname.split('/')[2],
+                    name: 'Current Project',
+                    description: 'Current working project',
+                    location: 'Seoul'
+                  }}
                   onBack={() => window.history.back()}
                 />
               } />
