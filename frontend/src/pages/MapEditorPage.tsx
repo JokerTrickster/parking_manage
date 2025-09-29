@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -10,17 +10,25 @@ import {
   Button,
   Breadcrumbs,
   Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material';
 import {
   Map as MapIcon,
-  Engineering as EngineeringIcon,
   Home as HomeIcon,
+  Close as CloseIcon,
+  Fullscreen as FullscreenIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const MapEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  const [showEditor, setShowEditor] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
     <Container maxWidth="lg">
@@ -250,7 +258,7 @@ const MapEditorPage: React.FC = () => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => alert('맵 에디터 기능은 개발 중입니다.')}
+                onClick={() => setShowEditor(true)}
               >
                 맵 에디터 시작하기
               </Button>
@@ -258,6 +266,97 @@ const MapEditorPage: React.FC = () => {
           </Box>
         </Paper>
       </Box>
+
+      {/* Map Editor Dialog with iframe */}
+      <Dialog
+        open={showEditor}
+        onClose={() => setShowEditor(false)}
+        fullScreen={isFullscreen}
+        maxWidth="xl"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            height: isFullscreen ? '100vh' : '90vh',
+            width: isFullscreen ? '100vw' : '95vw',
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          bgcolor: 'primary.main',
+          color: 'white'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <MapIcon sx={{ mr: 1 }} />
+            맵 에디터 - 프로젝트 {projectId}
+          </Box>
+          <Box>
+            <IconButton
+              color="inherit"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              sx={{ mr: 1 }}
+            >
+              <FullscreenIcon />
+            </IconButton>
+            <IconButton
+              color="inherit"
+              onClick={() => setShowEditor(false)}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0, height: '100%' }}>
+          <Box sx={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <Alert severity="info" sx={{ m: 2, mb: 1 }}>
+              <Typography variant="body2">
+                🗺️ <strong>맵 에디터</strong>: localhost:3000에서 실행 중인 맵 에디터를 임베딩했습니다.
+                parkingLotId=1로 설정되어 있으며, 추후 postMessage로 동적 ID 전달이 가능합니다.
+              </Typography>
+            </Alert>
+
+            <Box sx={{ flexGrow: 1, m: 2, mt: 1 }}>
+              <iframe
+                src="http://localhost:3000/editor?parkingLotId=1"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                }}
+                title="맵 에디터"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, bgcolor: 'grey.50' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+            💡 팁: 전체화면 모드에서 더 넓은 작업 공간을 사용할 수 있습니다.
+          </Typography>
+          <Button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            startIcon={<FullscreenIcon />}
+          >
+            {isFullscreen ? '창 모드' : '전체화면'}
+          </Button>
+          <Button
+            onClick={() => setShowEditor(false)}
+            variant="contained"
+          >
+            닫기
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
