@@ -43,6 +43,32 @@ function App() {
               <Route path="live-status" element={<LiveParkingStatusPage />} />
               <Route path="file-repository" element={<ProjectFileRepositoryPage />} />
 
+              {/* Actual functionality routes */}
+              <Route path="roi-editor-actual" element={
+                <RoiWorkView
+                  projectId={window.location.pathname.split('/')[2]}
+                  onBack={() => window.history.back()}
+                />
+              } />
+              <Route path="parking-validation-actual" element={
+                <ParkingTestView
+                  projectId={window.location.pathname.split('/')[2]}
+                  onBack={() => window.history.back()}
+                />
+              } />
+              <Route path="live-status-actual" element={
+                <RealtimeParkingView
+                  project={{ id: window.location.pathname.split('/')[2], name: 'Current Project' }}
+                  onBack={() => window.history.back()}
+                />
+              } />
+              <Route path="file-repository-actual" element={
+                <LearningDataView
+                  projectId={window.location.pathname.split('/')[2]}
+                  onBack={() => window.history.back()}
+                />
+              } />
+
               {/* Legacy routes for backward compatibility */}
               <Route path="roi-work" element={<ROIEditorPage />} />
               <Route path="parking-test" element={<ParkingValidationPage />} />
