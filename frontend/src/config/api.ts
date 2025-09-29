@@ -16,8 +16,12 @@ export const API_CONFIG = {
 
 // 현재 환경에 따른 설정 반환
 const getCurrentConfig = () => {
-  // 강제로 개발 환경 사용
-  return API_CONFIG.development;
+  // 로컬 개발을 위해 localhost 사용
+  return {
+    BASE_URL: 'http://localhost:8080',
+    UPLOAD_URL: 'http://localhost:8080/v0.1/parking',
+    SWAGGER_URL: 'http://localhost:8080/swagger/index.html'
+  };
 };
 
 // API 설정 객체

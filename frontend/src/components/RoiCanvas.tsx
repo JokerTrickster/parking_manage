@@ -10,6 +10,8 @@ interface RoiCanvasProps {
   editMode?: 'create' | 'update' | null;
   onRoiCreate?: (coordinates: number[]) => void;
   onRoiUpdate?: (roiId: string, coordinates: number[]) => void;
+  isMobile?: boolean;
+  fullscreen?: boolean;
 }
 
 export interface RoiCanvasRef {
@@ -26,7 +28,9 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   selectedRoiId,
   editMode = null,
   onRoiCreate,
-  onRoiUpdate
+  onRoiUpdate,
+  isMobile = false,
+  fullscreen = false
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -52,9 +56,25 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 고정 크기 640x640
-    const canvasWidth = 360;
-    const canvasHeight = 360;
+    // 동적 캔버스 크기 계산
+    const getCanvasSize = () => {
+      if (fullscreen) {
+        // 전체화면 모드: 최대 가능한 크기
+        const maxWidth = Math.min(window.innerWidth - 32, 800);
+        const maxHeight = Math.min(window.innerHeight * 0.6, 600);
+        return Math.min(maxWidth, maxHeight);
+      } else if (isMobile) {
+        // 모바일: 화면 너비의 90%
+        return Math.min(window.innerWidth - 64, 400);
+      } else {
+        // 데스크톱: 기본 크기
+        return 360;
+      }
+    };
+
+    const canvasSize = getCanvasSize();
+    const canvasWidth = canvasSize;
+    const canvasHeight = canvasSize;
 
     // 이미지 비율 계산
     const imageRatio = imageElement.width / imageElement.height;
@@ -164,7 +184,7 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
         ctx.stroke();
       }
     }
-  }, [imageLoaded, imageElement, rois, selectedRoiId, editMode, drawingPoints, isDrawing]);
+  }, [imageLoaded, imageElement, rois, selectedRoiId, editMode, drawingPoints, isDrawing, isMobile, fullscreen]);
 
   // 좌표 변환 함수
   const getImageCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -308,8 +328,18 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
         onClick={handleCanvasClick}
         style={{
           cursor: editMode ? 'crosshair' : (editable ? 'pointer' : 'default'),
-          width: '360px',
-          height: '360px'
+          width: fullscreen
+            ? `${Math.min(window.innerWidth - 32, 800)}px`
+            : isMobile
+            ? `${Math.min(window.innerWidth - 64, 400)}px`
+            : '360px',
+          height: fullscreen
+            ? `${Math.min(window.innerHeight * 0.6, 600)}px`
+            : isMobile
+            ? `${Math.min(window.innerWidth - 64, 400)}px`
+            : '360px',
+          maxWidth: '100%',
+          touchAction: editMode ? 'none' : 'auto' // 터치 제스처 최적화
         }}
       />
     </Box>

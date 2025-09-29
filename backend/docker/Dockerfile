@@ -7,7 +7,7 @@ RUN apk add --no-cache gcc g++ make cmake pkgconfig
 # Install OpenCV and nlohmann/json
 RUN apk add --no-cache \
     opencv-dev \
-    nlohmann-json-dev \
+    nlohmann-json \
     && ln -s /usr/include/opencv4/opencv2 /usr/include/opencv2
 
 # Set working directory
@@ -32,7 +32,6 @@ FROM alpine:latest
 # Install runtime dependencies
 RUN apk add --no-cache \
     opencv \
-    nlohmann-json \
     ca-certificates
 
 # Create app directory

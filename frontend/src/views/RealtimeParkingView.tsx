@@ -16,12 +16,40 @@ import {
   Switch,
   FormControlLabel,
   Modal,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Collapse,
+  Container,
+  Tabs,
+  Tab,
+  Badge,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid
 } from '@mui/material';
-import { PlayArrow, Stop, ArrowBack as BackIcon, ZoomIn as ZoomInIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  PlayArrow,
+  Stop,
+  ArrowBack as BackIcon,
+  ZoomIn as ZoomInIcon,
+  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
+  Settings as SettingsIcon,
+  Videocam as VideocamIcon,
+  Image as ImageIcon,
+  Refresh as RefreshIcon,
+  Fullscreen as FullscreenIcon,
+  ViewList as ViewListIcon,
+  Circle as CircleIcon
+} from '@mui/icons-material';
 import { RealtimeParkingViewModel } from '../viewmodels/RealtimeParkingViewModel';
 import LearningResultsView from './LearningResultsView';
 import { Project } from '../models/Project';
+import { touchFriendly, responsiveSpacing, responsiveGrid } from '../styles/responsive';
 
 interface RealtimeParkingViewProps {
   project: Project;
@@ -29,8 +57,10 @@ interface RealtimeParkingViewProps {
 }
 
 const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBack }) => {
-  
-  
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   // UI 상태
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,7 +91,13 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
   const [cctvImageError, setCctvImageError] = useState<string | null>(null);
   const [imageUpdateKey, setImageUpdateKey] = useState(0); // 이미지 강제 업데이트를 위한 키
   const [modalImage, setModalImage] = useState<{ src: string; title: string; alt: string } | null>(null);
-  
+
+  // Mobile UI states
+  const [settingsExpanded, setSettingsExpanded] = useState(!isMobile);
+  const [activeTab, setActiveTab] = useState(0);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [cctvDialogOpen, setCctvDialogOpen] = useState(false);
+
   // 타이머 참조
   const batchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const learningIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -281,110 +317,205 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding, pb: { xs: 8, md: 3 } }}>
       {/* 헤더 */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        ...responsiveSpacing.sectionMargin,
+        flexWrap: { xs: 'wrap', sm: 'nowrap' },
+        gap: 1
+      }}>
         {onBack && (
           <Button
             startIcon={<BackIcon />}
             onClick={onBack}
-            sx={{ mr: 2 }}
+            sx={{
+              ...touchFriendly.button,
+              mr: { xs: 0, sm: 2 },
+              mb: { xs: 1, sm: 0 },
+              minWidth: { xs: 'auto', sm: 'unset' }
+            }}
+            size={isSmallMobile ? "small" : "medium"}
           >
-            대시보드로
+            {isSmallMobile ? "뒤로" : "대시보드로"}
           </Button>
         )}
-        <Typography variant="h4" component="h1">
+        <Typography
+          variant={isMobile ? "h5" : "h4"}
+          component="h1"
+          sx={{ flexGrow: 1, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}
+        >
           실시간 주차면
         </Typography>
+
+        {/* Mobile control buttons */}
+        {isMobile && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton
+              onClick={() => setSettingsDialogOpen(true)}
+              sx={{ ...touchFriendly.iconButton }}
+              disabled={isRunning}
+            >
+              <SettingsIcon />
+            </IconButton>
+            {isRunning && cctvList.length > 0 && (
+              <Badge badgeContent={cctvList.length} color="primary">
+                <IconButton
+                  onClick={() => setCctvDialogOpen(true)}
+                  sx={{ ...touchFriendly.iconButton }}
+                >
+                  <VideocamIcon />
+                </IconButton>
+              </Badge>
+            )}
+          </Box>
+        )}
       </Box>
 
-      {/* 데이터 선택 및 실시간 설정 */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ pb: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            데이터 선택 및 설정
-          </Typography>
-          
-          {/* 데이터 선택 */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-            <FormControl sx={{ flex: '1 1 200px', minWidth: 200 }} disabled={isRunning}>
-              <InputLabel>학습 이미지 폴더</InputLabel>
-              <Select
-                value={settings.learningImageFolder}
-                label="학습 이미지 폴더"
-                onChange={(e) => handleSettingChange('learningImageFolder', e.target.value)}
-                disabled={isRunning}
+      {/* 데이터 선택 및 실시간 설정 - Desktop only */}
+      {!isMobile && (
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{
+                flexGrow: 1,
+                fontSize: { xs: '1rem', sm: '1.25rem' },
+                fontWeight: 600
+              }}>
+                데이터 선택 및 설정
+              </Typography>
+              <IconButton
+                onClick={() => setSettingsExpanded(!settingsExpanded)}
+                sx={{ ...touchFriendly.iconButton }}
               >
-                {availableFolders.learning.map((folder) => (
-                  <MenuItem key={folder} value={folder}>
-                    {folder}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                <ExpandMoreIcon
+                  sx={{
+                    transform: settingsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s'
+                  }}
+                />
+              </IconButton>
+            </Box>
 
-            <FormControl sx={{ flex: '1 1 200px', minWidth: 200 }} disabled={isRunning}>
-              <InputLabel>ROI 파일</InputLabel>
-              <Select
-                value={settings.roiFile}
-                label="ROI 파일"
-                onChange={(e) => handleSettingChange('roiFile', e.target.value)}
-                disabled={isRunning}
-              >
-                {availableFolders.roi.map((file) => (
-                  <MenuItem key={file} value={file}>
-                    {file}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+            <Collapse in={settingsExpanded}>
+              {/* 데이터 선택 */}
+              <Box sx={{
+                display: 'grid',
+                gap: { xs: 2, sm: 3 },
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)'
+                },
+                mb: 3
+              }}>
+                <FormControl fullWidth size={isMobile ? "small" : "medium"} disabled={isRunning}>
+                  <InputLabel>학습 이미지 폴더</InputLabel>
+                  <Select
+                    value={settings.learningImageFolder}
+                    label="학습 이미지 폴더"
+                    onChange={(e) => handleSettingChange('learningImageFolder', e.target.value)}
+                    disabled={isRunning}
+                    sx={{ minHeight: { xs: 44, sm: 56 } }}
+                  >
+                    {availableFolders.learning.map((folder) => (
+                      <MenuItem key={folder} value={folder}>
+                        {folder}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-          {/* 실시간 설정 */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <TextField
-              label="Var Threshold"
-              type="number"
-              value={settings.varThreshold}
-              onChange={(e) => handleSettingChange('varThreshold', parseInt(e.target.value))}
-              sx={{ flex: '1 1 150px', minWidth: 150 }}
-              inputProps={{ min: 1, max: 1000 }}
-              disabled={isRunning}
-            />
-            <TextField
-              label="Learning Rate"
-              type="number"
-              value={settings.learningRate}
-              onChange={(e) => handleSettingChange('learningRate', parseFloat(e.target.value))}
-              sx={{ flex: '1 1 150px', minWidth: 150 }}
-              inputProps={{ step: 0.0001, min: 0.001, max: 1 }}
-              disabled={isRunning}
-            />
-            <TextField
-              label="Iterations"
-              type="number"
-              value={settings.iterations}
-              onChange={(e) => handleSettingChange('iterations', parseInt(e.target.value))}
-              sx={{ flex: '1 1 150px', minWidth: 150 }}
-              inputProps={{ min: 1, max: 10 }}
-              disabled={isRunning}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+                <FormControl fullWidth size={isMobile ? "small" : "medium"} disabled={isRunning}>
+                  <InputLabel>ROI 파일</InputLabel>
+                  <Select
+                    value={settings.roiFile}
+                    label="ROI 파일"
+                    onChange={(e) => handleSettingChange('roiFile', e.target.value)}
+                    disabled={isRunning}
+                    sx={{ minHeight: { xs: 44, sm: 56 } }}
+                  >
+                    {availableFolders.roi.map((file) => (
+                      <MenuItem key={file} value={file}>
+                        {file}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* 실시간 설정 */}
+              <Box sx={{
+                display: 'grid',
+                gap: { xs: 2, sm: 3 },
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)'
+                }
+              }}>
+                <TextField
+                  label="Var Threshold"
+                  type="number"
+                  value={settings.varThreshold}
+                  onChange={(e) => handleSettingChange('varThreshold', parseInt(e.target.value))}
+                  fullWidth
+                  size={isMobile ? "small" : "medium"}
+                  inputProps={{ min: 1, max: 1000 }}
+                  disabled={isRunning}
+                  sx={{ minHeight: { xs: 44, sm: 56 } }}
+                />
+                <TextField
+                  label="Learning Rate"
+                  type="number"
+                  value={settings.learningRate}
+                  onChange={(e) => handleSettingChange('learningRate', parseFloat(e.target.value))}
+                  fullWidth
+                  size={isMobile ? "small" : "medium"}
+                  inputProps={{ step: 0.0001, min: 0.001, max: 1 }}
+                  disabled={isRunning}
+                  sx={{ minHeight: { xs: 44, sm: 56 } }}
+                />
+                <TextField
+                  label="Iterations"
+                  type="number"
+                  value={settings.iterations}
+                  onChange={(e) => handleSettingChange('iterations', parseInt(e.target.value))}
+                  fullWidth
+                  size={isMobile ? "small" : "medium"}
+                  inputProps={{ min: 1, max: 10 }}
+                  disabled={isRunning}
+                  sx={{ minHeight: { xs: 44, sm: 56 } }}
+                />
+              </Box>
+            </Collapse>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 실시간 제어 */}
       <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ py: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 2, sm: 3 },
+            alignItems: { xs: 'stretch', sm: 'center' }
+          }}>
             {!isRunning ? (
               <Button
                 variant="contained"
                 startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
                 onClick={handleStartRealtime}
                 disabled={loading || !settings.learningImageFolder || !settings.roiFile}
+                fullWidth={isMobile}
+                sx={{
+                  ...touchFriendly.button,
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  py: { xs: 2, sm: 1.5 }
+                }}
               >
-                {loading ? '시작 중...' : '실시간 영상 보기'}
+                {loading ? '시작 중...' : isMobile ? '실시간 모니터링 시작' : '실시간 영상 보기'}
               </Button>
             ) : (
               <Button
@@ -392,13 +523,25 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                 color="error"
                 startIcon={<Stop />}
                 onClick={handleStopRealtime}
+                fullWidth={isMobile}
+                sx={{
+                  ...touchFriendly.button,
+                  fontSize: { xs: '1rem', sm: '1.125rem' },
+                  py: { xs: 2, sm: 1.5 }
+                }}
               >
-                실시간 영상 보기 중단
+                {isMobile ? '모니터링 중단' : '실시간 영상 보기 중단'}
               </Button>
             )}
             
             {isRunning && (
-              <>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 2, sm: 3 },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                width: { xs: '100%', sm: 'auto' }
+              }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -408,16 +551,45 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                     />
                   }
                   label="실시간 이미지 저장"
+                  sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    '& .MuiFormControlLabel-label': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }
+                  }}
                 />
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={16} />
-                  <Typography variant="body2" color="primary">
-                    실시간 모니터링 중... 
-                    {imageSavingEnabled ? ' (배치: 30초마다, 학습: 40초마다)' : ' (학습: 40초마다)'}
+
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  justifyContent: { xs: 'center', sm: 'flex-start' },
+                  p: { xs: 1, sm: 0 },
+                  borderRadius: { xs: 1, sm: 0 },
+                  bgcolor: { xs: 'primary.light', sm: 'transparent' },
+                  backgroundOpacity: { xs: 0.05, sm: 1 }
+                }}>
+                  <CircularProgress size={isMobile ? 20 : 16} />
+                  <Typography variant="body2" color="primary" sx={{
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    textAlign: { xs: 'center', sm: 'left' }
+                  }}>
+                    {isMobile
+                      ? '모니터링 중...'
+                      : `실시간 모니터링 중... ${imageSavingEnabled ? '(배치: 30초마다, 학습: 40초마다)' : '(학습: 40초마다)'}`
+                    }
                   </Typography>
                 </Box>
-              </>
+
+                {isMobile && (
+                  <Typography variant="caption" color="text.secondary" sx={{
+                    textAlign: 'center',
+                    fontSize: '0.75rem'
+                  }}>
+                    {imageSavingEnabled ? '배치 저장: 30초 | 학습: 40초' : '학습 주기: 40초'}
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
         </CardContent>
@@ -426,54 +598,104 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
       {/* 실시간 결과 */}
       {realtimeResults && cctvList.length > 0 && (
         <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              실시간 결과
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 3, minHeight: '400px' }}>
-              {/* 왼쪽: CCTV 목록 */}
-              <Box sx={{ flex: '0 0 300px', borderRight: '1px solid #e0e0e0', pr: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  CCTV 목록 ({cctvList.length}개)
-                </Typography>
-                <Box sx={{ maxHeight: '350px', overflowY: 'auto' }}>
-                  {cctvList.map((cctvId) => (
-                    <Box
-                      key={cctvId}
-                      sx={{
-                        p: 2,
-                        mb: 1,
-                        border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
-                        borderRadius: 1,
-                        backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
-                          borderColor: '#1976d2'
-                        }
-                      }}
-                      onClick={() => handleCctvSelect(cctvId)}
-                    >
-                      <Typography variant="subtitle2" fontWeight="medium">
-                        {cctvId}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        실시간 모니터링 중
-                      </Typography>
-                    </Box>
-                  ))}
+          <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2
+            }}>
+              <Typography variant="h6">
+                실시간 결과
+              </Typography>
+              {isMobile && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCctvDialogOpen(true)}
+                  startIcon={<ViewListIcon />}
+                  sx={{
+                    ...touchFriendly.button,
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  CCTV 선택
+                </Button>
+              )}
+            </Box>
+
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', lg: 'row' },
+              gap: { xs: 2, lg: 3 },
+              minHeight: { xs: 'auto', lg: '400px' }
+            }}>
+              {/* 데스크톱: CCTV 목록 */}
+              {!isMobile && (
+                <Box sx={{ flex: '0 0 300px', borderRight: '1px solid #e0e0e0', pr: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    CCTV 목록 ({cctvList.length}개)
+                  </Typography>
+                  <Box sx={{ maxHeight: '350px', overflowY: 'auto' }}>
+                    {cctvList.map((cctvId) => (
+                      <Box
+                        key={cctvId}
+                        sx={{
+                          p: 2,
+                          mb: 1,
+                          border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                          borderRadius: 1,
+                          backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
+                            borderColor: '#1976d2'
+                          }
+                        }}
+                        onClick={() => handleCctvSelect(cctvId)}
+                      >
+                        <Typography variant="subtitle2" fontWeight="medium">
+                          {cctvId}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          실시간 모니터링 중
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-              </Box>
-              
-              {/* 오른쪽: 선택된 CCTV 이미지 */}
-              <Box sx={{ flex: 1 }}>
+              )}
+
+              {/* 선택된 CCTV 이미지 */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 {selectedCctv ? (
                   <Box>
-                    <Typography variant="h5" gutterBottom color="primary">
-                      {selectedCctv}
-                    </Typography>
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: { xs: 2, sm: 3 },
+                      flexWrap: 'wrap',
+                      gap: 1
+                    }}>
+                      <Typography
+                        variant={isMobile ? "h6" : "h5"}
+                        color="primary"
+                        sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
+                      >
+                        {selectedCctv}
+                      </Typography>
+                      {isMobile && (
+                        <Chip
+                          label="실시간"
+                          color="success"
+                          variant="outlined"
+                          size="small"
+                          icon={<CircleIcon sx={{ fontSize: 12 }} />}
+                        />
+                      )}
+                    </Box>
                     
                     {loadingCctvImages ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
@@ -498,15 +720,24 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         </Button>
                       </Box>
                     ) : selectedCctvImages ? (
-                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Box sx={{
+                        display: 'grid',
+                        gap: { xs: 2, sm: 3 },
+                        gridTemplateColumns: {
+                          xs: '1fr',
+                          sm: 'repeat(auto-fit, minmax(300px, 1fr))'
+                        }
+                      }}>
                           {/* ROI 결과 이미지 */}
-                          <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                            <Typography variant="subtitle2" gutterBottom>
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom sx={{
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            }}>
                               ROI 결과
                             </Typography>
-                            <Box sx={{ 
-                              border: '1px solid #e0e0e0', 
-                              borderRadius: 1, 
+                            <Box sx={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: 1,
                               p: 1,
                               backgroundColor: '#fafafa',
                               position: 'relative',
@@ -524,7 +755,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                 style={{
                                   width: '100%',
                                   height: 'auto',
-                                  maxHeight: '250px',
+                                  maxHeight: isMobile ? '200px' : '250px',
                                   objectFit: 'contain',
                                   transition: 'opacity 0.2s'
                                 }}
@@ -535,29 +766,31 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                               />
-                              <ZoomInIcon 
-                                sx={{ 
-                                  position: 'absolute', 
-                                  top: 8, 
-                                  right: 8, 
-                                  color: 'white', 
-                                  backgroundColor: 'rgba(0,0,0,0.5)', 
-                                  borderRadius: '50%', 
-                                  padding: '4px',
-                                  fontSize: '20px'
-                                }} 
+                              <ZoomInIcon
+                                sx={{
+                                  position: 'absolute',
+                                  top: 8,
+                                  right: 8,
+                                  color: 'white',
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  borderRadius: '50%',
+                                  padding: { xs: '6px', sm: '4px' },
+                                  fontSize: { xs: '16px', sm: '20px' }
+                                }}
                               />
                             </Box>
                           </Box>
-                          
+
                           {/* Foreground 마스크 이미지 */}
-                          <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                            <Typography variant="subtitle2" gutterBottom>
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom sx={{
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            }}>
                               Foreground 마스크
                             </Typography>
-                            <Box sx={{ 
-                              border: '1px solid #e0e0e0', 
-                              borderRadius: 1, 
+                            <Box sx={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: 1,
                               p: 1,
                               backgroundColor: '#fafafa',
                               position: 'relative',
@@ -575,7 +808,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                 style={{
                                   width: '100%',
                                   height: 'auto',
-                                  maxHeight: '250px',
+                                  maxHeight: isMobile ? '200px' : '250px',
                                   objectFit: 'contain',
                                   transition: 'opacity 0.2s'
                                 }}
@@ -586,48 +819,68 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                               />
-                              <ZoomInIcon 
-                                sx={{ 
-                                  position: 'absolute', 
-                                  top: 8, 
-                                  right: 8, 
-                                  color: 'white', 
-                                  backgroundColor: 'rgba(0,0,0,0.5)', 
-                                  borderRadius: '50%', 
-                                  padding: '4px',
-                                  fontSize: '20px'
-                                }} 
+                              <ZoomInIcon
+                                sx={{
+                                  position: 'absolute',
+                                  top: 8,
+                                  right: 8,
+                                  color: 'white',
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  borderRadius: '50%',
+                                  padding: { xs: '6px', sm: '4px' },
+                                  fontSize: { xs: '16px', sm: '20px' }
+                                }}
                               />
                             </Box>
                           </Box>
                         </Box>
                     ) : (
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center', 
-                        height: '300px',
+                      <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: { xs: '200px', sm: '300px' },
                         border: '1px dashed #e0e0e0',
                         borderRadius: 1
                       }}>
-                        <Typography variant="body1" color="text.secondary">
-                          이미지를 선택하면 여기에 표시됩니다
+                        <Typography variant="body1" color="text.secondary" sx={{
+                          textAlign: 'center',
+                          px: 2,
+                          fontSize: { xs: '0.875rem', sm: '1rem' }
+                        }}>
+                          {isMobile ? '이미지 선택 후 표시' : '이미지를 선택하면 여기에 표시됩니다'}
                         </Typography>
                       </Box>
                     )}
                   </Box>
                 ) : (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    height: '350px',
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: { xs: '250px', sm: '350px' },
                     border: '1px dashed #e0e0e0',
-                    borderRadius: 1
+                    borderRadius: 1,
+                    gap: 2
                   }}>
-                    <Typography variant="body1" color="text.secondary">
-                      왼쪽에서 CCTV를 선택하세요
+                    <Typography variant="body1" color="text.secondary" sx={{
+                      textAlign: 'center',
+                      px: 2,
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }}>
+                      {isMobile ? 'CCTV를 선택하세요' : '왼쪽에서 CCTV를 선택하세요'}
                     </Typography>
+                    {isMobile && (
+                      <Button
+                        variant="outlined"
+                        onClick={() => setCctvDialogOpen(true)}
+                        startIcon={<ViewListIcon />}
+                        sx={{ ...touchFriendly.button }}
+                      >
+                        CCTV 목록 보기
+                      </Button>
+                    )}
                   </Box>
                 )}
               </Box>
@@ -635,6 +888,214 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
           </CardContent>
         </Card>
       )}
+
+      {/* 모바일 설정 다이얼로그 */}
+      <Dialog
+        open={settingsDialogOpen}
+        onClose={() => setSettingsDialogOpen(false)}
+        fullScreen={isMobile}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="h6">실시간 모니터링 설정</Typography>
+          <IconButton onClick={() => setSettingsDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {/* 파일 경로 설정 */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              파일 경로 설정
+            </Typography>
+            <Box sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: '1fr'
+            }}>
+              <FormControl fullWidth size="small" disabled={isRunning}>
+                <InputLabel>학습 이미지 폴더</InputLabel>
+                <Select
+                  value={settings.learningImageFolder}
+                  label="학습 이미지 폴더"
+                  onChange={(e) => handleSettingChange('learningImageFolder', e.target.value)}
+                  disabled={isRunning}
+                >
+                  {availableFolders.learning.map((folder) => (
+                    <MenuItem key={folder} value={folder}>
+                      {folder}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth size="small" disabled={isRunning}>
+                <InputLabel>ROI 파일</InputLabel>
+                <Select
+                  value={settings.roiFile}
+                  label="ROI 파일"
+                  onChange={(e) => handleSettingChange('roiFile', e.target.value)}
+                  disabled={isRunning}
+                >
+                  {availableFolders.roi.map((file) => (
+                    <MenuItem key={file} value={file}>
+                      {file}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+
+          {/* 실시간 설정 */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              실시간 설정
+            </Typography>
+            <Box sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }
+            }}>
+              <TextField
+                label="Var Threshold"
+                type="number"
+                value={settings.varThreshold}
+                onChange={(e) => handleSettingChange('varThreshold', parseInt(e.target.value))}
+                fullWidth
+                size="small"
+                inputProps={{ min: 1, max: 1000 }}
+                disabled={isRunning}
+              />
+              <TextField
+                label="Learning Rate"
+                type="number"
+                value={settings.learningRate}
+                onChange={(e) => handleSettingChange('learningRate', parseFloat(e.target.value))}
+                fullWidth
+                size="small"
+                inputProps={{ step: 0.0001, min: 0.001, max: 1 }}
+                disabled={isRunning}
+              />
+              <TextField
+                label="Iterations"
+                type="number"
+                value={settings.iterations}
+                onChange={(e) => handleSettingChange('iterations', parseInt(e.target.value))}
+                fullWidth
+                size="small"
+                inputProps={{ min: 1, max: 10 }}
+                disabled={isRunning}
+                sx={{ gridColumn: { xs: '1', sm: 'span 2' } }}
+              />
+            </Box>
+          </Box>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={imageSavingEnabled}
+                onChange={(e) => setImageSavingEnabled(e.target.checked)}
+                disabled={isRunning}
+              />
+            }
+            label="실시간 이미지 저장"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setSettingsDialogOpen(false)}
+            variant="outlined"
+            fullWidth={isMobile}
+          >
+            닫기
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 모바일 CCTV 선택 다이얼로그 */}
+      <Dialog
+        open={cctvDialogOpen}
+        onClose={() => setCctvDialogOpen(false)}
+        fullScreen={isMobile}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="h6">CCTV 선택 ({cctvList.length}개)</Typography>
+          <IconButton onClick={() => setCctvDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 1 }}>
+          <Box sx={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            {cctvList.map((cctvId) => (
+              <Box
+                key={cctvId}
+                sx={{
+                  p: 2,
+                  m: 1,
+                  border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                  borderRadius: 2,
+                  backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
+                    borderColor: '#1976d2'
+                  },
+                  ...touchFriendly.button
+                }}
+                onClick={() => {
+                  handleCctvSelect(cctvId);
+                  setCctvDialogOpen(false);
+                }}
+              >
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      {cctvId}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      실시간 모니터링 중
+                    </Typography>
+                  </Box>
+                  {selectedCctv === cctvId && (
+                    <Chip
+                      label="선택됨"
+                      color="primary"
+                      size="small"
+                      variant="filled"
+                    />
+                  )}
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setCctvDialogOpen(false)}
+            variant="outlined"
+            fullWidth={isMobile}
+          >
+            닫기
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={!!error}
@@ -695,7 +1156,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
           )}
         </Box>
       </Modal>
-    </Box>
+    </Container>
   );
 };
 
