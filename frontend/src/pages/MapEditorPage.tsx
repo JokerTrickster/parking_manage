@@ -116,13 +116,6 @@ const MapEditorPage: React.FC = () => {
                 </Typography>
               </Alert>
 
-              <Button
-                variant="outlined"
-                disabled
-                sx={{ mt: 2 }}
-              >
-                파일 업로드 (준비 중)
-              </Button>
             </Box>
           </CardContent>
         </Card>
@@ -169,13 +162,6 @@ const MapEditorPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Button
-                variant="outlined"
-                disabled
-                sx={{ mt: 2 }}
-              >
-                오브젝트 추출 (준비 중)
-              </Button>
             </Box>
           </CardContent>
         </Card>
@@ -222,13 +208,6 @@ const MapEditorPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Button
-                variant="outlined"
-                disabled
-                sx={{ mt: 2 }}
-              >
-                속성 정의 도구 (준비 중)
-              </Button>
             </Box>
           </CardContent>
         </Card>
@@ -275,13 +254,6 @@ const MapEditorPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Button
-                variant="outlined"
-                disabled
-                sx={{ mt: 2 }}
-              >
-                관계 설정 도구 (준비 중)
-              </Button>
             </Box>
           </CardContent>
         </Card>
@@ -328,13 +300,6 @@ const MapEditorPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Button
-                variant="outlined"
-                disabled
-                sx={{ mt: 2 }}
-              >
-                맵 검증 (준비 중)
-              </Button>
             </Box>
           </CardContent>
         </Card>
