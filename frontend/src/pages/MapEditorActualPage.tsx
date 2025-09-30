@@ -137,8 +137,8 @@ const MapEditorActualPage: React.FC = () => {
       {/* Full Page iframe */}
       <Box sx={{
         width: '100%',
-        height: 'calc(100vh - 200px)',
-        minHeight: '600px',
+        height: 'calc(100vh - 150px)',
+        minHeight: '900px',
         border: '1px solid #ddd',
         borderRadius: 1,
         overflow: 'hidden'
