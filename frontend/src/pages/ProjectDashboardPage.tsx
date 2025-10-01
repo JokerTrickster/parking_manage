@@ -194,127 +194,73 @@ const ProjectDashboardPage: React.FC = () => {
       </Box>
 
       {/* Project Overview */}
-      <Paper elevation={3} sx={{ mt: 4, p: 4, background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3, color: 'primary.main' }}>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
           📊 프로젝트 개요
         </Typography>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 4 }}>
-          {/* 운영 상태 */}
-          <Card sx={{ p: 2, textAlign: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              🟢
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              운영 중
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              시스템 상태
-            </Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
+          <Card sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 1 }}>🟢</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>운영 중</Typography>
+            <Typography variant="body2" color="text.secondary">시스템 상태</Typography>
           </Card>
 
-          {/* 현재 날짜 */}
-          <Card sx={{ p: 2, textAlign: 'center', background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)', color: '#5d4037' }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-              📅
-            </Typography>
+          <Card sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 1 }}>📅</Typography>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
               {new Date().toLocaleDateString('ko-KR')}
             </Typography>
-            <Typography variant="body2">
-              오늘 날짜
-            </Typography>
+            <Typography variant="body2" color="text.secondary">오늘 날짜</Typography>
           </Card>
 
-          {/* 관리 기능 수 */}
-          <Card sx={{ p: 2, textAlign: 'center', background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', color: '#2e7d32' }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              5
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              관리 기능
-            </Typography>
-            <Typography variant="body2">
-              사용 가능
-            </Typography>
+          <Card sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 1 }}>5</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>관리 기능</Typography>
+            <Typography variant="body2" color="text.secondary">사용 가능</Typography>
           </Card>
 
-          {/* 실시간 모니터링 */}
-          <Card sx={{ p: 2, textAlign: 'center', background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', color: '#c2185b' }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              📈
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              실시간
-            </Typography>
-            <Typography variant="body2">
-              모니터링
-            </Typography>
+          <Card sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 1 }}>📈</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>실시간</Typography>
+            <Typography variant="body2" color="text.secondary">모니터링</Typography>
           </Card>
         </Box>
 
-        {/* 모니터링 링크 및 추가 정보 */}
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-          gap: 3
-        }}>
-          {/* 모니터링 대시보드 */}
-          <Card sx={{ p: 3, background: 'white', boxShadow: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
-                📊
-              </Avatar>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  모니터링 대시보드
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Grafana 실시간 모니터링
-                </Typography>
-              </Box>
-            </Box>
+        {/* 모니터링 및 프로젝트 정보 */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+          <Card sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              📊 모니터링 대시보드
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Grafana 실시간 모니터링
+            </Typography>
             <Button
               variant="contained"
               fullWidth
-              color="info"
               onClick={() => window.open('https://banpo-grafana.luxrobo.org/d/m0arCBf72/aaaea1b?orgId=1&from=now-12h&to=now&timezone=browser&var-job=$__all&var-instance=$__all&var-vision_job=$__all&var-vision_service=$__all&var-vision_node=$__all&var-vision_container=$__all&var-host=$__all&var-container=$__all&refresh=1m', '_blank')}
-              sx={{ mt: 2 }}
             >
               모니터링 접속
             </Button>
           </Card>
 
-          {/* 프로젝트 정보 */}
-          <Card sx={{ p: 3, background: 'white', boxShadow: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
-                ℹ️
-              </Avatar>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  프로젝트 정보
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  최근 업데이트: {new Date().toLocaleString('ko-KR')}
-                </Typography>
-              </Box>
-            </Box>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" paragraph>
-                🔧 마지막 배포: {new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('ko-KR')}
-              </Typography>
-              <Typography variant="body2" paragraph>
-                👥 활성 사용자: 3명
-              </Typography>
-              <Typography variant="body2">
-                📍 서버 위치: 한국 (Seoul)
-              </Typography>
-            </Box>
+          <Card sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              ℹ️ 프로젝트 정보
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              🔧 마지막 배포: {new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('ko-KR')}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              👥 활성 사용자: 3명
+            </Typography>
+            <Typography variant="body2">
+              📍 서버 위치: 한국 (Seoul)
+            </Typography>
           </Card>
         </Box>
-
-      </Paper>
+      </Box>
     </Container>
   );
 };
