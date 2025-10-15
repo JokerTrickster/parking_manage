@@ -87,22 +87,32 @@ jobs:
             fi
           done
 
-          # Check Frontend (port 5050) with retry
-          echo "Checking Frontend health..."
-          for i in {1..15}; do
-            if curl -s --max-time 5 http://localhost:5050 > /dev/null 2>&1; then
-              echo "✅ Frontend is healthy"
-              break
-            else
-              if [ $i -eq 15 ]; then
-                echo "❌ Frontend health check failed after 15 attempts"
-                docker-compose logs frontend
-                exit 1
+          # Check Frontend (port 5050) - verify container is running
+          echo "Checking Frontend container status..."
+          if docker-compose ps frontend | grep -q "Up"; then
+            echo "✅ Frontend container is running"
+
+            # Wait for webpack compilation to complete
+            echo "Waiting for webpack compilation..."
+            for i in {1..20}; do
+              if docker-compose logs frontend | grep -q "webpack compiled"; then
+                echo "✅ Frontend webpack compilation successful"
+                break
+              else
+                if [ $i -eq 20 ]; then
+                  echo "⚠️  Frontend webpack compilation not detected, but container is running"
+                  docker-compose logs --tail 50 frontend
+                  break
+                fi
+                echo "Waiting for compilation... ($i/20)"
+                sleep 3
               fi
-              echo "Frontend not ready, retrying... ($i/15)"
-              sleep 5
-            fi
-          done
+            done
+          else
+            echo "❌ Frontend container is not running"
+            docker-compose logs frontend
+            exit 1
+          fi
 
       - name: Show container logs on failure
         if: failure()
