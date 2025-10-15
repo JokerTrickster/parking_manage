@@ -4,12 +4,12 @@ services:
     container_name: parking_manage_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: luxrobo1!
-      MYSQL_DATABASE: parking_dev
-      MYSQL_USER: luxrobo
-      MYSQL_PASSWORD: luxrobo1!
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-luxrobo1!}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-parking_dev}
+      MYSQL_USER: ${MYSQL_USER:-luxrobo}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-luxrobo1!}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
@@ -23,18 +23,18 @@ services:
       dockerfile: docker/Dockerfile
     container_name: parking_manage_backend
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     volumes:
       - ./shared:/app/shared
       - ./data:/app/data
     environment:
       - PORT=8080
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_NAME=parking_dev
-      - DB_USER=luxrobo
-      - DB_PASSWORD=luxrobo1!
-      - UPLOAD_PATH=/app/shared
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-parking_dev}
+      - DB_USER=${DB_USER:-luxrobo}
+      - DB_PASSWORD=${DB_PASSWORD:-luxrobo1!}
+      - UPLOAD_PATH=${UPLOAD_PATH:-/app/shared}
     depends_on:
       - mysql
     restart: unless-stopped
@@ -47,13 +47,13 @@ services:
       dockerfile: Dockerfile
     container_name: parking_manage_frontend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./shared:/app/shared
       - ./frontend/src:/app/src
     environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-true}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-true}
     depends_on:
       - backend
     restart: unless-stopped

@@ -151,7 +151,7 @@ const MapEditorActualPage: React.FC = () => {
             border: 'none',
           }}
           title="맵 에디터"
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
         />
       </Box>
 

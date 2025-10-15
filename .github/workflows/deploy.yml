@@ -1,0 +1,107 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up environment variables
+        run: |
+          # Create .env file for production deployment
+          cat > .env << EOF
+          # Production Configuration
+          MYSQL_PORT=3307
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER=${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+
+          BACKEND_PORT=8081
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_NAME=${{ secrets.MYSQL_DATABASE }}
+          DB_USER=${{ secrets.MYSQL_USER }}
+          DB_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          UPLOAD_PATH=/app/shared
+
+          FRONTEND_PORT=3001
+          CHOKIDAR_USEPOLLING=true
+          WATCHPACK_POLLING=true
+          EOF
+
+      - name: Stop existing containers
+        run: |
+          docker-compose down || true
+        continue-on-error: true
+
+      - name: Clean up old images
+        run: |
+          docker image prune -f || true
+        continue-on-error: true
+
+      - name: Build and start containers
+        run: |
+          docker-compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+
+          # Check if containers are running
+          docker-compose ps
+
+      - name: Verify deployment
+        run: |
+          # Check MySQL
+          if docker-compose exec -T mysql mysqladmin ping -h localhost --silent; then
+            echo "✅ MySQL is healthy"
+          else
+            echo "❌ MySQL health check failed"
+            exit 1
+          fi
+
+          # Check Backend (port 8081)
+          if curl -f http://localhost:8081/health || curl -f http://localhost:8081/api/health; then
+            echo "✅ Backend is healthy"
+          else
+            echo "❌ Backend health check failed"
+            exit 1
+          fi
+
+          # Check Frontend (port 3001)
+          if curl -f http://localhost:3001; then
+            echo "✅ Frontend is healthy"
+          else
+            echo "❌ Frontend health check failed"
+            exit 1
+          fi
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          echo "=== MySQL Logs ==="
+          docker-compose logs mysql
+          echo "=== Backend Logs ==="
+          docker-compose logs backend
+          echo "=== Frontend Logs ==="
+          docker-compose logs frontend
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "Services are running on:"
+          echo "  - MySQL: localhost:3307"
+          echo "  - Backend: localhost:8081"
+          echo "  - Frontend: localhost:3001"
