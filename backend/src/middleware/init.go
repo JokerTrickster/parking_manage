@@ -17,8 +17,10 @@ func InitMiddleware(e *echo.Echo) error {
 
 	//cors 미들웨어 설정
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5050", "http://192.168.0.102:5050"},
+		AllowMethods:     []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowCredentials: true,
 	}))
 
 	// multipart 메시지 크기 제한 설정 (기본값: 32MB -> 2GB)
