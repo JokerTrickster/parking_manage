@@ -86,17 +86,17 @@ func LoadConfig() error {
 
 	Env = &Config{
 		// Server Configuration
-		Host:  getEnv("HOST", "192.168.0.84"),
-		Port:  getEnv("PORT", "8080"),
+		Host:  getEnv("HOST", "192.168.0.102"),
+		Port:  getEnv("PORT", "5000"),
 		Env:   getEnv("ENV", "local"),
 		Debug: getEnvAsBool("DEBUG", true),
 
 		// Database Configuration
 		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
+		DBPort:     getEnv("DB_PORT", "3307"),
 		DBName:     getEnv("DB_NAME", "parking_manage"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", ""),
+		DBUser:     getEnv("DB_USER", "luxrobo"),
+		DBPassword: getEnv("DB_PASSWORD", "luxrobo1!"),
 
 		// JWT Configuration
 		JWTSecret:      getEnv("JWT_SECRET", "your-secret-key"),
@@ -107,7 +107,7 @@ func LoadConfig() error {
 		MaxFileSize: getEnvAsInt64("MAX_FILE_SIZE", 10485760), // 10MB
 
 		// CORS Configuration
-		AllowedOrigins: getEnvAsSlice("ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		AllowedOrigins: getEnvAsSlice("ALLOWED_ORIGINS", []string{"http://localhost:5050"}),
 
 		// Logging Configuration
 		LogLevel: getEnv("LOG_LEVEL", "debug"),

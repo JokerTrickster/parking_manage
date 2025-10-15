@@ -8,9 +8,9 @@ export const API_CONFIG = {
   },
   // 프로덕션 환경 (도커)
   production: {
-    BASE_URL: 'http://localhost:5000',
-    UPLOAD_URL: 'http://localhost:5000/v0.1/parking',
-    SWAGGER_URL: 'http://localhost:5000/swagger/index.html'
+    BASE_URL: 'http://192.168.0.102:5000',
+    UPLOAD_URL: 'http://192.168.0.102:5000/v0.1/parking',
+    SWAGGER_URL: 'http://192.168.0.102:5000/swagger/index.html'
   }
 };
 
@@ -18,9 +18,9 @@ export const API_CONFIG = {
 const getCurrentConfig = () => {
   // 로컬 개발을 위해 localhost 사용
   return {
-    BASE_URL: 'http://localhost:5000',
-    UPLOAD_URL: 'http://localhost:5000/v0.1/parking',
-    SWAGGER_URL: 'http://localhost:5000/swagger/index.html'
+    BASE_URL: 'http://192.168.0.102:5000',
+    UPLOAD_URL: 'http://192.168.0.102:5000/v0.1/parking',
+    SWAGGER_URL: 'http://192.168.0.102:5000/swagger/index.html'
   };
 };
 
