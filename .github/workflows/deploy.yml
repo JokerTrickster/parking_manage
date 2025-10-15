@@ -26,7 +26,7 @@ jobs:
           MYSQL_USER=${{ secrets.MYSQL_USER }}
           MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
 
-          BACKEND_PORT=8081
+          BACKEND_PORT=5000
           DB_HOST=mysql
           DB_PORT=3306
           DB_NAME=${{ secrets.MYSQL_DATABASE }}
@@ -34,7 +34,7 @@ jobs:
           DB_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
           UPLOAD_PATH=/app/shared
 
-          FRONTEND_PORT=3001
+          FRONTEND_PORT=5050
           CHOKIDAR_USEPOLLING=true
           WATCHPACK_POLLING=true
           EOF
@@ -71,16 +71,16 @@ jobs:
             exit 1
           fi
 
-          # Check Backend (port 8081)
-          if curl -f http://localhost:8081/health || curl -f http://localhost:8081/api/health; then
+          # Check Backend (port 5000)
+          if curl -f http://localhost:5000/health || curl -f http://localhost:5000/api/health; then
             echo "✅ Backend is healthy"
           else
             echo "❌ Backend health check failed"
             exit 1
           fi
 
-          # Check Frontend (port 3001)
-          if curl -f http://localhost:3001; then
+          # Check Frontend (port 5050)
+          if curl -f http://localhost:5050; then
             echo "✅ Frontend is healthy"
           else
             echo "❌ Frontend health check failed"
@@ -103,5 +103,5 @@ jobs:
           echo "🎉 Deployment successful!"
           echo "Services are running on:"
           echo "  - MySQL: localhost:3307"
-          echo "  - Backend: localhost:8081"
-          echo "  - Frontend: localhost:3001"
+          echo "  - Backend: localhost:5000"
+          echo "  - Frontend: localhost:5050"
