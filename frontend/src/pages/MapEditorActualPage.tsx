@@ -144,7 +144,7 @@ const MapEditorActualPage: React.FC = () => {
         overflow: 'hidden'
       }}>
         <iframe
-          src="http://localhost:3000/editor?parkingLotId=1"
+          src="http://localhost:8081/editor?parkingLotId=1"
           style={{
             width: '100%',
             height: '100%',
