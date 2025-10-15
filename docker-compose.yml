@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile
     container_name: parking_manage_frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-5050}:5050"
     volumes:
       - ./shared:/app/shared
       - ./frontend/src:/app/src
