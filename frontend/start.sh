@@ -18,7 +18,7 @@ fi
 
 # 개발 서버 시작
 echo "🌐 개발 서버를 시작합니다..."
-echo "📍 접속 주소: http://localhost:3000"
+echo "📍 접속 주소: http://localhost:5050"
 echo "⏹️  중지하려면 Ctrl+C를 누르세요"
 echo ""
 
