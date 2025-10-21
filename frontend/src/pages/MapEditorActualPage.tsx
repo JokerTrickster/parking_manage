@@ -20,6 +20,9 @@ const MapEditorActualPage: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
 
+  // 환경변수에서 웹뷰 URL 가져오기 (없으면 localhost 사용)
+  const webviewBaseUrl = process.env.REACT_APP_WEBVIEW_URL || 'http://localhost:8081';
+
   const handleBack = () => {
     navigate(`/project/${projectId}/map-editor`);
   };
@@ -144,7 +147,7 @@ const MapEditorActualPage: React.FC = () => {
         overflow: 'hidden'
       }}>
         <iframe
-          src="http://localhost:8081/editor?parkingLotId=1"
+          src={`${webviewBaseUrl}/editor?parkingLotId=1`}
           style={{
             width: '100%',
             height: '100%',

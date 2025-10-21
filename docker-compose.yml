@@ -55,6 +55,7 @@ services:
       - HOST=0.0.0.0
       - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-true}
       - WATCHPACK_POLLING=${WATCHPACK_POLLING:-true}
+      - REACT_APP_WEBVIEW_URL=${REACT_APP_WEBVIEW_URL:-http://localhost:8081}
     depends_on:
       - backend
     restart: unless-stopped
