@@ -1,6 +1,7 @@
 package features
 
 import (
+	filestorageHandler "main/features/filestorage/handler"
 	parkingHandler "main/features/parking/handler"
 	roiHandler "main/features/roi/handler"
 	"net/http"
@@ -16,6 +17,7 @@ func InitHandler(e *echo.Echo) error {
 
 	parkingHandler.NewParkingHandler(e)
 	roiHandler.NewRoiHandler(e)
+	filestorageHandler.InitFileStorageHandlers(e)
 
 	return nil
 }

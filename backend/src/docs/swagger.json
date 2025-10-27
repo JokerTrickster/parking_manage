@@ -4,6 +4,309 @@
         "contact": {}
     },
     "paths": {
+        "/v0.1/filestorage/{projectId}/map/auto-upload": {
+            "post": {
+                "description": "Asynchronously uploads map JSON file when user exports from map editor. Returns immediately (fire-and-forget).",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File Storage"
+                ],
+                "summary": "Auto-upload map JSON from map editor",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID (e.g., banpo, osong)",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Map JSON file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Upload initiated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/filestorage/{projectId}/{category}/download/{filename}": {
+            "get": {
+                "description": "Downloads the specified file with streaming support",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "File Storage"
+                ],
+                "summary": "Download a file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filename to download",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File content",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "File not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/filestorage/{projectId}/{category}/latest": {
+            "get": {
+                "description": "Downloads the most recent version of a versioned file (map/cad/roi only)",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "File Storage"
+                ],
+                "summary": "Download latest version of a file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (map, cad, or roi)",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Original filename without version",
+                        "name": "original_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File content",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "File not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/filestorage/{projectId}/{category}/list": {
+            "get": {
+                "description": "Returns list of files with metadata. Supports pagination and CCTV ID filtering for learning/test categories.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File Storage"
+                ],
+                "summary": "List files in a category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (map, cad, roi, learning, test)",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by CCTV ID (for learning/test only)",
+                        "name": "cctv_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File list retrieved",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResFileList"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/v0.1/filestorage/{projectId}/{category}/upload": {
+            "post": {
+                "description": "Upload files to specified category. Map/CAD/ROI files are automatically versioned with timestamp suffix.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File Storage"
+                ],
+                "summary": "Upload files with optional versioning",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID (e.g., banpo, osong)",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (map, cad, roi, learning, test)",
+                        "name": "category",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Files to upload (single or multiple)",
+                        "name": "files",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Upload successful",
+                        "schema": {
+                            "$ref": "#/definitions/main_features_filestorage_model_response.ResUpload"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/v0.1/parking/{projectId}/history": {
             "get": {
                 "description": "Gets the learning history for a project",
@@ -1229,7 +1532,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ResUpload"
+                            "$ref": "#/definitions/main_features_roi_model_response.ResUpload"
                         }
                     },
                     "400": {
@@ -1419,6 +1722,89 @@
         }
     },
     "definitions": {
+        "entity.FileInfo": {
+            "type": "object",
+            "properties": {
+                "cctv_id": {
+                    "description": "CCTV ID for learning/test images (optional)",
+                    "type": "string"
+                },
+                "file_type": {
+                    "description": "MIME type",
+                    "type": "string"
+                },
+                "filename": {
+                    "description": "Actual filename on disk (may be versioned)",
+                    "type": "string"
+                },
+                "original_name": {
+                    "description": "Original filename without version",
+                    "type": "string"
+                },
+                "path": {
+                    "description": "Full path on filesystem",
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "description": "File size in bytes",
+                    "type": "integer"
+                },
+                "upload_date": {
+                    "description": "When file was uploaded",
+                    "type": "string"
+                },
+                "version": {
+                    "description": "Version timestamp (empty for non-versioned)",
+                    "type": "string"
+                }
+            }
+        },
+        "main_features_filestorage_model_response.ResUpload": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "description": "Error messages for failed files",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_files": {
+                    "type": "integer"
+                },
+                "uploaded_files": {
+                    "description": "List of successfully uploaded files",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.FileInfo"
+                    }
+                },
+                "version": {
+                    "description": "Version timestamp for versioned files",
+                    "type": "string"
+                }
+            }
+        },
+        "main_features_roi_model_response.ResUpload": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "integer"
+                },
+                "total_files": {
+                    "type": "integer"
+                }
+            }
+        },
         "request.CreateRoiRequest": {
             "type": "object",
             "properties": {
@@ -1674,6 +2060,20 @@
                 }
             }
         },
+        "response.Pagination": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
         "response.ResCctvImage": {
             "type": "object",
             "properties": {
@@ -1738,6 +2138,23 @@
                     "items": {
                         "$ref": "#/definitions/response.CctvRoiInfo"
                     }
+                }
+            }
+        },
+        "response.ResFileList": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.FileInfo"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/response.Pagination"
+                },
+                "total_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -1976,20 +2393,6 @@
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "response.ResUpload": {
-            "type": "object",
-            "properties": {
-                "failed": {
-                    "type": "integer"
-                },
-                "success": {
-                    "type": "integer"
-                },
-                "total_files": {
-                    "type": "integer"
                 }
             }
         },

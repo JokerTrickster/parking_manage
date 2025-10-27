@@ -3,6 +3,7 @@ package handler
 import (
 	"main/common"
 	_interface "main/features/roi/model/interface"
+	_ "main/features/roi/model/response" // imported for Swagger
 	"mime/multipart"
 	"net/http"
 

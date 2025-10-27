@@ -1,4 +1,62 @@
 definitions:
+  entity.FileInfo:
+    properties:
+      cctv_id:
+        description: CCTV ID for learning/test images (optional)
+        type: string
+      file_type:
+        description: MIME type
+        type: string
+      filename:
+        description: Actual filename on disk (may be versioned)
+        type: string
+      original_name:
+        description: Original filename without version
+        type: string
+      path:
+        description: Full path on filesystem
+        type: string
+      size_bytes:
+        description: File size in bytes
+        type: integer
+      upload_date:
+        description: When file was uploaded
+        type: string
+      version:
+        description: Version timestamp (empty for non-versioned)
+        type: string
+    type: object
+  main_features_filestorage_model_response.ResUpload:
+    properties:
+      errors:
+        description: Error messages for failed files
+        items:
+          type: string
+        type: array
+      failed_count:
+        type: integer
+      success_count:
+        type: integer
+      total_files:
+        type: integer
+      uploaded_files:
+        description: List of successfully uploaded files
+        items:
+          $ref: '#/definitions/entity.FileInfo'
+        type: array
+      version:
+        description: Version timestamp for versioned files
+        type: string
+    type: object
+  main_features_roi_model_response.ResUpload:
+    properties:
+      failed:
+        type: integer
+      success:
+        type: integer
+      total_files:
+        type: integer
+    type: object
   request.CreateRoiRequest:
     properties:
       cctv_id:
@@ -164,6 +222,15 @@ definitions:
       timestamp:
         type: string
     type: object
+  response.Pagination:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
   response.ResCctvImage:
     properties:
       cctv_id:
@@ -206,6 +273,17 @@ definitions:
         items:
           $ref: '#/definitions/response.CctvRoiInfo'
         type: array
+    type: object
+  response.ResFileList:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/entity.FileInfo'
+        type: array
+      pagination:
+        $ref: '#/definitions/response.Pagination'
+      total_count:
+        type: integer
     type: object
   response.ResGetImageRoi:
     properties:
@@ -360,15 +438,6 @@ definitions:
       success:
         type: boolean
     type: object
-  response.ResUpload:
-    properties:
-      failed:
-        type: integer
-      success:
-        type: integer
-      total_files:
-        type: integer
-    type: object
   response.SaveLabelData:
     properties:
       has_vehicle:
@@ -379,6 +448,217 @@ definitions:
 info:
   contact: {}
 paths:
+  /v0.1/filestorage/{projectId}/{category}/download/{filename}:
+    get:
+      description: Downloads the specified file with streaming support
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Category
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Filename to download
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: File not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Download a file
+      tags:
+      - File Storage
+  /v0.1/filestorage/{projectId}/{category}/latest:
+    get:
+      description: Downloads the most recent version of a versioned file (map/cad/roi
+        only)
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Category (map, cad, or roi)
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Original filename without version
+        in: query
+        name: original_name
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: File content
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: File not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Download latest version of a file
+      tags:
+      - File Storage
+  /v0.1/filestorage/{projectId}/{category}/list:
+    get:
+      description: Returns list of files with metadata. Supports pagination and CCTV
+        ID filtering for learning/test categories.
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Category (map, cad, roi, learning, test)
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Filter by CCTV ID (for learning/test only)
+        in: query
+        name: cctv_id
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 100)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File list retrieved
+          schema:
+            $ref: '#/definitions/response.ResFileList'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List files in a category
+      tags:
+      - File Storage
+  /v0.1/filestorage/{projectId}/{category}/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload files to specified category. Map/CAD/ROI files are automatically
+        versioned with timestamp suffix.
+      parameters:
+      - description: Project ID (e.g., banpo, osong)
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Category (map, cad, roi, learning, test)
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Files to upload (single or multiple)
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Upload successful
+          schema:
+            $ref: '#/definitions/main_features_filestorage_model_response.ResUpload'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Upload files with optional versioning
+      tags:
+      - File Storage
+  /v0.1/filestorage/{projectId}/map/auto-upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Asynchronously uploads map JSON file when user exports from map
+        editor. Returns immediately (fire-and-forget).
+      parameters:
+      - description: Project ID (e.g., banpo, osong)
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: Map JSON file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Upload initiated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Auto-upload map JSON from map editor
+      tags:
+      - File Storage
   /v0.1/parking/{projectId}/{cctvId}/images/{imageType}:
     get:
       consumes:
@@ -1412,7 +1692,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.ResUpload'
+            $ref: '#/definitions/main_features_roi_model_response.ResUpload'
         "400":
           description: Bad Request
           schema:
