@@ -3,7 +3,6 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,22 +16,19 @@ var GormMysqlDB *gorm.DB
 
 const DBTimeOut = 8 * time.Second
 
-func InitMySQL() error {
-	var connectionString string
+func InitMySQL(dbUser, dbPass, dbHost, dbPort, dbName string) error {
 	var err error
-	isLocal := os.Getenv("IS_LOCAL")
-	if isLocal == "true" {
-		// MySQL 연결 문자열
-		connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-			os.Getenv("MYSQL_USER"),
-			os.Getenv("MYSQL_PASSWORD"),
-			os.Getenv("MYSQL_HOST"),
-			os.Getenv("MYSQL_PORT"),
-			os.Getenv("MYSQL_DATABASE"),
-		)
-	}
-	fmt.Println(connectionString)
-	connectionString = "luxrobo:luxrobo1!@tcp(localhost:3306)/parking_dev?parseTime=true"
+
+	// Build connection string from parameters
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+		dbUser,
+		dbPass,
+		dbHost,
+		dbPort,
+		dbName,
+	)
+
+	fmt.Printf("MySQL connection string: %s:***@tcp(%s:%s)/%s\n", dbUser, dbHost, dbPort, dbName)
 
 	// MySQL에 연결
 	MysqlDB, err := sql.Open("mysql", connectionString)

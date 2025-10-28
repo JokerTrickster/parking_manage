@@ -16,7 +16,7 @@ func InitServer() error {
 		return err
 	}
 
-	if err := mysql.InitMySQL(); err != nil {
+	if err := mysql.InitMySQL(Env.DBUser, Env.DBPassword, Env.DBHost, Env.DBPort, Env.DBName); err != nil {
 		fmt.Sprintf("db 초기화 에러 : %s", err.Error())
 		return err
 	}

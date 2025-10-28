@@ -18,9 +18,9 @@ export const API_CONFIG = {
 const getCurrentConfig = () => {
   // 로컬 개발을 위해 localhost 사용
   return {
-    BASE_URL: 'http://192.168.0.102:5000',
-    UPLOAD_URL: 'http://192.168.0.102:5000/v0.1/parking',
-    SWAGGER_URL: 'http://192.168.0.102:5000/swagger/index.html'
+    BASE_URL: 'http://localhost:5000',
+    UPLOAD_URL: 'http://localhost:5000/v0.1/parking',
+    SWAGGER_URL: 'http://localhost:5000/swagger/index.html'
   };
 };
 
@@ -75,7 +75,48 @@ export const API_ENDPOINTS = {
   READ_ROI: (projectId: string) => `/v0.1/roi/${projectId}/read`,
   UPDATE_ROI: (projectId: string) => `/v0.1/roi/${projectId}/update`,
   DELETE_ROI: (projectId: string) => `/v0.1/roi/${projectId}/delete`,
-  
+
+  // File Storage API v0.1
+  FILE_STORAGE: {
+    // Auto-upload for map editor (fire-and-forget, returns 202 Accepted)
+    AUTO_UPLOAD_MAP: (projectId: string) =>
+      `/v0.1/filestorage/${projectId}/map/auto-upload`,
+
+    // Upload files to specific category
+    UPLOAD: (projectId: string, category: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/upload`,
+
+    // List files with pagination and filters
+    LIST: (projectId: string, category: string, params?: {
+      page?: number;
+      pageSize?: number;
+      cctvId?: string;
+    }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.pageSize) queryParams.append('page_size', params.pageSize.toString());
+      if (params?.cctvId) queryParams.append('cctv_id', params.cctvId);
+      const query = queryParams.toString();
+      return `/v0.1/filestorage/${projectId}/${category}/list${query ? '?' + query : ''}`;
+    },
+
+    // List folder structure (learning/test only)
+    LIST_FOLDERS: (projectId: string, category: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/folders`,
+
+    // Download specific file by filename
+    DOWNLOAD: (projectId: string, category: string, filename: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/download/${filename}`,
+
+    // Download latest version of a file
+    DOWNLOAD_LATEST: (projectId: string, category: string, originalName: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/latest?original_name=${encodeURIComponent(originalName)}`,
+
+    // Delete file
+    DELETE: (projectId: string, category: string, filename: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/delete/${filename}`,
+  },
+
   // Swagger
   SWAGGER: '/swagger/index.html'
 };
