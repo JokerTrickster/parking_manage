@@ -43,6 +43,10 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 	e.GET("/v0.1/filestorage/:projectId/:category/download/:filename", handler.Download)
 	e.GET("/v0.1/filestorage/:projectId/:category/latest", handler.DownloadLatest)
 
+	// Folder structure endpoints (learning/test only)
+	e.GET("/v0.1/filestorage/:projectId/learning/folders", handler.ListFolders)
+	e.GET("/v0.1/filestorage/:projectId/test/folders", handler.ListFolders)
+
 	return handler
 }
 
@@ -336,6 +340,65 @@ func (h *FileStorageHandler) DownloadLatest(c echo.Context) error {
 
 	// Stream file
 	return c.Stream(http.StatusOK, fileInfo.FileType, fileReader)
+}
+
+// ListFolders handles folder structure listing requests (learning/test only)
+// @Router /v0.1/filestorage/{projectId}/{category}/folders [get]
+// @Summary List folder structure
+// @Description Returns folder tree structure for learning/test categories
+// @Tags File Storage
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param category path string true "Category (learning or test)"
+// @Success 200 {object} map[string]interface{} "Folder structure"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+func (h *FileStorageHandler) ListFolders(c echo.Context) error {
+	ctx, _, _ := common.CtxGenerate(c)
+
+	// Get parameters
+	projectID := c.Param("projectId")
+	if projectID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "projectId is required",
+		})
+	}
+
+	// Extract category from path
+	category := extractCategoryFromPath(c.Path())
+	if category == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "category is required",
+		})
+	}
+
+	// Validate category (only learning/test supported)
+	if category != "learning" && category != "test" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "folder listing only supported for learning/test categories",
+		})
+	}
+
+	// Get current path from query parameter (for nested folders)
+	currentPath := c.QueryParam("path")
+
+	// Get folder structure
+	folders, err := h.UseCase.ListFolders(ctx, projectID, category, currentPath)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"message": "failed to list folders: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "folders retrieved successfully",
+		"data":    folders,
+	})
 }
 
 // extractCategoryFromPath extracts category from URL path

@@ -17,6 +17,10 @@ type IFileStorageUseCase interface {
 	// ListFiles returns file list with metadata
 	ListFiles(ctx context.Context, req request.FileQueryRequest) (response.ResFileList, error)
 
+	// ListFolders returns folder structure for learning/test categories
+	// Optional currentPath parameter for nested folder navigation
+	ListFolders(ctx context.Context, projectID, category string, currentPath ...string) (interface{}, error)
+
 	// DownloadFile retrieves file for download
 	DownloadFile(ctx context.Context, projectID, category, filename string) (io.ReadCloser, entity.FileInfo, error)
 

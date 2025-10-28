@@ -4,6 +4,7 @@ import (
 	"io"
 	"mime/multipart"
 
+	"main/common/db/mysql"
 	"main/features/filestorage/model/entity"
 )
 
@@ -11,6 +12,9 @@ import (
 type IFileStorageRepository interface {
 	// SaveFile saves a file to the filesystem
 	SaveFile(projectID, category, filename string, file multipart.File) error
+
+	// SaveFileHistory saves file upload history to database
+	SaveFileHistory(history *mysql.FileStorageHistory) error
 
 	// ListFiles returns all files for a project category with optional filters
 	ListFiles(projectID, category string, filters map[string]string) ([]entity.FileInfo, error)

@@ -9,14 +9,21 @@ import (
 	"strings"
 
 	"main/common"
+	"main/common/db/mysql"
 	"main/features/filestorage/model/entity"
 	"main/features/filestorage/util"
+
+	"gorm.io/gorm"
 )
 
-type FileStorageRepository struct{}
+type FileStorageRepository struct {
+	DB *gorm.DB
+}
 
-func NewFileStorageRepository() *FileStorageRepository {
-	return &FileStorageRepository{}
+func NewFileStorageRepository(db *gorm.DB) *FileStorageRepository {
+	return &FileStorageRepository{
+		DB: db,
+	}
 }
 
 // SaveFile saves a file to the filesystem
@@ -25,13 +32,14 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 	basePath := common.Env.UploadPath
 	categoryPath := filepath.Join(basePath, projectID, category)
 
-	// Create directory if not exists
-	if err := os.MkdirAll(categoryPath, 0755); err != nil {
+	// Full file path (filename may include subdirectories)
+	filePath := filepath.Join(categoryPath, filename)
+
+	// Extract directory from full file path and create all necessary directories
+	fileDir := filepath.Dir(filePath)
+	if err := os.MkdirAll(fileDir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
-
-	// Full file path
-	filePath := filepath.Join(categoryPath, filename)
 
 	// Create file
 	dst, err := os.Create(filePath)
@@ -45,6 +53,24 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
+	return nil
+}
+
+// SaveFileHistory saves file upload history to database
+func (r *FileStorageRepository) SaveFileHistory(history *mysql.FileStorageHistory) error {
+	if r.DB == nil {
+		// DB not initialized, skip saving to database
+		fmt.Println("Warning: DB is nil, skipping file history save")
+		return nil
+	}
+
+	fmt.Printf("Saving file history to DB: %+v\n", history)
+	result := r.DB.Create(history)
+	if result.Error != nil {
+		return fmt.Errorf("failed to save file history: %w", result.Error)
+	}
+
+	fmt.Println("Successfully saved file history to DB")
 	return nil
 }
 
