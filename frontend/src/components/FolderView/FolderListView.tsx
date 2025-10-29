@@ -5,7 +5,7 @@
  * Used for learning/test categories
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardActionArea,
@@ -17,14 +17,19 @@ import {
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
 import { FolderNode } from '../../models/FileStorage';
 import { FileStorageService } from '../../services/FileStorageService';
+import { ImagePreviewDialog } from './ImagePreviewDialog';
 
 interface FolderListViewProps {
   folders: FolderNode[];
   onFolderClick: (folder: FolderNode) => void;
   selectedFolder?: FolderNode | null;
+  projectId: string;
+  category: string;
+  onDownload?: (filename: string) => void;
 }
 
 /**
@@ -40,7 +45,43 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
   folders,
   onFolderClick,
   selectedFolder,
+  projectId,
+  category,
+  onDownload,
 }) => {
+  const [previewImage, setPreviewImage] = useState<FolderNode | null>(null);
+
+  // Check if file is an image
+  const isImageFile = (filename: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+    const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+    return imageExtensions.includes(ext);
+  };
+
+  // Handle item click
+  const handleItemClick = (item: FolderNode) => {
+    if (item.isFolder) {
+      // Navigate into folder
+      onFolderClick(item);
+    } else if (isImageFile(item.name)) {
+      // Open image preview
+      setPreviewImage(item);
+    } else {
+      // For non-image files, just call the folder click handler
+      onFolderClick(item);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
+  };
+
+  const handleDownloadFromPreview = (filename: string) => {
+    if (onDownload) {
+      onDownload(filename);
+    }
+  };
+
   // Empty state
   if (!folders || folders.length === 0) {
     return (
@@ -73,7 +114,8 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
       >
         {folders.map((item) => {
           const isSelected = selectedFolder?.path === item.path;
-          const Icon = item.isFolder ? FolderIcon : FileIcon;
+          const isImage = !item.isFolder && isImageFile(item.name);
+          const Icon = item.isFolder ? FolderIcon : isImage ? ImageIcon : FileIcon;
 
           return (
             <Card
@@ -88,13 +130,19 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
                 },
               }}
             >
-              <CardActionArea onClick={() => onFolderClick(item)}>
+              <CardActionArea onClick={() => handleItemClick(item)}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <Icon
                       sx={{
                         fontSize: 40,
-                        color: isSelected ? 'primary.main' : item.isFolder ? 'action.active' : 'info.main',
+                        color: isSelected
+                          ? 'primary.main'
+                          : item.isFolder
+                          ? 'action.active'
+                          : isImage
+                          ? 'success.main'
+                          : 'info.main',
                         mr: 1,
                       }}
                     />
@@ -129,6 +177,14 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
                         variant={isSelected ? 'filled' : 'outlined'}
                       />
                     )}
+                    {!item.isFolder && isImage && (
+                      <Chip
+                        label="이미지"
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    )}
                     {!item.isFolder && item.uploadDate && (
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, width: '100%' }}>
                         {FileStorageService.formatDate(item.uploadDate)}
@@ -141,6 +197,17 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
           );
         })}
       </Box>
+
+      {/* Image Preview Dialog */}
+      <ImagePreviewDialog
+        open={!!previewImage}
+        imageFile={previewImage}
+        projectId={projectId}
+        category={category}
+        allFiles={folders}
+        onClose={handleClosePreview}
+        onDownload={handleDownloadFromPreview}
+      />
     </Box>
   );
 };

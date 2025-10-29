@@ -224,6 +224,9 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 folders={state.folders}
                 onFolderClick={handleFolderClick}
                 selectedFolder={state.selectedFolder}
+                projectId={currentProjectId || ''}
+                category={state.currentCategory}
+                onDownload={handleDownload}
               />
             </Box>
           )}
