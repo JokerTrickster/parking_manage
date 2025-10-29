@@ -87,7 +87,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
   }, [state.currentCategory]);
 
   // Handlers
-  const handleCategoryChange = (event: React.SyntheticEvent, newValue: FileCategory) => {
+  const handleCategoryChange = (_event: React.SyntheticEvent, newValue: FileCategory) => {
     viewModel.setCategory(newValue);
   };
 
@@ -101,6 +101,11 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
 
   const handleDownloadLatest = (originalName: string) => {
     viewModel.downloadLatest(originalName);
+  };
+
+  // Wrapper for folder view - uses filename as both path and original name
+  const handleFolderDownload = (filename: string) => {
+    viewModel.downloadFile(filename, filename);
   };
 
   const handlePageChange = (page: number) => {
@@ -226,7 +231,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 selectedFolder={state.selectedFolder}
                 projectId={currentProjectId || ''}
                 category={state.currentCategory}
-                onDownload={handleDownload}
+                onDownload={handleFolderDownload}
               />
             </Box>
           )}
