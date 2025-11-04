@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -40,8 +41,11 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 	e.GET("/v0.1/filestorage/:projectId/test/list", handler.List)
 
 	// Download endpoints
-	e.GET("/v0.1/filestorage/:projectId/:category/download/:filename", handler.Download)
+	e.GET("/v0.1/filestorage/:projectId/:category/download/*", handler.Download)
 	e.GET("/v0.1/filestorage/:projectId/:category/latest", handler.DownloadLatest)
+
+	// Delete endpoint
+	e.DELETE("/v0.1/filestorage/:projectId/:category/delete/*", handler.Delete)
 
 	// Folder structure endpoints (learning/test only)
 	e.GET("/v0.1/filestorage/:projectId/learning/folders", handler.ListFolders)
@@ -217,12 +221,12 @@ func (h *FileStorageHandler) List(c echo.Context) error {
 // Download handles file download requests
 // @Router /v0.1/filestorage/{projectId}/{category}/download/{filename} [get]
 // @Summary Download a file
-// @Description Downloads the specified file with streaming support
+// @Description Downloads the specified file with streaming support. Supports nested folder paths.
 // @Tags File Storage
 // @Produce application/octet-stream
 // @Param projectId path string true "Project ID"
 // @Param category path string true "Category"
-// @Param filename path string true "Filename to download"
+// @Param filename path string true "Filename to download (can include folder path, e.g., folder1/image.jpg)"
 // @Success 200 {file} binary "File content"
 // @Failure 400 {object} map[string]interface{} "Bad request"
 // @Failure 404 {object} map[string]interface{} "File not found"
@@ -233,7 +237,16 @@ func (h *FileStorageHandler) Download(c echo.Context) error {
 	// Get parameters
 	projectID := c.Param("projectId")
 	category := c.Param("category")
-	filename := c.Param("filename")
+
+	// Extract filename from wildcard parameter (supports nested paths like "folder1/image.jpg")
+	filename := c.Param("*")
+
+	// URL decode the filename (handles spaces and special characters)
+	decodedFilename, decodeErr := url.QueryUnescape(filename)
+	if decodeErr != nil {
+		decodedFilename = filename // fallback to original if decode fails
+	}
+	filename = decodedFilename
 
 	if projectID == "" || category == "" || filename == "" {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -398,6 +411,67 @@ func (h *FileStorageHandler) ListFolders(c echo.Context) error {
 		"success": true,
 		"message": "folders retrieved successfully",
 		"data":    folders,
+	})
+}
+
+// Delete handles file deletion requests
+// @Router /v0.1/filestorage/{projectId}/{category}/delete/{filename} [delete]
+// @Summary Delete a file
+// @Description Deletes the specified file. Supports nested folder paths.
+// @Tags File Storage
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param category path string true "Category"
+// @Param filename path string true "Filename to delete (can include folder path, e.g., folder1/image.jpg)"
+// @Success 200 {object} map[string]interface{} "File deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 404 {object} map[string]interface{} "File not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+func (h *FileStorageHandler) Delete(c echo.Context) error {
+	ctx, _, _ := common.CtxGenerate(c)
+
+	// Get parameters
+	projectID := c.Param("projectId")
+	category := c.Param("category")
+
+	// Extract filename from wildcard parameter (supports nested paths like "folder1/image.jpg")
+	filename := c.Param("*")
+
+	// URL decode the filename (handles spaces and special characters)
+	decodedFilename, decodeErr := url.QueryUnescape(filename)
+	if decodeErr != nil {
+		decodedFilename = filename // fallback to original if decode fails
+	}
+	filename = decodedFilename
+
+	if projectID == "" || category == "" || filename == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "projectId, category, and filename are required",
+		})
+	}
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("invalid category: %s", category),
+		})
+	}
+
+	// Delete file
+	err := h.UseCase.DeleteFile(ctx, projectID, category, filename)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"message": "failed to delete file: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "file deleted successfully",
 	})
 }
 

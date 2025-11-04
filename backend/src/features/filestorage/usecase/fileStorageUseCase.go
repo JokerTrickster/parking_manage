@@ -403,3 +403,22 @@ func (u *FileStorageUseCase) GetLatestVersion(ctx context.Context, projectID, ca
 	// Return latest version filename
 	return matchingFiles[0].Filename, nil
 }
+
+// DeleteFile removes a file from storage
+func (u *FileStorageUseCase) DeleteFile(ctx context.Context, projectID, category, filename string) error {
+	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	defer cancel()
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return fmt.Errorf("invalid category: %s", category)
+	}
+
+	// Delete file using repository
+	if err := u.Repository.DeleteFile(projectID, category, filename); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return nil
+}

@@ -112,9 +112,14 @@ export const API_ENDPOINTS = {
     DOWNLOAD_LATEST: (projectId: string, category: string, originalName: string) =>
       `/v0.1/filestorage/${projectId}/${category}/latest?original_name=${encodeURIComponent(originalName)}`,
 
-    // Delete file
-    DELETE: (projectId: string, category: string, filename: string) =>
-      `/v0.1/filestorage/${projectId}/${category}/delete/${filename}`,
+    // Delete file (encode path segments individually to preserve slashes)
+    DELETE: (projectId: string, category: string, filename: string) => {
+      const encodedPath = filename
+        .split('/')
+        .map(segment => encodeURIComponent(segment))
+        .join('/');
+      return `/v0.1/filestorage/${projectId}/${category}/delete/${encodedPath}`;
+    },
   },
 
   // Swagger

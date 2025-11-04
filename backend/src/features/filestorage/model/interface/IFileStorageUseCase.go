@@ -26,4 +26,7 @@ type IFileStorageUseCase interface {
 
 	// GetLatestVersion returns the most recent version of a file
 	GetLatestVersion(ctx context.Context, projectID, category, originalName string) (string, error)
+
+	// DeleteFile removes a file from storage
+	DeleteFile(ctx context.Context, projectID, category, filename string) error
 }

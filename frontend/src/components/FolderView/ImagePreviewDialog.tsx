@@ -82,9 +82,12 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   }
 
   const currentFile = imageFiles[currentIndex] || imageFile;
-  const imageUrl = `${getBaseUrl()}/v0.1/filestorage/${projectId}/${category}/download/${encodeURIComponent(
-    currentFile.path
-  )}`;
+  // Encode only the path components individually to preserve slashes
+  const encodedPath = currentFile.path
+    .split('/')
+    .map(segment => encodeURIComponent(segment))
+    .join('/');
+  const imageUrl = `${getBaseUrl()}/v0.1/filestorage/${projectId}/${category}/download/${encodedPath}`;
 
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < imageFiles.length - 1;
