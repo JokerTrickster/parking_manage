@@ -5,7 +5,7 @@
  * Features: category tabs, file upload, file list, pagination
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -70,11 +70,14 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     uploadProgress: 0,
   });
 
-  // ViewModel
-  const viewModel = useMemo(
-    () => new FileRepositoryViewModel(projectId, state, setState),
-    [projectId, state]
-  );
+  // ViewModel - use ref to keep stable instance
+  const viewModelRef = useRef<FileRepositoryViewModel | null>(null);
+
+  if (!viewModelRef.current || viewModelRef.current.projectId !== projectId) {
+    viewModelRef.current = new FileRepositoryViewModel(projectId, state, setState);
+  }
+
+  const viewModel = viewModelRef.current;
 
   // Load files/folders on mount and category change
   useEffect(() => {

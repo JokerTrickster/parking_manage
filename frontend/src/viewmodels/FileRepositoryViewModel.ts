@@ -56,13 +56,6 @@ export class FileRepositoryViewModel {
     const targetCctvId = cctvId !== undefined ? cctvId : this.state.selectedCctvId;
 
     try {
-      console.log('[FileRepository] Loading files:', {
-        projectId: this.projectId,
-        category: targetCategory,
-        page: targetPage,
-        cctvId: targetCctvId,
-      });
-
       this.setState(prev => ({ ...prev, loading: true, error: null }));
 
       const response = await FileStorageService.listFiles(
@@ -85,11 +78,6 @@ export class FileRepositoryViewModel {
         },
         loading: false,
       }));
-
-      console.log('[FileRepository] Files loaded:', {
-        count: response.data.files.length,
-        totalCount: response.data.total_count,
-      });
     } catch (error) {
       console.error('[FileRepository] Load files failed:', error);
       this.setState(prev => ({
@@ -107,12 +95,6 @@ export class FileRepositoryViewModel {
    */
   async uploadFiles(files: File[]): Promise<void> {
     try {
-      console.log('[FileRepository] Uploading files:', {
-        projectId: this.projectId,
-        category: this.state.currentCategory,
-        fileCount: files.length,
-      });
-
       this.setState(prev => ({
         ...prev,
         loading: true,
@@ -130,10 +112,7 @@ export class FileRepositoryViewModel {
       );
 
       if (response.success) {
-        console.log('[FileRepository] Upload successful:', {
-          successCount: response.data.success_count,
-          failedCount: response.data.failed_count,
-        });
+        this.setState(prev => ({ ...prev, loading: false, uploadProgress: 0 }));
 
         // Reload current view after successful upload
         if (this.supportsFolderView) {
@@ -144,10 +123,9 @@ export class FileRepositoryViewModel {
           await this.loadFiles();
         }
       } else {
+        this.setState(prev => ({ ...prev, loading: false, uploadProgress: 0 }));
         throw new Error(response.message);
       }
-
-      this.setState(prev => ({ ...prev, loading: false, uploadProgress: 0 }));
     } catch (error) {
       console.error('[FileRepository] Upload failed:', error);
       this.setState(prev => ({
@@ -167,8 +145,6 @@ export class FileRepositoryViewModel {
    */
   async downloadFile(filename: string, originalName: string): Promise<void> {
     try {
-      console.log('[FileRepository] Downloading file:', { filename, originalName });
-
       const blob = await FileStorageService.downloadFile(
         this.projectId,
         this.state.currentCategory,
@@ -176,7 +152,6 @@ export class FileRepositoryViewModel {
       );
 
       FileStorageService.triggerBrowserDownload(blob, originalName);
-      console.log('[FileRepository] Download completed');
     } catch (error) {
       console.error('[FileRepository] Download failed:', error);
       this.setState(prev => ({
@@ -193,8 +168,6 @@ export class FileRepositoryViewModel {
    */
   async downloadLatest(originalName: string): Promise<void> {
     try {
-      console.log('[FileRepository] Downloading latest version:', { originalName });
-
       const blob = await FileStorageService.downloadLatest(
         this.projectId,
         this.state.currentCategory,
@@ -202,7 +175,6 @@ export class FileRepositoryViewModel {
       );
 
       FileStorageService.triggerBrowserDownload(blob, originalName);
-      console.log('[FileRepository] Latest version downloaded');
     } catch (error) {
       console.error('[FileRepository] Download latest failed:', error);
       this.setState(prev => ({
@@ -217,18 +189,11 @@ export class FileRepositoryViewModel {
    */
   async loadFolders(path?: string): Promise<void> {
     if (!this.supportsFolderView) {
-      console.warn('[FileRepository] Folder view not supported for category:', this.state.currentCategory);
       return;
     }
 
     try {
       const targetPath = path !== undefined ? path : this.state.currentPath;
-
-      console.log('[FileRepository] Loading folders:', {
-        projectId: this.projectId,
-        category: this.state.currentCategory,
-        path: targetPath,
-      });
 
       this.setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -249,11 +214,6 @@ export class FileRepositoryViewModel {
         loading: false,
         viewMode: 'folders',
       }));
-
-      console.log('[FileRepository] Folders loaded:', {
-        count: items.length,
-        currentPath: currentPath,
-      });
     } catch (error) {
       console.error('[FileRepository] Load folders failed:', error);
       this.setState(prev => ({
@@ -270,23 +230,17 @@ export class FileRepositoryViewModel {
    * If file: show file details (future expansion)
    */
   async selectFolder(item: FolderNode): Promise<void> {
-    console.log('[FileRepository] Selecting item:', item.name, 'isFolder:', item.isFolder);
-
     if (item.isFolder) {
       // Navigate into folder
       await this.loadFolders(item.path);
-    } else {
-      // File clicked - could show file preview or download (future feature)
-      console.log('[FileRepository] File clicked:', item.name);
     }
+    // File clicked - could show file preview or download (future feature)
   }
 
   /**
    * Go back to parent folder
    */
   backToFolders(): void {
-    console.log('[FileRepository] Back to parent folder');
-
     const currentPath = this.state.currentPath;
     if (!currentPath) {
       // Already at root
@@ -308,8 +262,6 @@ export class FileRepositoryViewModel {
    * @param category - New category to switch to
    */
   async setCategory(category: FileCategory): Promise<void> {
-    console.log('[FileRepository] Changing category:', category);
-
     const isLearningOrTest = category === 'learning' || category === 'test';
 
     this.setState(prev => ({
@@ -338,10 +290,7 @@ export class FileRepositoryViewModel {
    * @param page - Page number to navigate to
    */
   async changePage(page: number): Promise<void> {
-    console.log('[FileRepository] Changing page:', page);
-
     if (page < 1 || page > this.state.pagination.totalPages) {
-      console.warn('[FileRepository] Invalid page number:', page);
       return;
     }
 
@@ -354,8 +303,6 @@ export class FileRepositoryViewModel {
    * @param cctvId - CCTV ID to filter by (undefined to clear filter)
    */
   async setCctvId(cctvId: string | undefined): Promise<void> {
-    console.log('[FileRepository] Setting CCTV ID filter:', cctvId);
-
     this.setState(prev => ({
       ...prev,
       selectedCctvId: cctvId,
@@ -372,8 +319,6 @@ export class FileRepositoryViewModel {
    */
   async deleteFile(filename: string): Promise<void> {
     try {
-      console.log('[FileRepository] Deleting file:', { filename });
-
       this.setState(prev => ({ ...prev, loading: true, error: null }));
 
       const response = await FileStorageService.deleteFile(
@@ -383,8 +328,6 @@ export class FileRepositoryViewModel {
       );
 
       if (response.success) {
-        console.log('[FileRepository] Delete successful');
-
         // Reload files after successful deletion
         await this.loadFiles();
       } else {
@@ -413,7 +356,6 @@ export class FileRepositoryViewModel {
    * Refresh current view (reload files)
    */
   async refresh(): Promise<void> {
-    console.log('[FileRepository] Refreshing files');
     await this.loadFiles();
   }
 
