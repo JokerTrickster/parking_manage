@@ -39,12 +39,13 @@ func (u *AutoUploadUseCase) AutoUpload(ctx context.Context, projectID string, fi
 	versionedName := util.GenerateVersionedFilename(fileHeader.Filename)
 
 	// Save file with versioning (category is always "map" for map editor)
-	if err := u.Repository.SaveFile(projectID, "map", versionedName, file); err != nil {
+	savedFilename, err := u.Repository.SaveFile(projectID, "map", versionedName, file)
+	if err != nil {
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 
 	// Log success
-	log.Printf("[AUTO-UPLOAD] SUCCESS: project=%s, file=%s -> %s", projectID, fileHeader.Filename, versionedName)
+	log.Printf("[AUTO-UPLOAD] SUCCESS: project=%s, file=%s -> %s", projectID, fileHeader.Filename, savedFilename)
 
 	return nil
 }

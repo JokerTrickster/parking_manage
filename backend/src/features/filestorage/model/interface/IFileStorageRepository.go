@@ -10,8 +10,8 @@ import (
 
 // IFileStorageRepository defines the interface for file storage operations
 type IFileStorageRepository interface {
-	// SaveFile saves a file to the filesystem
-	SaveFile(projectID, category, filename string, file multipart.File) error
+	// SaveFile saves a file to the filesystem and returns the actual saved filename
+	SaveFile(projectID, category, filename string, file multipart.File) (string, error)
 
 	// SaveFileHistory saves file upload history to database
 	SaveFileHistory(history *mysql.FileStorageHistory) error

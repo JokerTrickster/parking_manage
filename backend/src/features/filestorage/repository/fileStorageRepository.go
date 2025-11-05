@@ -26,8 +26,8 @@ func NewFileStorageRepository(db *gorm.DB) *FileStorageRepository {
 	}
 }
 
-// SaveFile saves a file to the filesystem
-func (r *FileStorageRepository) SaveFile(projectID, category, filename string, file multipart.File) error {
+// SaveFile saves a file to the filesystem and returns the actual saved filename
+func (r *FileStorageRepository) SaveFile(projectID, category, filename string, file multipart.File) (string, error) {
 	// Build full path
 	basePath := common.Env.UploadPath
 	categoryPath := filepath.Join(basePath, projectID, category)
@@ -38,7 +38,7 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 	// Extract directory from full file path and create all necessary directories
 	fileDir := filepath.Dir(filePath)
 	if err := os.MkdirAll(fileDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Handle duplicate filenames by adding _1, _2, etc.
@@ -47,16 +47,23 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 	// Create file
 	dst, err := os.Create(finalPath)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
+		return "", fmt.Errorf("failed to create file: %w", err)
 	}
 	defer dst.Close()
 
 	// Copy content
 	if _, err := io.Copy(dst, file); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
+		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
-	return nil
+	// Extract the actual saved filename (relative to category path)
+	savedFilename, err := filepath.Rel(categoryPath, finalPath)
+	if err != nil {
+		// Fallback to just the base name if relative path fails
+		savedFilename = filepath.Base(finalPath)
+	}
+
+	return savedFilename, nil
 }
 
 // getUniqueFilePath returns a unique file path by appending _1, _2, etc. if file exists

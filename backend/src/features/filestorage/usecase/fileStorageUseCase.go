@@ -82,8 +82,9 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 			}
 		}
 
-		// Save file
-		if err := u.Repository.SaveFile(req.ProjectID, req.Category, filename, file); err != nil {
+		// Save file - returns the actual saved filename (may differ due to duplicate handling)
+		savedFilename, err := u.Repository.SaveFile(req.ProjectID, req.Category, filename, file)
+		if err != nil {
 			errors = append(errors, fmt.Sprintf("failed to save %s: %v", fileHeader.Filename, err))
 			failedCount++
 			file.Close()
@@ -92,26 +93,26 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 
 		file.Close()
 
-		// Get file metadata
-		fileInfo, err := u.Repository.GetFileMetadata(req.ProjectID, req.Category, filename)
+		// Get file metadata using the actual saved filename
+		fileInfo, err := u.Repository.GetFileMetadata(req.ProjectID, req.Category, savedFilename)
 		if err != nil {
 			// File saved but metadata retrieval failed - still count as success
 			fileInfo = entity.FileInfo{
-				Filename:     filename,
+				Filename:     savedFilename,
 				OriginalName: originalName,
 				Version:      version,
 			}
 		}
 
 		// Save to database
-		cctvID := extractCctvIdFromPath(filename)
+		cctvID := extractCctvIdFromPath(savedFilename)
 		history := &mysql.FileStorageHistory{
 			ProjectId:    req.ProjectID,
 			Category:     req.Category,
-			Filename:     filename,
+			Filename:     savedFilename,
 			OriginalName: originalName,
 			Version:      version,
-			FilePath:     filepath.Join(req.ProjectID, req.Category, filename),
+			FilePath:     filepath.Join(req.ProjectID, req.Category, savedFilename),
 			FileSize:     fileInfo.SizeBytes,
 			FileType:     fileInfo.FileType,
 			CctvId:       cctvID,
