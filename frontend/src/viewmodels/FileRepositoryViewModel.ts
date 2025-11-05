@@ -27,7 +27,7 @@ import {
 export class FileRepositoryViewModel {
   private state: FileRepositoryState;
   private setState: React.Dispatch<React.SetStateAction<FileRepositoryState>>;
-  private projectId: string;
+  public readonly projectId: string;
 
   constructor(
     projectId: string,
