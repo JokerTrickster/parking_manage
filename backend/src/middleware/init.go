@@ -15,18 +15,12 @@ var Store = sessions.NewCookieStore([]byte("secret"))
 func InitMiddleware(e *echo.Echo) error {
 	e.Use(middleware.Recover())
 
-	//cors 미들웨어 설정 (환경 변수에서 로드)
-	allowedOrigins := common.Env.AllowedOrigins
-	if len(allowedOrigins) == 0 {
-		// fallback to default origins if not configured
-		allowedOrigins = []string{"http://localhost:3000", "http://localhost:5050"}
-	}
-
+	//cors 미들웨어 설정
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     allowedOrigins,
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-		AllowCredentials: true,
+		AllowCredentials: false,
 	}))
 
 	// multipart 메시지 크기 제한 설정 (기본값: 32MB -> 2GB)
