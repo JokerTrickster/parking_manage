@@ -422,3 +422,41 @@ func (u *FileStorageUseCase) DeleteFile(ctx context.Context, projectID, category
 
 	return nil
 }
+
+// DeleteFiles removes multiple files from storage
+func (u *FileStorageUseCase) DeleteFiles(ctx context.Context, projectID, category string, filenames []string) error {
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	defer cancel()
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return fmt.Errorf("invalid category: %s", category)
+	}
+
+	// Delete files using repository
+	if err := u.Repository.DeleteFiles(projectID, category, filenames); err != nil {
+		return fmt.Errorf("failed to delete files: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteFolder removes a folder and all its contents from storage
+func (u *FileStorageUseCase) DeleteFolder(ctx context.Context, projectID, category, folderPath string) error {
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	defer cancel()
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return fmt.Errorf("invalid category: %s", category)
+	}
+
+	// Delete folder using repository
+	if err := u.Repository.DeleteFolder(projectID, category, folderPath); err != nil {
+		return fmt.Errorf("failed to delete folder: %w", err)
+	}
+
+	return nil
+}

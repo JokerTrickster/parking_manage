@@ -41,8 +41,11 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
+	// Handle duplicate filenames by adding _1, _2, etc.
+	finalPath := r.getUniqueFilePath(filePath)
+
 	// Create file
-	dst, err := os.Create(filePath)
+	dst, err := os.Create(finalPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -54,6 +57,38 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 	}
 
 	return nil
+}
+
+// getUniqueFilePath returns a unique file path by appending _1, _2, etc. if file exists
+func (r *FileStorageRepository) getUniqueFilePath(filePath string) string {
+	// If file doesn't exist, return original path
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return filePath
+	}
+
+	// Extract directory, filename, and extension
+	dir := filepath.Dir(filePath)
+	ext := filepath.Ext(filePath)
+	nameWithoutExt := strings.TrimSuffix(filepath.Base(filePath), ext)
+
+	// Try appending _1, _2, _3, etc. until we find a unique name
+	counter := 1
+	for {
+		newName := fmt.Sprintf("%s_%d%s", nameWithoutExt, counter, ext)
+		newPath := filepath.Join(dir, newName)
+
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			return newPath
+		}
+
+		counter++
+
+		// Safety check to prevent infinite loop
+		if counter > 1000 {
+			// Return a path with process ID as last resort
+			return filepath.Join(dir, fmt.Sprintf("%s_%d%s", nameWithoutExt, os.Getpid(), ext))
+		}
+	}
 }
 
 // SaveFileHistory saves file upload history to database
@@ -202,6 +237,53 @@ func (r *FileStorageRepository) DeleteFile(projectID, category, filename string)
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteFiles removes multiple files from the filesystem
+func (r *FileStorageRepository) DeleteFiles(projectID, category string, filenames []string) error {
+	basePath := common.Env.UploadPath
+
+	var errors []string
+	successCount := 0
+
+	for _, filename := range filenames {
+		filePath := filepath.Join(basePath, projectID, category, filename)
+
+		if err := os.Remove(filePath); err != nil {
+			errors = append(errors, fmt.Sprintf("failed to delete %s: %v", filename, err))
+		} else {
+			successCount++
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("deleted %d files, failed %d: %s", successCount, len(errors), strings.Join(errors, "; "))
+	}
+
+	return nil
+}
+
+// DeleteFolder removes a folder and all its contents from the filesystem
+func (r *FileStorageRepository) DeleteFolder(projectID, category, folderPath string) error {
+	basePath := common.Env.UploadPath
+	fullPath := filepath.Join(basePath, projectID, category, folderPath)
+
+	// Check if path exists and is a directory
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat folder: %w", err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("path is not a directory: %s", folderPath)
+	}
+
+	// Remove directory and all contents
+	if err := os.RemoveAll(fullPath); err != nil {
+		return fmt.Errorf("failed to delete folder: %w", err)
 	}
 
 	return nil

@@ -25,6 +25,12 @@ type IFileStorageRepository interface {
 	// DeleteFile removes a file from the filesystem
 	DeleteFile(projectID, category, filename string) error
 
+	// DeleteFiles removes multiple files from the filesystem
+	DeleteFiles(projectID, category string, filenames []string) error
+
+	// DeleteFolder removes a folder and all its contents from the filesystem
+	DeleteFolder(projectID, category, folderPath string) error
+
 	// GetFileMetadata returns file information
 	GetFileMetadata(projectID, category, filename string) (entity.FileInfo, error)
 

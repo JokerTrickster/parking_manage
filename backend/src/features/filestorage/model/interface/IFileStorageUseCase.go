@@ -29,4 +29,10 @@ type IFileStorageUseCase interface {
 
 	// DeleteFile removes a file from storage
 	DeleteFile(ctx context.Context, projectID, category, filename string) error
+
+	// DeleteFiles removes multiple files from storage
+	DeleteFiles(ctx context.Context, projectID, category string, filenames []string) error
+
+	// DeleteFolder removes a folder and all its contents from storage
+	DeleteFolder(ctx context.Context, projectID, category, folderPath string) error
 }

@@ -13,11 +13,14 @@ import {
   Typography,
   Box,
   Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
   Image as ImageIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { FolderNode } from '../../models/FileStorage';
 import { FileStorageService } from '../../services/FileStorageService';
@@ -30,6 +33,7 @@ interface FolderListViewProps {
   projectId: string;
   category: string;
   onDownload?: (filename: string) => void;
+  onDeleteFolder?: (folderPath: string) => void;
 }
 
 /**
@@ -48,6 +52,7 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
   projectId,
   category,
   onDownload,
+  onDeleteFolder,
 }) => {
   const [previewImage, setPreviewImage] = useState<FolderNode | null>(null);
 
@@ -69,6 +74,13 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
     } else {
       // For non-image files, just call the folder click handler
       onFolderClick(item);
+    }
+  };
+
+  const handleDeleteFolder = (event: React.MouseEvent, item: FolderNode) => {
+    event.stopPropagation(); // Prevent card click
+    if (onDeleteFolder && item.isFolder) {
+      onDeleteFolder(item.path);
     }
   };
 
@@ -124,12 +136,37 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
               sx={{
                 border: isSelected ? '2px solid primary.main' : '1px solid #e0e0e0',
                 transition: 'all 0.2s ease-in-out',
+                position: 'relative',
                 '&:hover': {
                   elevation: 3,
                   transform: 'translateY(-2px)',
                 },
               }}
             >
+              {/* Delete button for folders */}
+              {item.isFolder && onDeleteFolder && (
+                <Tooltip title="폴더 삭제">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => handleDeleteFolder(e, item)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 1,
+                      backgroundColor: 'white',
+                      '&:hover': {
+                        backgroundColor: 'error.light',
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+
               <CardActionArea onClick={() => handleItemClick(item)}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>

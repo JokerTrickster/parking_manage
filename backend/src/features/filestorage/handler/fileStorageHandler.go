@@ -47,6 +47,12 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 	// Delete endpoint
 	e.DELETE("/v0.1/filestorage/:projectId/:category/delete/*", handler.Delete)
 
+	// Batch delete endpoint
+	e.POST("/v0.1/filestorage/:projectId/:category/batch-delete", handler.BatchDelete)
+
+	// Folder delete endpoint
+	e.DELETE("/v0.1/filestorage/:projectId/:category/folder/*", handler.DeleteFolder)
+
 	// Folder structure endpoints (learning/test only)
 	e.GET("/v0.1/filestorage/:projectId/learning/folders", handler.ListFolders)
 	e.GET("/v0.1/filestorage/:projectId/test/folders", handler.ListFolders)
@@ -472,6 +478,137 @@ func (h *FileStorageHandler) Delete(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "file deleted successfully",
+	})
+}
+
+// BatchDelete handles batch file deletion requests
+// @Router /v0.1/filestorage/{projectId}/{category}/batch-delete [post]
+// @Summary Delete multiple files
+// @Description Deletes multiple files in a single request
+// @Tags File Storage
+// @Accept json
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param category path string true "Category"
+// @Param filenames body []string true "Array of filenames to delete"
+// @Success 200 {object} map[string]interface{} "Files deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+func (h *FileStorageHandler) BatchDelete(c echo.Context) error {
+	ctx, _, _ := common.CtxGenerate(c)
+
+	// Get parameters
+	projectID := c.Param("projectId")
+	category := c.Param("category")
+
+	if projectID == "" || category == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "projectId and category are required",
+		})
+	}
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("invalid category: %s", category),
+		})
+	}
+
+	// Parse request body
+	var req struct {
+		Filenames []string `json:"filenames"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "invalid request body: " + err.Error(),
+		})
+	}
+
+	if len(req.Filenames) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "filenames array is required and cannot be empty",
+		})
+	}
+
+	// Delete files
+	err := h.UseCase.DeleteFiles(ctx, projectID, category, req.Filenames)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"message": "failed to delete files: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("%d files deleted successfully", len(req.Filenames)),
+	})
+}
+
+// DeleteFolder handles folder deletion requests
+// @Router /v0.1/filestorage/{projectId}/{category}/folder/{folderPath} [delete]
+// @Summary Delete a folder
+// @Description Deletes the specified folder and all its contents
+// @Tags File Storage
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param category path string true "Category"
+// @Param folderPath path string true "Folder path to delete"
+// @Success 200 {object} map[string]interface{} "Folder deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 404 {object} map[string]interface{} "Folder not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+func (h *FileStorageHandler) DeleteFolder(c echo.Context) error {
+	ctx, _, _ := common.CtxGenerate(c)
+
+	// Get parameters
+	projectID := c.Param("projectId")
+	category := c.Param("category")
+
+	// Extract folder path from wildcard parameter
+	folderPath := c.Param("*")
+
+	// URL decode the folder path
+	decodedFolderPath, decodeErr := url.QueryUnescape(folderPath)
+	if decodeErr != nil {
+		decodedFolderPath = folderPath
+	}
+	folderPath = decodedFolderPath
+
+	if projectID == "" || category == "" || folderPath == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "projectId, category, and folderPath are required",
+		})
+	}
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("invalid category: %s", category),
+		})
+	}
+
+	// Delete folder
+	err := h.UseCase.DeleteFolder(ctx, projectID, category, folderPath)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"message": "failed to delete folder: " + err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "folder deleted successfully",
 	})
 }
 

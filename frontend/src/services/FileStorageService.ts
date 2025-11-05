@@ -276,6 +276,70 @@ export class FileStorageService {
   }
 
   /**
+   * Delete multiple files in batch
+   *
+   * @param projectId - Project identifier
+   * @param category - File category
+   * @param filenames - Array of filenames to delete
+   * @returns Delete response
+   */
+  static async deleteFiles(
+    projectId: string,
+    category: FileCategory,
+    filenames: string[]
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = API_ENDPOINTS.FILE_STORAGE.BATCH_DELETE(projectId, category);
+
+      console.log('[FileStorageService] Batch deleting files:', {
+        projectId,
+        category,
+        fileCount: filenames.length,
+      });
+
+      const response = await api.post(endpoint, { filenames });
+
+      console.log('[FileStorageService] Files deleted:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[FileStorageService] Batch delete failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete folder and all its contents
+   *
+   * @param projectId - Project identifier
+   * @param category - File category
+   * @param folderPath - Folder path to delete
+   * @returns Delete response
+   */
+  static async deleteFolder(
+    projectId: string,
+    category: FileCategory,
+    folderPath: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = API_ENDPOINTS.FILE_STORAGE.DELETE_FOLDER(projectId, category, folderPath);
+
+      console.log('[FileStorageService] Deleting folder:', {
+        projectId,
+        category,
+        folderPath,
+      });
+
+      const response = await api.delete(endpoint);
+
+      console.log('[FileStorageService] Folder deleted:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[FileStorageService] Delete folder failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Trigger browser download for a blob
    * Creates temporary download link and triggers click
    *

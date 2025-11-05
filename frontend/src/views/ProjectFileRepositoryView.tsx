@@ -118,6 +118,16 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     }
   };
 
+  const handleBatchDelete = async (filenames: string[]) => {
+    await viewModel.deleteFiles(filenames);
+  };
+
+  const handleDeleteFolder = async (folderPath: string) => {
+    if (window.confirm(`폴더 "${folderPath}"와 그 안의 모든 내용을 삭제하시겠습니까?`)) {
+      await viewModel.deleteFolder(folderPath);
+    }
+  };
+
   const handleCloseError = () => {
     viewModel.clearError();
   };
@@ -232,6 +242,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 projectId={currentProjectId || ''}
                 category={state.currentCategory}
                 onDownload={handleFolderDownload}
+                onDeleteFolder={handleDeleteFolder}
               />
             </Box>
           )}
@@ -273,6 +284,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 onDownload={handleDownload}
                 onDownloadLatest={handleDownloadLatest}
                 onDelete={handleDelete}
+                onBatchDelete={handleBatchDelete}
               />
 
               {/* Pagination */}

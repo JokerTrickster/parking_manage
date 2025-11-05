@@ -346,6 +346,76 @@ export class FileRepositoryViewModel {
   }
 
   /**
+   * Delete multiple files
+   *
+   * @param filenames - Array of filenames to delete
+   */
+  async deleteFiles(filenames: string[]): Promise<void> {
+    try {
+      this.setState(prev => ({ ...prev, loading: true, error: null }));
+
+      const response = await FileStorageService.deleteFiles(
+        this.projectId,
+        this.state.currentCategory,
+        filenames
+      );
+
+      if (response.success) {
+        // Reload current view after successful deletion
+        if (this.supportsFolderView) {
+          await this.loadFolders();
+        } else {
+          await this.loadFiles();
+        }
+      } else {
+        throw new Error(response.message);
+      }
+
+      this.setState(prev => ({ ...prev, loading: false }));
+    } catch (error) {
+      console.error('[FileRepository] Batch delete failed:', error);
+      this.setState(prev => ({
+        ...prev,
+        loading: false,
+        error: '파일 삭제에 실패했습니다.',
+      }));
+    }
+  }
+
+  /**
+   * Delete folder and all its contents
+   *
+   * @param folderPath - Folder path to delete
+   */
+  async deleteFolder(folderPath: string): Promise<void> {
+    try {
+      this.setState(prev => ({ ...prev, loading: true, error: null }));
+
+      const response = await FileStorageService.deleteFolder(
+        this.projectId,
+        this.state.currentCategory,
+        folderPath
+      );
+
+      if (response.success) {
+        // Reload folders after successful deletion
+        await this.loadFolders();
+      } else {
+        throw new Error(response.message);
+      }
+
+      this.setState(prev => ({ ...prev, loading: false }));
+    } catch (error) {
+      console.error('[FileRepository] Delete folder failed:', error);
+      this.setState(prev => ({
+        ...prev,
+        loading: false,
+        error: '폴더 삭제에 실패했습니다.',
+      }));
+    }
+  }
+
+  /**
    * Clear error message
    */
   clearError(): void {

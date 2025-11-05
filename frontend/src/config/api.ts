@@ -146,6 +146,19 @@ export const API_ENDPOINTS = {
         .join('/');
       return `/v0.1/filestorage/${projectId}/${category}/delete/${encodedPath}`;
     },
+
+    // Batch delete files
+    BATCH_DELETE: (projectId: string, category: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/batch-delete`,
+
+    // Delete folder (encode path segments individually to preserve slashes)
+    DELETE_FOLDER: (projectId: string, category: string, folderPath: string) => {
+      const encodedPath = folderPath
+        .split('/')
+        .map(segment => encodeURIComponent(segment))
+        .join('/');
+      return `/v0.1/filestorage/${projectId}/${category}/folder/${encodedPath}`;
+    },
   },
 
   // Swagger
