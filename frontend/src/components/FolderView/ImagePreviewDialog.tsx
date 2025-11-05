@@ -267,5 +267,12 @@ function isImageFile(filename: string): boolean {
  * Get base URL for API requests
  */
 function getBaseUrl(): string {
-  return 'http://localhost:5000';
+  // 환경 변수 또는 현재 호스트 기반으로 API URL 결정
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  // 배포된 환경에서는 현재 호스트 사용
+  const currentHost = window.location.hostname;
+  return `http://${currentHost}:5000`;
 }

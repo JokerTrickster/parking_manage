@@ -16,11 +16,37 @@ export const API_CONFIG = {
 
 // 현재 환경에 따른 설정 반환
 const getCurrentConfig = () => {
-  // 로컬 개발을 위해 localhost 사용
+  // 환경 변수 또는 window.location을 기반으로 API URL 결정
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDocker = process.env.REACT_APP_DOCKER === 'true';
+
+  // 환경 변수로 명시적 설정이 있으면 우선 사용
+  if (process.env.REACT_APP_API_URL) {
+    return {
+      BASE_URL: process.env.REACT_APP_API_URL,
+      UPLOAD_URL: `${process.env.REACT_APP_API_URL}/v0.1/parking`,
+      SWAGGER_URL: `${process.env.REACT_APP_API_URL}/swagger/index.html`
+    };
+  }
+
+  // Docker 환경이면 production 설정 사용
+  if (isDocker) {
+    return API_CONFIG.production;
+  }
+
+  // 로컬 개발 환경
+  if (isDevelopment) {
+    return API_CONFIG.development;
+  }
+
+  // 기본값: 브라우저의 현재 호스트 사용 (배포된 경우)
+  const currentHost = window.location.hostname;
+  const apiUrl = `http://${currentHost}:5000`;
+
   return {
-    BASE_URL: 'http://localhost:5000',
-    UPLOAD_URL: 'http://localhost:5000/v0.1/parking',
-    SWAGGER_URL: 'http://localhost:5000/swagger/index.html'
+    BASE_URL: apiUrl,
+    UPLOAD_URL: `${apiUrl}/v0.1/parking`,
+    SWAGGER_URL: `${apiUrl}/swagger/index.html`
   };
 };
 
