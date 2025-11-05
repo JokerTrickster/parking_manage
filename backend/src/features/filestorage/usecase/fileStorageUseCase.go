@@ -31,7 +31,7 @@ func NewFileStorageUseCase(repo _interface.IFileStorageRepository, timeout time.
 
 // UploadFile handles file upload with optional versioning
 func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadRequest) (response.ResUpload, error) {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Validate category
@@ -152,7 +152,7 @@ func extractCctvIdFromPath(filename string) *string {
 
 // ListFiles returns file list with metadata
 func (u *FileStorageUseCase) ListFiles(ctx context.Context, req request.FileQueryRequest) (response.ResFileList, error) {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Validate category
@@ -222,7 +222,7 @@ func (u *FileStorageUseCase) ListFiles(ctx context.Context, req request.FileQuer
 
 // DownloadFile retrieves file for download
 func (u *FileStorageUseCase) DownloadFile(ctx context.Context, projectID, category, filename string) (io.ReadCloser, entity.FileInfo, error) {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Validate category
@@ -249,7 +249,7 @@ func (u *FileStorageUseCase) DownloadFile(ctx context.Context, projectID, catego
 // GetLatestVersion returns the most recent version of a file
 // ListFolders returns folder structure for learning/test categories with nested folder support
 func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, category string, currentPath ...string) (interface{}, error) {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Determine current path
@@ -364,7 +364,7 @@ func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, categor
 }
 
 func (u *FileStorageUseCase) GetLatestVersion(ctx context.Context, projectID, category, originalName string) (string, error) {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Validate category
@@ -406,7 +406,7 @@ func (u *FileStorageUseCase) GetLatestVersion(ctx context.Context, projectID, ca
 
 // DeleteFile removes a file from storage
 func (u *FileStorageUseCase) DeleteFile(ctx context.Context, projectID, category, filename string) error {
-	_, cancel := context.WithTimeout(ctx, u.ContextTimeout)
+	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
 
 	// Validate category

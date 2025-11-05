@@ -31,10 +31,16 @@ func InitMySQL(dbUser, dbPass, dbHost, dbPort, dbName string) error {
 	fmt.Printf("MySQL connection string: %s:***@tcp(%s:%s)/%s\n", dbUser, dbHost, dbPort, dbName)
 
 	// MySQL에 연결
-	MysqlDB, err := sql.Open("mysql", connectionString)
+	MysqlDB, err = sql.Open("mysql", connectionString)
 	if err != nil {
-		fmt.Println("Failed to connect to MySQL!")
-		fmt.Sprintln("에러 메시지 %s", err)
+		fmt.Printf("Failed to connect to MySQL! Error: %v\n", err)
+		return fmt.Errorf("failed to connect to MySQL: %w", err)
+	}
+
+	// Verify connection
+	if err = MysqlDB.Ping(); err != nil {
+		fmt.Printf("Failed to ping MySQL! Error: %v\n", err)
+		return fmt.Errorf("failed to ping MySQL: %w", err)
 	}
 	fmt.Println("Connected to MySQL!")
 
@@ -44,10 +50,11 @@ func InitMySQL(dbUser, dbPass, dbHost, dbPort, dbName string) error {
 		SkipDefaultTransaction: false,
 	})
 	if err != nil {
-		fmt.Println("Failed to connect to Gorm MySQL!")
-		fmt.Sprintln("에러 메시지 %s", err)
+		fmt.Printf("Failed to connect to Gorm MySQL! Error: %v\n", err)
+		return fmt.Errorf("failed to initialize GORM: %w", err)
 	}
 
+	fmt.Println("Successfully initialized GORM MySQL!")
 	return nil
 }
 
