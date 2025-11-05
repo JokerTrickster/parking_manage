@@ -70,18 +70,11 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     uploadProgress: 0,
   });
 
-  // ViewModel - recreate only when projectId changes, but update state/setState on every render
+  // ViewModel - recreate on projectId or state changes to ensure fresh state reference
   const viewModel = useMemo(
     () => new FileRepositoryViewModel(projectId, state, setState),
-    [projectId]
+    [projectId, state, setState]
   );
-
-  // Update ViewModel's internal state and setState references on every render
-  // This ensures ViewModel always has the latest state
-  useEffect(() => {
-    (viewModel as any).state = state;
-    (viewModel as any).setState = setState;
-  });
 
   // Load files/folders on mount and category change
   useEffect(() => {
