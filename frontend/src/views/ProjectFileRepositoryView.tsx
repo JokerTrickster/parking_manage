@@ -63,7 +63,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     error: null,
     pagination: {
       page: 1,
-      pageSize: 100,
+      pageSize: 10,
       totalPages: 1,
       totalCount: 0,
     },
