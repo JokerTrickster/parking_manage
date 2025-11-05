@@ -128,6 +128,12 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     }
   };
 
+  const handleDeleteFileFromFolder = async (filename: string) => {
+    if (window.confirm(`파일 "${filename}"을(를) 삭제하시겠습니까?`)) {
+      await viewModel.deleteFile(filename);
+    }
+  };
+
   const handleCloseError = () => {
     viewModel.clearError();
   };
@@ -243,6 +249,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 category={state.currentCategory}
                 onDownload={handleFolderDownload}
                 onDeleteFolder={handleDeleteFolder}
+                onDeleteFile={handleDeleteFileFromFolder}
               />
             </Box>
           )}

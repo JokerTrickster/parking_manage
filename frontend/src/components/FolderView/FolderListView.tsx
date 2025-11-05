@@ -34,6 +34,7 @@ interface FolderListViewProps {
   category: string;
   onDownload?: (filename: string) => void;
   onDeleteFolder?: (folderPath: string) => void;
+  onDeleteFile?: (filename: string) => void;
 }
 
 /**
@@ -53,6 +54,7 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
   category,
   onDownload,
   onDeleteFolder,
+  onDeleteFile,
 }) => {
   const [previewImage, setPreviewImage] = useState<FolderNode | null>(null);
 
@@ -81,6 +83,13 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
     event.stopPropagation(); // Prevent card click
     if (onDeleteFolder && item.isFolder) {
       onDeleteFolder(item.path);
+    }
+  };
+
+  const handleDeleteFile = (event: React.MouseEvent, item: FolderNode) => {
+    event.stopPropagation(); // Prevent card click
+    if (onDeleteFile && !item.isFolder) {
+      onDeleteFile(item.path);
     }
   };
 
@@ -143,13 +152,35 @@ export const FolderListView: React.FC<FolderListViewProps> = ({
                 },
               }}
             >
-              {/* Delete button for folders */}
+              {/* Delete button for folders and files */}
               {item.isFolder && onDeleteFolder && (
                 <Tooltip title="폴더 삭제">
                   <IconButton
                     size="small"
                     color="error"
                     onClick={(e) => handleDeleteFolder(e, item)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 1,
+                      backgroundColor: 'white',
+                      '&:hover': {
+                        backgroundColor: 'error.light',
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {!item.isFolder && onDeleteFile && (
+                <Tooltip title="파일 삭제">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => handleDeleteFile(e, item)}
                     sx={{
                       position: 'absolute',
                       top: 8,
