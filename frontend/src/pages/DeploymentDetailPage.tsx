@@ -13,8 +13,8 @@ import {
   Divider,
   Card,
   CardContent,
+  Grid,
 } from '@mui/material';
-import Grid from '@mui/material/Grid2';
 import {
   Home as HomeIcon,
   Business as BusinessIcon,
@@ -197,9 +197,9 @@ const DeploymentDetailPage: React.FC = () => {
       </Paper>
 
       {/* Deployment Details */}
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
         {/* Left Column */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -250,10 +250,10 @@ const DeploymentDetailPage: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Right Column */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -285,10 +285,11 @@ const DeploymentDetailPage: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
+      </Box>
 
-        {/* Logs Section */}
-        <Grid size={{ xs: 12 }}>
+      {/* Logs Section */}
+      <Box sx={{ mt: 3 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -312,8 +313,7 @@ const DeploymentDetailPage: React.FC = () => {
               </Paper>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+      </Box>
     </Container>
   );
 };
