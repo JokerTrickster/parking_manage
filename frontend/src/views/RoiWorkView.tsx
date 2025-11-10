@@ -33,6 +33,7 @@ import {
   FullscreenExit as FullscreenExitIcon
 } from '@mui/icons-material';
 import { RoiService } from '../services/RoiService';
+import { FileStorageService } from '../services/FileStorageService';
 import {
   ImageFile,
   ReadRoiResponse
@@ -88,27 +89,33 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     loadRoiFiles();
   }, [projectId]);
 
-  // 테스트 폴더 목록 로드
+  // 테스트 폴더 목록 로드 - FileStorageService 사용
   const loadTestFolders = async () => {
     try {
       setLoading(true);
-      const folders = await RoiService.getTestFolders(projectId);
-      setTestFolders(folders);
+      const response = await FileStorageService.listFolders(projectId, 'test');
+      // FolderNode 배열을 폴더 이름 배열로 변환
+      const folderNames = response.data.folders.map(folder => folder.name);
+      setTestFolders(folderNames);
     } catch (err) {
       setError('테스트 폴더 목록을 불러오는데 실패했습니다.');
+      console.error('테스트 폴더 로드 실패:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ROI 파일 목록 로드
+  // ROI 파일 목록 로드 - FileStorageService 사용
   const loadRoiFiles = async () => {
     try {
       setLoading(true);
-      const files = await RoiService.getRoiFiles(projectId);
-      setRoiFiles(files);
+      const response = await FileStorageService.listFiles(projectId, 'roi');
+      // FileInfo 배열에서 파일 이름만 추출
+      const fileNames = response.data.files.map(file => file.filename);
+      setRoiFiles(fileNames);
     } catch (err) {
       setError('ROI 파일 목록을 불러오는데 실패했습니다.');
+      console.error('ROI 파일 로드 실패:', err);
     } finally {
       setLoading(false);
     }
