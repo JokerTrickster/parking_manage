@@ -95,7 +95,9 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       setLoading(true);
       const response = await FileStorageService.listFolders(projectId, 'test');
       // FolderNode 배열을 폴더 이름 배열로 변환
-      const folderNames = response.data.folders.map(folder => folder.name);
+      const folderNames = response.data.items
+        .filter(item => item.isFolder)
+        .map(folder => folder.name);
       setTestFolders(folderNames);
     } catch (err) {
       setError('테스트 폴더 목록을 불러오는데 실패했습니다.');
