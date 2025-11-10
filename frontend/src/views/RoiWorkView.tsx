@@ -123,21 +123,33 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
-  // 폴더 선택 - 이미지 목록 로드
+  // 폴더 선택 - 이미지 목록 로드 - FileStorageService 사용
   const handleFolderSelect = async (folderName: string) => {
     try {
       setLoading(true);
       setSelectedFolder(folderName);
       setError(''); // 에러 메시지 초기화
-      
-      const response = await RoiService.getTestImages(projectId, folderName);
-      setFolderImages(response.images || []);
-      
+
+      // FileStorageService로 폴더 내 파일 조회
+      const response = await FileStorageService.listFolders(projectId, 'test', folderName);
+
+      // 파일만 필터링하여 ImageFile 형식으로 변환
+      const images: ImageFile[] = response.data.items
+        .filter(item => !item.isFolder)
+        .map(file => ({
+          name: file.name,
+          path: '', // 실제 이미지는 선택 시 로드
+          size: file.size || 0,
+          cctvId: file.cctvId || ''
+        }));
+
+      setFolderImages(images);
+
       // 선택된 이미지와 ROI 파일 초기화
       setSelectedImage(null);
       setRoiData(null);
       setSelectedRoiId('');
-      
+
     } catch (err) {
       console.error('폴더 선택 에러:', err);
       setError(`폴더 '${folderName}'의 이미지 목록을 불러오는데 실패했습니다. 폴더가 존재하지 않거나 접근할 수 없습니다.`);
@@ -149,24 +161,25 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
-  // 이미지 선택
+  // 이미지 선택 - FileStorageService 사용
   const handleImageSelect = async (image: ImageFile) => {
     try {
       setLoading(true);
       setError(''); // 에러 메시지 초기화
-      
-      // 새로운 이미지 API로 이미지 가져오기
-      const imageBlob = await RoiService.getImageRoi(projectId, selectedFolder, image.name);
+
+      // FileStorageService로 이미지 다운로드
+      const filename = `${selectedFolder}/${image.name}`;
+      const imageBlob = await FileStorageService.downloadFile(projectId, 'test', filename);
       const imageUrl = URL.createObjectURL(imageBlob);
-      
+
       // ImageFile 객체 업데이트
       const updatedImage: ImageFile = {
         ...image,
         path: imageUrl
       };
-      
+
       setSelectedImage(updatedImage);
-      
+
       // 이미지 선택 시 ROI 데이터 자동 로드
       if (selectedRoiFile) {
         loadRoiData(updatedImage, selectedRoiFile);
