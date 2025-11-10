@@ -1,4 +1,4 @@
-import { FileUploadService } from '../services/FileUploadService';
+import { FileStorageService } from '../services/FileStorageService';
 import LearningService from '../services/LearningService';
 import { API_ENDPOINTS, apiConfig } from '../config/api';
 
@@ -13,14 +13,22 @@ export interface RealtimeSettings {
 export class RealtimeParkingViewModel {
   static async loadAvailableFolders(projectId: string) {
     try {
-      const [learningFolders, roiFiles] = await Promise.all([
-        FileUploadService.getFolders(projectId, 'learning'),
-        FileUploadService.getFolders(projectId, 'roi')
+      const [learningResponse, roiResponse] = await Promise.all([
+        FileStorageService.listFolders(projectId, 'learning'),
+        FileStorageService.listFiles(projectId, 'roi')
       ]);
 
+      // 폴더만 필터링하여 이름 추출
+      const learningFolders = learningResponse.data.items
+        .filter(item => item.isFolder)
+        .map(folder => folder.name);
+
+      // ROI 파일 목록에서 파일명 추출
+      const roiFiles = roiResponse.data.files.map(file => file.filename);
+
       return {
-        learning: learningFolders || [],
-        roi: roiFiles || []
+        learning: learningFolders,
+        roi: roiFiles
       };
     } catch (error) {
       console.error('폴더 목록 로드 실패:', error);

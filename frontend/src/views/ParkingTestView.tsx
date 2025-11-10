@@ -41,7 +41,7 @@ import {
 import { ParkingTestViewModel } from '../viewmodels/ParkingTestViewModel';
 import { Project } from '../models/Project';
 import LearningResultsView from './LearningResultsView';
-import { FileUploadService } from '../services/FileUploadService';
+import { FileStorageService } from '../services/FileStorageService';
 import { touchFriendly, responsiveSpacing } from '../styles/responsive';
 
 interface TabPanelProps {
@@ -106,11 +106,23 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
 
   const loadAvailableFolders = async () => {
     try {
-      const [learningFolders, testFolders, roiFolders] = await Promise.all([
-        FileUploadService.getFolders(project.id, 'learning'),
-        FileUploadService.getFolders(project.id, 'test'),
-        FileUploadService.getFolders(project.id, 'roi')
+      const [learningResponse, testResponse, roiResponse] = await Promise.all([
+        FileStorageService.listFolders(project.id, 'learning'),
+        FileStorageService.listFolders(project.id, 'test'),
+        FileStorageService.listFiles(project.id, 'roi')
       ]);
+
+      // 폴더만 필터링하여 이름 추출
+      const learningFolders = learningResponse.data.items
+        .filter(item => item.isFolder)
+        .map(folder => folder.name);
+
+      const testFolders = testResponse.data.items
+        .filter(item => item.isFolder)
+        .map(folder => folder.name);
+
+      // ROI는 파일 목록에서 파일명 추출
+      const roiFolders = roiResponse.data.files.map(file => file.filename);
 
       setAvailableFolders({
         learning: learningFolders,
