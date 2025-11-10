@@ -140,7 +140,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
           name: file.name,
           path: '', // 실제 이미지는 선택 시 로드
           size: file.size || 0,
-          cctvId: file.cctvId || ''
+          cctvId: '' // CCTV ID는 파일명에서 추출 가능하지만 현재는 빈 문자열
         }));
 
       setFolderImages(images);
