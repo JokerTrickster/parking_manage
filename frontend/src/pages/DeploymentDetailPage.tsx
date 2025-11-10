@@ -4,7 +4,6 @@ import {
   Typography,
   Box,
   Paper,
-  Grid,
   Chip,
   CircularProgress,
   Alert,
@@ -15,6 +14,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import {
   Home as HomeIcon,
   Business as BusinessIcon,
@@ -199,7 +199,7 @@ const DeploymentDetailPage: React.FC = () => {
       {/* Deployment Details */}
       <Grid container spacing={3}>
         {/* Left Column */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -253,7 +253,7 @@ const DeploymentDetailPage: React.FC = () => {
         </Grid>
 
         {/* Right Column */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -288,7 +288,7 @@ const DeploymentDetailPage: React.FC = () => {
         </Grid>
 
         {/* Logs Section */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
