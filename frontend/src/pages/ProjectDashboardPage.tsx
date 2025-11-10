@@ -21,6 +21,7 @@ import {
   Folder as FolderIcon,
   Home as HomeIcon,
   Business as BusinessIcon,
+  Rocket as RocketIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -255,9 +256,18 @@ const ProjectDashboardPage: React.FC = () => {
             <Typography variant="body2" sx={{ mb: 1 }}>
               👥 활성 사용자: 3명
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ mb: 2 }}>
               📍 서버 위치: 한국 (Seoul)
             </Typography>
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={<RocketIcon />}
+              onClick={() => navigate(`/project/${projectId}/deployments`)}
+              sx={{ mt: 1 }}
+            >
+              배포 결과 보기
+            </Button>
           </Card>
         </Box>
       </Box>

@@ -53,3 +53,7 @@ type LiveLearningParkingRepository struct {
 type CctvImageParkingRepository struct {
 	GormDB *gorm.DB
 }
+
+type DeploymentResultRepository struct {
+	GormDB *gorm.DB
+}

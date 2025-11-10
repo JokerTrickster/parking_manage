@@ -65,3 +65,12 @@ type IBatchImagesParkingHandler interface {
 type ILiveLearningParkingHandler interface {
 	LiveLearning(c echo.Context) error
 }
+
+type IDeploymentResultHandler interface {
+	GetAllDeployments(c echo.Context) error
+	GetDeploymentByID(c echo.Context) error
+	GetDeploymentStats(c echo.Context) error
+	CreateDeployment(c echo.Context) error
+	UpdateDeployment(c echo.Context) error
+	DeleteDeployment(c echo.Context) error
+}

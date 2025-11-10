@@ -2,6 +2,7 @@ package _interface
 
 import (
 	"context"
+	"main/features/parking/model/entity"
 	"main/features/parking/model/request"
 	"main/features/parking/model/response"
 	"mime/multipart"
@@ -73,4 +74,13 @@ type IBatchImagesParkingUseCase interface {
 
 type ILiveLearningParkingUseCase interface {
 	LiveLearning(ctx context.Context, req request.ReqLiveLearning) (response.ResLiveLearning, error)
+}
+
+type IDeploymentResultUseCase interface {
+	GetAllByProjectID(ctx context.Context, projectID string) ([]entity.DeploymentResult, error)
+	GetByID(ctx context.Context, id uint) (*entity.DeploymentResult, error)
+	Create(ctx context.Context, deployment *entity.DeploymentResult) error
+	Update(ctx context.Context, deployment *entity.DeploymentResult) error
+	Delete(ctx context.Context, id uint) error
+	GetStats(ctx context.Context, projectID string) (*entity.DeploymentStats, error)
 }

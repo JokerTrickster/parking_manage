@@ -15,6 +15,8 @@ import MapEditorActualPage from './pages/MapEditorActualPage';
 import ProjectFileRepositoryPage from './pages/ProjectFileRepositoryPage';
 import ProjectFileRepositoryTutorialPage from './pages/ProjectFileRepositoryTutorialPage';
 import ProjectDashboardPage from './pages/ProjectDashboardPage';
+import DeploymentResultsPage from './pages/DeploymentResultsPage';
+import DeploymentDetailPage from './pages/DeploymentDetailPage';
 
 // Enhanced pages that will wrap existing views
 import ROIEditorPage from './pages/ROIEditorPage';
@@ -44,6 +46,8 @@ function App() {
               <Route path="live-status" element={<LiveParkingStatusPage />} />
               <Route path="file-repository" element={<ProjectFileRepositoryTutorialPage />} />
               <Route path="file-repository-actual" element={<ProjectFileRepositoryPage />} />
+              <Route path="deployments" element={<DeploymentResultsPage />} />
+              <Route path="deployments/:deploymentId" element={<DeploymentDetailPage />} />
 
               {/* Actual functionality routes */}
               <Route path="roi-editor-actual" element={

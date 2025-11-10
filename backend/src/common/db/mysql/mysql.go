@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"main/features/parking/model/entity"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -55,6 +56,14 @@ func InitMySQL(dbUser, dbPass, dbHost, dbPort, dbName string) error {
 	}
 
 	fmt.Println("Successfully initialized GORM MySQL!")
+
+	// Auto migrate deployment_results table
+	if err := GormMysqlDB.AutoMigrate(&entity.DeploymentResult{}); err != nil {
+		fmt.Printf("Failed to migrate deployment_results table! Error: %v\n", err)
+		return fmt.Errorf("failed to migrate deployment_results: %w", err)
+	}
+
+	fmt.Println("Successfully migrated deployment_results table!")
 	return nil
 }
 

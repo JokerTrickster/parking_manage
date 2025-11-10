@@ -3,6 +3,7 @@ package _interface
 import (
 	"context"
 	"main/common/db/mysql"
+	"main/features/parking/model/entity"
 	"main/features/parking/model/response"
 )
 
@@ -61,4 +62,13 @@ type ILiveLearningParkingRepository interface {
 }
 
 type ICctvImageParkingRepository interface {
+}
+
+type IDeploymentResultRepository interface {
+	GetAllByProjectID(projectID string) ([]entity.DeploymentResult, error)
+	GetByID(id uint) (*entity.DeploymentResult, error)
+	Create(deployment *entity.DeploymentResult) error
+	Update(deployment *entity.DeploymentResult) error
+	Delete(id uint) error
+	GetStats(projectID string) (*entity.DeploymentStats, error)
 }
