@@ -125,51 +125,76 @@ export class LearningDataManagementViewModel {
    */
   async selectCCTV(cctvId: string): Promise<void> {
     console.log('[LearningDataVM] Selecting CCTV:', cctvId);
-    console.log('[LearningDataVM] Available CCTV list:', this.state.cctvList);
 
-    const cctvInfo = this.state.cctvList.find(c => c.cctv_id === cctvId);
-    console.log('[LearningDataVM] Found CCTV info:', cctvInfo);
+    // Use setState callback to get latest state instead of this.state (which is stale)
+    let cctvInfo: any = null;
+    let shouldContinue = false;
 
-    if (!cctvInfo) {
-      console.error('[LearningDataVM] CCTV not found in list');
-      this.setState(prev => ({
+    this.setState(prev => {
+      console.log('[LearningDataVM] Available CCTV list:', prev.cctvList);
+
+      cctvInfo = prev.cctvList.find(c => c.cctv_id === cctvId);
+      console.log('[LearningDataVM] Found CCTV info:', cctvInfo);
+
+      if (!cctvInfo) {
+        console.error('[LearningDataVM] CCTV not found in list');
+        return {
+          ...prev,
+          error: 'CCTV not found in list.',
+        };
+      }
+
+      if (cctvInfo.image_files.length === 0) {
+        console.error('[LearningDataVM] No image files in CCTV:', cctvInfo);
+        return {
+          ...prev,
+          error: `No images found for this CCTV. Files: ${JSON.stringify(cctvInfo)}`,
+        };
+      }
+
+      shouldContinue = true;
+      return {
         ...prev,
-        error: 'CCTV not found in list.',
-      }));
-      return;
+        selectedCCTV: cctvId,
+        currentImageFile: cctvInfo.image_files[0],
+        error: null,
+      };
+    });
+
+    // Wait for state update, then load image
+    if (shouldContinue) {
+      await new Promise(resolve => setTimeout(resolve, 0)); // Wait for state update
+      await this.loadCurrentImage();
     }
-
-    if (cctvInfo.image_files.length === 0) {
-      console.error('[LearningDataVM] No image files in CCTV:', cctvInfo);
-      this.setState(prev => ({
-        ...prev,
-        error: `No images found for this CCTV. Files: ${JSON.stringify(cctvInfo)}`,
-      }));
-      return;
-    }
-
-    this.setState(prev => ({
-      ...prev,
-      selectedCCTV: cctvId,
-      currentImageFile: cctvInfo.image_files[0],
-    }));
-
-    await this.loadCurrentImage();
   }
 
   /**
    * Load current image based on selections
    */
   private async loadCurrentImage(): Promise<void> {
-    const { selectedLearningFolder, selectedCCTV, currentImageFile, selectedRoiFileData } =
-      this.state;
+    // Get current state values using a temporary variable
+    let selectedLearningFolder: string | null = null;
+    let selectedCCTV: string | null = null;
+    let currentImageFile: string | null = null;
+    let selectedRoiFileData: any = null;
+
+    // Extract values from latest state
+    this.setState(prev => {
+      selectedLearningFolder = prev.selectedLearningFolder;
+      selectedCCTV = prev.selectedCCTV;
+      currentImageFile = prev.currentImageFile;
+      selectedRoiFileData = prev.selectedRoiFileData;
+      return { ...prev, loading: true, error: null };
+    });
 
     if (!selectedLearningFolder || !selectedCCTV || !currentImageFile) {
-      console.warn('[LearningDataVM] Missing required data to load image');
+      console.warn('[LearningDataVM] Missing required data to load image', {
+        selectedLearningFolder,
+        selectedCCTV,
+        currentImageFile,
+      });
       return;
     }
-
-    this.setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       console.log('[LearningDataVM] Loading image:', {
@@ -190,7 +215,7 @@ export class LearningDataManagementViewModel {
       // Initialize edited ROIs from ROI file data
       let editedROIs: ROIPolygon[] = [];
       if (selectedRoiFileData && selectedRoiFileData.cctv_id === selectedCCTV) {
-        editedROIs = selectedRoiFileData.rois.map(roi => ({
+        editedROIs = selectedRoiFileData.rois.map((roi: any) => ({
           ...roi,
           occupied: false, // Default to not occupied
         }));
