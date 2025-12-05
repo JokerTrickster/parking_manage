@@ -131,13 +131,14 @@ export class ChunkUploader {
       };
     }
 
-    if (file.size === 0) {
-      console.log('[ChunkUploader] Empty file:', file.name);
-      return {
-        valid: false,
-        error: '파일이 비어있습니다.',
-      };
-    }
+    // Skip size 0 check for images - browser may not load file size correctly for large folder uploads
+    // if (file.size === 0) {
+    //   console.log('[ChunkUploader] Empty file:', file.name);
+    //   return {
+    //     valid: false,
+    //     error: '파일이 비어있습니다.',
+    //   };
+    // }
 
     // Check file type by category
     const validExtensions: Record<FileCategory, string[]> = {

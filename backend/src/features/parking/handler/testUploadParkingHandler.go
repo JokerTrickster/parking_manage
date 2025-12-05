@@ -57,7 +57,8 @@ func (d *TestUploadParkingHandler) TestUpload(c echo.Context) error {
 		})
 	}
 
-	// multipart 폼 데이터 파싱
+	// multipart 폼 데이터 파싱 (10GB 메모리 제한 설정)
+	c.Request().ParseMultipartForm(10 << 30) // 10GB
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
