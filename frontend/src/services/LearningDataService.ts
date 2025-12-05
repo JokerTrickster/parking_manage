@@ -61,7 +61,13 @@ export class LearningDataService {
     try {
       console.log('[LearningDataService] Fetching ROI file data:', { projectId, roiFileName });
 
-      const endpoint = API_ENDPOINTS.FILE_STORAGE.DOWNLOAD_LATEST(projectId, 'roi', roiFileName);
+      // Remove version suffix from filename to get original_name
+      // Format: "filename_1234567890.json" -> "filename.json"
+      const originalName = this.removeVersionSuffix(roiFileName);
+
+      console.log('[LearningDataService] Original name:', originalName);
+
+      const endpoint = API_ENDPOINTS.FILE_STORAGE.DOWNLOAD_LATEST(projectId, 'roi', originalName);
       const response = await api.get(endpoint, {
         responseType: 'json'
       });
@@ -72,6 +78,20 @@ export class LearningDataService {
       console.error('[LearningDataService] Failed to fetch ROI file data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Remove version suffix from filename
+   * Format: "filename_1234567890.ext" -> "filename.ext"
+   * @private
+   */
+  private static removeVersionSuffix(filename: string): string {
+    // Match pattern: anything_digits.extension
+    const match = filename.match(/^(.+)_(\d+)(\.[^.]+)$/);
+    if (match) {
+      return match[1] + match[3]; // name + extension
+    }
+    return filename; // No version suffix found, return as-is
   }
 
   /**

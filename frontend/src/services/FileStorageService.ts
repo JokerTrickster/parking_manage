@@ -378,6 +378,27 @@ export class FileStorageService {
   }
 
   /**
+   * Helper method to find a folder by path in nested structure
+   * @private
+   */
+  private static findFolderByPath(folders: any[], path: string): any | null {
+    for (const folder of folders) {
+      if (folder.path === path) {
+        return folder;
+      }
+
+      // Recursively search in subfolders
+      if (folder.subfolders && folder.subfolders.length > 0) {
+        const found = this.findFolderByPath(folder.subfolders, path);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * List folders for learning/test categories with nested folder support
    *
    * @param projectId - Project identifier
@@ -414,12 +435,50 @@ export class FileStorageService {
       // Transform NestedFolderListResponse to FolderListResponse for backward compatibility
       // Convert folders array (new format) to items array (old format expected by FileRepositoryViewModel)
       const folders = response.data.data?.folders || [];
-      const items: any[] = folders.map((folder: any) => ({
-        name: folder.name,
-        path: folder.path,
-        isFolder: true,
-        count: folder.file_count || folder.subfolders?.length || 0,
-      }));
+      const items: any[] = [];
+
+      // If navigating to a specific folder, show its subfolders and files
+      if (currentPath) {
+        // Find the target folder by path
+        const targetFolder = this.findFolderByPath(folders, currentPath);
+
+        if (targetFolder) {
+          // Add subfolders as items
+          if (targetFolder.subfolders) {
+            targetFolder.subfolders.forEach((subfolder: any) => {
+              items.push({
+                name: subfolder.name,
+                path: subfolder.path,
+                isFolder: true,
+                count: subfolder.file_count || 0,
+              });
+            });
+          }
+
+          // Add files as items
+          if (targetFolder.files) {
+            targetFolder.files.forEach((file: any) => {
+              items.push({
+                name: file.name,
+                path: `${currentPath}/${file.name}`,
+                isFolder: false,
+                size: file.size,
+                uploadDate: file.created_at,
+              });
+            });
+          }
+        }
+      } else {
+        // At root level, show top-level folders only
+        folders.forEach((folder: any) => {
+          items.push({
+            name: folder.name,
+            path: folder.path,
+            isFolder: true,
+            count: folder.subfolders?.length || folder.file_count || 0,
+          });
+        });
+      }
 
       return {
         success: response.data.success,
