@@ -128,7 +128,6 @@ export class FileUploadService {
 
       let totalSuccess = 0;
       let totalFailed = 0;
-      const allUploadedFiles: string[] = [];
 
       // 각 청크를 순차적으로 업로드
       for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
@@ -146,10 +145,7 @@ export class FileUploadService {
 
           if (response.data.success) {
             totalSuccess += response.data.success_count || 0;
-            totalFailed += response.data.failed_count || 0;
-            if (response.data.uploaded_files) {
-              allUploadedFiles.push(...response.data.uploaded_files);
-            }
+            totalFailed += response.data.failed || 0;
           }
         } catch (error) {
           console.error(`[FileUploadService] 청크 ${chunkIndex + 1} 업로드 실패:`, error);
@@ -164,8 +160,7 @@ export class FileUploadService {
         message: `${totalSuccess}개 파일 업로드 성공${totalFailed > 0 ? `, ${totalFailed}개 실패` : ''}`,
         total_files: fileCount,
         success_count: totalSuccess,
-        failed_count: totalFailed,
-        uploaded_files: allUploadedFiles
+        failed: totalFailed
       };
     } catch (error) {
       console.error('폴더 업로드 실패:', error);
