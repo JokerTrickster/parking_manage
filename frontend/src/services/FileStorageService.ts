@@ -407,11 +407,29 @@ export class FileStorageService {
       const response = await api.get(endpoint);
 
       console.log('[FileStorageService] Folders listed:', {
-        totalItems: response.data.data.total,
-        currentPath: response.data.data.currentPath,
+        foldersCount: response.data.data?.folders?.length || 0,
+        folders: response.data.data?.folders || [],
       });
 
-      return response.data;
+      // Transform NestedFolderListResponse to FolderListResponse for backward compatibility
+      // Convert folders array (new format) to items array (old format expected by FileRepositoryViewModel)
+      const folders = response.data.data?.folders || [];
+      const items: any[] = folders.map((folder: any) => ({
+        name: folder.name,
+        path: folder.path,
+        isFolder: true,
+        count: folder.file_count || folder.subfolders?.length || 0,
+      }));
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: {
+          items: items,
+          total: items.length,
+          currentPath: currentPath || '',
+        },
+      };
     } catch (error) {
       console.error('[FileStorageService] List folders failed:', error);
       throw error;
