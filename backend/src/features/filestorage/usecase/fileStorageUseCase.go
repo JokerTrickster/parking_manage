@@ -330,16 +330,17 @@ func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, categor
 					folderMap[timestampFolder] = folder
 				}
 
-				// Find or create CCTV subfolder
-				var cctvNode *FolderNode
+				// Find or create CCTV subfolder (use index instead of pointer to avoid slice reallocation issues)
+				cctvIndex := -1
 				for i := range folder.Subfolders {
 					if folder.Subfolders[i].Name == cctvFolder {
-						cctvNode = &folder.Subfolders[i]
+						cctvIndex = i
 						break
 					}
 				}
 
-				if cctvNode == nil {
+				if cctvIndex == -1 {
+					// Create new CCTV subfolder
 					newCctvNode := FolderNode{
 						Name:       cctvFolder,
 						Path:       filepath.Join(timestampFolder, cctvFolder),
@@ -349,16 +350,16 @@ func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, categor
 						CreatedAt:  file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
 					}
 					folder.Subfolders = append(folder.Subfolders, newCctvNode)
-					cctvNode = &folder.Subfolders[len(folder.Subfolders)-1]
+					cctvIndex = len(folder.Subfolders) - 1
 				}
 
-				// Add file to CCTV folder
-				cctvNode.Files = append(cctvNode.Files, FileNode{
+				// Add file to CCTV folder using index (safe against slice reallocation)
+				folder.Subfolders[cctvIndex].Files = append(folder.Subfolders[cctvIndex].Files, FileNode{
 					Name:      filename,
 					Size:      file.SizeBytes,
 					CreatedAt: file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
 				})
-				cctvNode.FileCount++
+				folder.Subfolders[cctvIndex].FileCount++
 			}
 		}
 	}
