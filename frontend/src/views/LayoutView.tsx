@@ -28,6 +28,7 @@ import {
   LiveTv as LiveIcon,
   Folder as FolderIcon,
   BugReport as TestingIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import theme from '../styles/theme';
@@ -53,6 +54,7 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
     { id: 'map-editor', title: '맵 에디터', path: `/project/${projectId}/map-editor`, icon: <MapIcon /> },
     { id: 'map-properties', title: '맵 속성 편집기', path: `/project/${projectId}/map-properties`, icon: <SettingsIcon /> },
     { id: 'roi-editor', title: 'ROI 편집기', path: `/project/${projectId}/roi-editor`, icon: <RoiIcon /> },
+    { id: 'learning-data-management', title: '학습 데이터 관리', path: `/project/${projectId}/learning-data-management`, icon: <StorageIcon /> },
     { id: 'parking-validation', title: '주차면 검증', path: `/project/${projectId}/parking-validation`, icon: <ValidationIcon /> },
     { id: 'live-status', title: '실시간 현황', path: `/project/${projectId}/live-status`, icon: <LiveIcon /> },
     { id: 'file-repository', title: '파일 보관함', path: `/project/${projectId}/file-repository`, icon: <FolderIcon /> },

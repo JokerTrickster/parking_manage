@@ -22,6 +22,7 @@ import {
   Home as HomeIcon,
   Business as BusinessIcon,
   Rocket as RocketIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -49,6 +50,14 @@ const ProjectDashboardPage: React.FC = () => {
       icon: <RoiIcon />,
       color: '#f57c00',
       path: `/project/${projectId}/roi-editor`,
+    },
+    {
+      id: 'learning-data-management',
+      title: '학습 데이터 관리',
+      description: 'ROI 파일과 학습 이미지를 선택하여 차량 점유 상태를 표시합니다',
+      icon: <StorageIcon />,
+      color: '#388e3c',
+      path: `/project/${projectId}/learning-data-management`,
     },
     {
       id: 'live-status',

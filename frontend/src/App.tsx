@@ -22,6 +22,7 @@ import DeploymentDetailPage from './pages/DeploymentDetailPage';
 import ROIEditorPage from './pages/ROIEditorPage';
 import ParkingValidationPage from './pages/ParkingValidationPage';
 import LiveParkingStatusPage from './pages/LiveParkingStatusPage';
+import LearningDataManagementPage from './pages/LearningDataManagementPage';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
               <Route path="map-editor" element={<MapEditorPage />} />
               <Route path="map-editor-actual" element={<MapEditorActualPage />} />
               <Route path="roi-editor" element={<ROIEditorPage />} />
+              <Route path="learning-data-management" element={<LearningDataManagementPage />} />
               <Route path="parking-validation" element={<ParkingValidationPage />} />
               <Route path="live-status" element={<LiveParkingStatusPage />} />
               <Route path="file-repository" element={<ProjectFileRepositoryTutorialPage />} />
