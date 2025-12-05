@@ -106,9 +106,9 @@ func (h *FileStorageHandler) Upload(c echo.Context) error {
 		})
 	}
 
-	// Parse multipart form with 2GB memory limit (matches BodyLimit middleware)
+	// Parse multipart form with 10GB memory limit (matches BodyLimit middleware)
 	// This sets the max memory for parsing multipart form data
-	c.Request().ParseMultipartForm(2 << 30) // 2GB
+	c.Request().ParseMultipartForm(10 << 30) // 10GB
 
 	form, err := c.MultipartForm()
 	if err != nil {

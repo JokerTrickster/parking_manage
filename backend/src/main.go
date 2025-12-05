@@ -62,9 +62,11 @@ func main() {
 
 	// Create custom HTTP server with increased timeouts for large file uploads
 	s := &http.Server{
-		Addr:         ":" + common.Env.Port,
-		ReadTimeout:  10 * time.Minute,
-		WriteTimeout: 10 * time.Minute,
+		Addr:              ":" + common.Env.Port,
+		ReadTimeout:       30 * time.Minute,
+		WriteTimeout:      30 * time.Minute,
+		MaxHeaderBytes:    10 << 30, // 10GB
+		ReadHeaderTimeout: 5 * time.Minute,
 	}
 
 	e.Logger.Fatal(e.StartServer(s))

@@ -23,8 +23,8 @@ func InitMiddleware(e *echo.Echo) error {
 		AllowCredentials: false,
 	}))
 
-	// multipart 메시지 크기 제한 설정 (기본값: 32MB -> 2GB)
-	e.Use(middleware.BodyLimit("2GB"))
+	// multipart 메시지 크기 제한 설정 (기본값: 32MB -> 10GB)
+	e.Use(middleware.BodyLimit("10GB"))
 
 	//Logger : 로깅 미들웨어
 	e.Use(Logger)
