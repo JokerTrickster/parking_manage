@@ -65,7 +65,11 @@ export class LearningDataManagementViewModel {
 
       const roiFileData = await LearningDataService.getROIFileData(this.projectId, roiFileName);
 
-      console.log('[LearningDataVM] ROI file loaded:', roiFileData);
+      console.log('[LearningDataVM] ROI file loaded:', {
+        cctv_id: roiFileData.cctv_id,
+        roi_count: roiFileData.rois?.length || 0,
+        full_data: roiFileData,
+      });
 
       this.setState(prev => ({
         ...prev,

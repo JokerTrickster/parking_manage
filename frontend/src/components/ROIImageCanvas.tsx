@@ -159,10 +159,25 @@ const ROIImageCanvas: React.FC<ROIImageCanvasProps> = ({
       }
       ctx.stroke();
 
-      // Draw ROI ID label
+      // Draw ROI ID label with background for better visibility
+      const labelX = x0 + 5;
+      const labelY = y0 - 5;
+      ctx.font = 'bold 16px Arial';
+      const textMetrics = ctx.measureText(roi.roi_id);
+      const textWidth = textMetrics.width;
+      const textHeight = 16;
+
+      // Draw background rectangle
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(labelX - 2, labelY - textHeight, textWidth + 4, textHeight + 4);
+
+      // Draw text with outline for better visibility
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(roi.roi_id, labelX, labelY);
+
       ctx.fillStyle = isHighlighted || isHovered ? '#ffff00' : '#00ff00';
-      ctx.font = '14px Arial';
-      ctx.fillText(roi.roi_id, x0 + 5, y0 - 5);
+      ctx.fillText(roi.roi_id, labelX, labelY);
     });
   }, [canvasState, rois, highlightedROI, hoveredROI, width, height]);
 
