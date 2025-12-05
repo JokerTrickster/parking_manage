@@ -20,8 +20,8 @@ export class ChunkUploader {
   // Default chunk size: 5MB
   private static readonly DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
 
-  // Maximum file size: 100MB
-  private static readonly MAX_FILE_SIZE = 100 * 1024 * 1024;
+  // Maximum file size: 10GB (matches backend limit)
+  private static readonly MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024;
 
   /**
    * Upload large file with chunk-based progress tracking
