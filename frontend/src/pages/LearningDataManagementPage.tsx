@@ -382,25 +382,25 @@ const LearningDataManagementPage: React.FC = () => {
               </Box>
             )}
 
-            {!state.loading && state.currentImage && state.editedROIs.length > 0 && (
+            {!state.loading && state.currentImage && (
               <Box>
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    클릭하여 ROI 영역을 채우거나 비웁니다
+                    {state.currentImageFile}
                   </Typography>
-                  {state.hasUnsavedChanges && (
-                    <Chip label="저장되지 않은 변경사항" color="warning" size="small" />
-                  )}
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <ROIImageCanvas
-                    imageSrc={state.currentImage}
-                    rois={state.editedROIs}
-                    onROIClick={handleROIClick}
-                    highlightedROI={selectedROI}
-                    width={800}
-                    height={600}
+                  <img
+                    src={state.currentImage}
+                    alt="CCTV Image"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '600px',
+                      objectFit: 'contain',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                    }}
                   />
                 </Box>
 

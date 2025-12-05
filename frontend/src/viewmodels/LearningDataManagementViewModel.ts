@@ -210,15 +210,25 @@ export class LearningDataManagementViewModel {
         currentImageFile
       );
 
-      console.log('[LearningDataVM] Image loaded successfully');
+      console.log('[LearningDataVM] Image loaded successfully, URL:', imageUrl);
 
       // Initialize edited ROIs from ROI file data
       let editedROIs: ROIPolygon[] = [];
+      console.log('[LearningDataVM] ROI matching:', {
+        hasRoiFileData: !!selectedRoiFileData,
+        roiFileCctvId: selectedRoiFileData?.cctv_id,
+        selectedCCTV: selectedCCTV,
+        match: selectedRoiFileData?.cctv_id === selectedCCTV,
+      });
+
       if (selectedRoiFileData && selectedRoiFileData.cctv_id === selectedCCTV) {
         editedROIs = selectedRoiFileData.rois.map((roi: any) => ({
           ...roi,
           occupied: false, // Default to not occupied
         }));
+        console.log('[LearningDataVM] Loaded ROIs:', editedROIs.length, 'regions');
+      } else {
+        console.warn('[LearningDataVM] No ROI match - image will display without ROI overlay');
       }
 
       this.setState(prev => ({
