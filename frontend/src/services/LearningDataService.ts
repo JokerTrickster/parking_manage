@@ -218,7 +218,7 @@ export class LearningDataService {
       });
 
       const formData = new FormData();
-      formData.append('file', request.imageData, request.imageFile);
+      formData.append('files', request.imageData, request.imageFile);
 
       // Upload to the same path to overwrite
       const fullPath = `${request.folderPath}/${request.cctvId}`;

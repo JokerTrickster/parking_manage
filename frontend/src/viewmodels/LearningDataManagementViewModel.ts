@@ -424,17 +424,18 @@ export class LearningDataManagementViewModel {
           ctx.drawImage(img, 0, 0);
 
           // Fill occupied ROIs with red (opaque for saving)
-          editedROIs.forEach(roi => {
-            if (roi.occupied) {
-              ctx.fillStyle = 'rgb(255, 0, 0)'; // Solid red for occupied
-              ctx.beginPath();
-              ctx.moveTo(roi.coords[0], roi.coords[1]);
-              for (let i = 2; i < roi.coords.length; i += 2) {
-                ctx.lineTo(roi.coords[i], roi.coords[i + 1]);
-              }
-              ctx.closePath();
-              ctx.fill();
+          const occupiedROIs = editedROIs.filter(roi => roi.occupied);
+          console.log(`[LearningDataVM] Processing ${imageFileName}: ${occupiedROIs.length} occupied ROIs out of ${editedROIs.length} total`);
+
+          occupiedROIs.forEach(roi => {
+            ctx.fillStyle = 'rgb(255, 0, 0)'; // Solid red for occupied
+            ctx.beginPath();
+            ctx.moveTo(roi.coords[0], roi.coords[1]);
+            for (let i = 2; i < roi.coords.length; i += 2) {
+              ctx.lineTo(roi.coords[i], roi.coords[i + 1]);
             }
+            ctx.closePath();
+            ctx.fill();
           });
 
           // Convert canvas to blob
