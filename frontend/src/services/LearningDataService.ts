@@ -243,8 +243,13 @@ export class LearningDataService {
           file_size: request.imageData.size,
         },
       };
-    } catch (error) {
-      console.error('[LearningDataService] Failed to save edited image:', error);
+    } catch (error: any) {
+      console.error('[LearningDataService] Failed to save edited image:', {
+        error,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        message: error?.message,
+      });
       throw error;
     }
   }

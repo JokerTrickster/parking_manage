@@ -461,9 +461,15 @@ export class LearningDataManagementViewModel {
           // Revoke blob URL to free memory
           URL.revokeObjectURL(imageUrl);
 
-        } catch (error) {
-          console.error('[LearningDataVM] Failed to process image:', imageFileName, error);
-          errors.push(`${imageFileName}: ${error}`);
+        } catch (error: any) {
+          const errorMsg = error?.response?.data?.message || error?.message || String(error);
+          console.error('[LearningDataVM] Failed to process image:', {
+            imageFileName,
+            error: errorMsg,
+            status: error?.response?.status,
+            fullError: error,
+          });
+          errors.push(`${imageFileName}: ${errorMsg}`);
         }
       }
 
