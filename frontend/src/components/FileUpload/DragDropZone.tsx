@@ -53,32 +53,11 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
   const handleFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
 
-    console.log('[DragDropZone] Files selected:', {
-      count: files.length,
-      category,
-    });
-
-    // Log first 5 files for debugging
-    console.log('[DragDropZone] Sample files:', files.slice(0, 5).map(f => ({
-      name: f.name,
-      size: f.size,
-      type: f.type
-    })));
-
     // Validate files
     const { valid, invalid } = ChunkUploader.validateFiles(files, category);
 
-    console.log('[DragDropZone] Validation result:', {
-      totalFiles: files.length,
-      validCount: valid.length,
-      invalidCount: invalid.length
-    });
-
     // Show validation errors if any
     if (invalid.length > 0) {
-      // Log first 10 invalid files
-      console.warn('[DragDropZone] Invalid files (first 10):', invalid.slice(0, 10));
-
       const errorMessages = invalid.slice(0, 10).map(({ file, error }) => `${file.name}: ${error}`);
       const moreCount = invalid.length > 10 ? `\n\n... 외 ${invalid.length - 10}개 파일` : '';
       alert(`파일 검증 실패:\n\n${errorMessages.join('\n')}${moreCount}`);
@@ -86,7 +65,6 @@ export const DragDropZone: React.FC<DragDropZoneProps> = ({
 
     // Pass valid files to parent
     if (valid.length > 0) {
-      console.log('[DragDropZone] Passing valid files to parent:', valid.length);
       onFilesSelected(valid);
     }
   }, [category, onFilesSelected]);

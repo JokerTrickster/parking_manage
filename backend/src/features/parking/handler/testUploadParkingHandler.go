@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"main/common"
 	"net/http"
 
@@ -81,7 +80,6 @@ func (d *TestUploadParkingHandler) TestUpload(c echo.Context) error {
 	// "files" 키로 여러 파일 (폴더 업로드)
 	if formFiles := form.File["files"]; len(formFiles) > 0 {
 		files = formFiles
-		fmt.Printf("[TestUpload] 수신된 파일 개수: %d\n", len(files))
 	} else {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,

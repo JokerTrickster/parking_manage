@@ -102,7 +102,6 @@ export class FileUploadService {
     try {
       const filesArray = files instanceof FileList ? Array.from(files) : files;
       const fileCount = filesArray.length;
-      console.log(`[FileUploadService] 총 선택된 파일 수: ${fileCount}`);
 
       // fileType에 따라 적절한 엔드포인트 선택
       let endpoint: string;
@@ -124,15 +123,12 @@ export class FileUploadService {
         chunks.push(filesArray.slice(i, i + CHUNK_SIZE));
       }
 
-      console.log(`[FileUploadService] 총 ${chunks.length}개 청크로 분할 (청크당 최대 ${CHUNK_SIZE}개 파일)`);
-
       let totalSuccess = 0;
       let totalFailed = 0;
 
       // 각 청크를 순차적으로 업로드
       for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
         const chunk = chunks[chunkIndex];
-        console.log(`[FileUploadService] 청크 ${chunkIndex + 1}/${chunks.length} 업로드 중... (${chunk.length}개 파일)`);
 
         const formData = new FormData();
         chunk.forEach(file => {
@@ -141,19 +137,16 @@ export class FileUploadService {
 
         try {
           const response = await api.post(endpoint, formData);
-          console.log(`[FileUploadService] 청크 ${chunkIndex + 1} 업로드 완료:`, response.data);
 
           if (response.data.success) {
             totalSuccess += response.data.success_count || 0;
             totalFailed += response.data.failed || 0;
           }
         } catch (error) {
-          console.error(`[FileUploadService] 청크 ${chunkIndex + 1} 업로드 실패:`, error);
+          console.error(`[FileUploadService] 청크 업로드 실패:`, error);
           totalFailed += chunk.length;
         }
       }
-
-      console.log(`[FileUploadService] 전체 업로드 완료: 성공 ${totalSuccess}개, 실패 ${totalFailed}개`);
 
       return {
         success: totalSuccess > 0,
