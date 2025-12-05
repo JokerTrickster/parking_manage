@@ -391,16 +391,13 @@ const LearningDataManagementPage: React.FC = () => {
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <img
-                    src={state.currentImage}
-                    alt="CCTV Image"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '600px',
-                      objectFit: 'contain',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                    }}
+                  <ROIImageCanvas
+                    imageSrc={state.currentImage}
+                    rois={state.editedROIs}
+                    onROIClick={handleROIClick}
+                    highlightedROI={selectedROI}
+                    width={800}
+                    height={600}
                   />
                 </Box>
 
