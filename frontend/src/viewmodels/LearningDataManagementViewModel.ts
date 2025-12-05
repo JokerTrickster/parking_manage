@@ -358,20 +358,27 @@ export class LearningDataManagementViewModel {
 
       for (const imageFileName of cctvInfo.image_files) {
         try {
+          console.log(`[LearningDataVM] ========================================`);
+          console.log(`[LearningDataVM] Processing image ${processedCount + 1}/${totalImages}: ${imageFileName}`);
+
           // Load original image from server
+          console.log(`[LearningDataVM] Step 1: Loading image from server...`);
           const imageUrl = await LearningDataService.getFirstImage(
             this.projectId,
             selectedLearningFolder,
             selectedCCTV,
             imageFileName
           );
+          console.log(`[LearningDataVM] Image loaded, blob URL: ${imageUrl.substring(0, 50)}...`);
 
           // Create canvas to draw edited image
+          console.log(`[LearningDataVM] Step 2: Creating canvas...`);
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Failed to get canvas context');
 
           // Load image
+          console.log(`[LearningDataVM] Step 3: Loading image into canvas...`);
           const img = new Image();
           await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
@@ -381,15 +388,18 @@ export class LearningDataManagementViewModel {
 
           canvas.width = img.width;
           canvas.height = img.height;
+          console.log(`[LearningDataVM] Canvas size: ${canvas.width}x${canvas.height}`);
 
           // Draw original image
+          console.log(`[LearningDataVM] Step 4: Drawing original image to canvas...`);
           ctx.drawImage(img, 0, 0);
 
           // Fill occupied ROIs with red (opaque for saving)
           const occupiedROIs = editedROIs.filter(roi => roi.occupied);
-          console.log(`[LearningDataVM] Processing ${imageFileName}: ${occupiedROIs.length} occupied ROIs out of ${editedROIs.length} total`);
+          console.log(`[LearningDataVM] Step 5: Filling ${occupiedROIs.length} occupied ROIs (out of ${editedROIs.length} total)`);
 
-          occupiedROIs.forEach(roi => {
+          occupiedROIs.forEach((roi, index) => {
+            console.log(`[LearningDataVM]   Filling ROI ${index + 1}/${occupiedROIs.length}: ${roi.roi_id}`);
             ctx.fillStyle = 'rgb(255, 0, 0)'; // Solid red for occupied
             ctx.beginPath();
             ctx.moveTo(roi.coords[0], roi.coords[1]);
@@ -401,24 +411,28 @@ export class LearningDataManagementViewModel {
           });
 
           // Convert canvas to blob
+          console.log(`[LearningDataVM] Step 6: Converting canvas to blob...`);
           const blob = await new Promise<Blob>((resolve, reject) => {
             canvas.toBlob(blob => {
               if (blob) resolve(blob);
               else reject(new Error('Failed to create blob'));
             }, 'image/jpeg', 0.95);
           });
+          console.log(`[LearningDataVM] Blob created, size: ${blob.size} bytes`);
 
           // Save to server
-          await LearningDataService.saveEditedImage({
+          console.log(`[LearningDataVM] Step 7: Uploading to server...`);
+          const uploadResult = await LearningDataService.saveEditedImage({
             projectId: this.projectId,
             folderPath: selectedLearningFolder,
             cctvId: selectedCCTV,
             imageFile: imageFileName,
             imageData: blob,
           });
+          console.log(`[LearningDataVM] Upload result:`, uploadResult);
 
           processedCount++;
-          console.log(`[LearningDataVM] Processed ${processedCount}/${totalImages}: ${imageFileName}`);
+          console.log(`[LearningDataVM] ✅ Successfully processed ${processedCount}/${totalImages}`);
 
           // Revoke blob URL to free memory
           URL.revokeObjectURL(imageUrl);

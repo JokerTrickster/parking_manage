@@ -227,11 +227,21 @@ export class LearningDataService {
       // Add folder path as query parameter to preserve structure
       const uploadUrl = `${endpoint}?folder_path=${encodeURIComponent(fullPath)}`;
 
+      console.log('[LearningDataService] Upload request:', {
+        url: uploadUrl,
+        fileName: request.imageFile,
+        fileSize: request.imageData.size,
+        fileType: request.imageData.type,
+        folderPath: fullPath,
+      });
+
       const response = await api.post(uploadUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+
+      console.log('[LearningDataService] Upload response:', response.status, response.data);
 
       console.log('[LearningDataService] Image saved successfully:', response.data);
 
