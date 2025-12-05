@@ -127,8 +127,15 @@ func (h *FileStorageHandler) Upload(c echo.Context) error {
 		})
 	}
 
+	// Log received files
+	fmt.Printf("[FileStorageHandler] Received %d files\n", len(files))
+	for i, file := range files {
+		fmt.Printf("[FileStorageHandler] File %d/%d: %s (%d bytes)\n", i+1, len(files), file.Filename, file.Size)
+	}
+
 	// Get optional folder_path parameter
 	folderPath := c.QueryParam("folder_path")
+	fmt.Printf("[FileStorageHandler] folder_path parameter: %s\n", folderPath)
 
 	// Create upload request
 	uploadReq := request.UploadRequest{

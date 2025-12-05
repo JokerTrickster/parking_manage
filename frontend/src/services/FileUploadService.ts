@@ -95,24 +95,35 @@ export class FileUploadService {
 
   // 폴더 업로드 (학습/테스트 이미지용)
   static async uploadFolder(
-    files: FileList | File[], 
-    projectId: string, 
+    files: FileList | File[],
+    projectId: string,
     fileType: 'learning' | 'test'
   ): Promise<FileUploadResponse> {
     try {
       const formData = new FormData();
-      
+
+      // 선택된 파일 수 로그
+      const fileCount = files instanceof FileList ? files.length : files.length;
+      console.log(`[FileUploadService] 총 선택된 파일 수: ${fileCount}`);
+
       // 모든 파일을 FormData에 추가
+      let addedCount = 0;
       if (files instanceof FileList) {
         for (let i = 0; i < files.length; i++) {
           formData.append('files', files[i]);
+          addedCount++;
+          console.log(`[FileUploadService] 파일 추가 ${addedCount}/${fileCount}: ${files[i].name} (${files[i].size} bytes)`);
         }
       } else {
         for (const file of files) {
           formData.append('files', file);
+          addedCount++;
+          console.log(`[FileUploadService] 파일 추가 ${addedCount}/${fileCount}: ${file.name} (${file.size} bytes)`);
         }
       }
-      
+
+      console.log(`[FileUploadService] FormData에 추가된 파일 수: ${addedCount}`);
+
       // fileType에 따라 적절한 엔드포인트 선택
       let endpoint: string;
       switch (fileType) {
@@ -125,8 +136,10 @@ export class FileUploadService {
         default:
           throw new Error('지원하지 않는 파일 타입입니다.');
       }
-      
+
+      console.log(`[FileUploadService] 업로드 시작: ${endpoint}`);
       const response = await api.post(endpoint, formData);
+      console.log(`[FileUploadService] 업로드 응답:`, response.data);
       return response.data;
     } catch (error) {
       console.error('폴더 업로드 실패:', error);
