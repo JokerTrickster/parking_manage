@@ -138,6 +138,10 @@ export const API_ENDPOINTS = {
     DOWNLOAD_LATEST: (projectId: string, category: string, originalName: string) =>
       `/v0.1/filestorage/${projectId}/${category}/latest?original_name=${encodeURIComponent(originalName)}`,
 
+    // Download multiple files as ZIP
+    DOWNLOAD_MULTIPLE: (projectId: string, category: string) =>
+      `/v0.1/filestorage/${projectId}/${category}/download-multiple`,
+
     // Delete file (encode path segments individually to preserve slashes)
     DELETE: (projectId: string, category: string, filename: string) => {
       const encodedPath = filename

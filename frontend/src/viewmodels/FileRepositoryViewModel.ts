@@ -185,6 +185,38 @@ export class FileRepositoryViewModel {
   }
 
   /**
+   * Download multiple files as ZIP archive
+   *
+   * @param filenames - Array of filenames to download
+   */
+  async downloadMultiple(filenames: string[]): Promise<void> {
+    if (filenames.length === 0) {
+      this.setState(prev => ({
+        ...prev,
+        error: '다운로드할 파일을 선택해주세요.',
+      }));
+      return;
+    }
+
+    try {
+      const blob = await FileStorageService.downloadMultiple(
+        this.projectId,
+        this.state.currentCategory,
+        filenames
+      );
+
+      const zipFilename = `${this.projectId}_${this.state.currentCategory}_${filenames.length}files.zip`;
+      FileStorageService.triggerBrowserDownload(blob, zipFilename);
+    } catch (error) {
+      console.error('[FileRepository] Multiple download failed:', error);
+      this.setState(prev => ({
+        ...prev,
+        error: '파일 다운로드에 실패했습니다.',
+      }));
+    }
+  }
+
+  /**
    * Load folders for learning/test categories (with nested folder support)
    */
   async loadFolders(path?: string): Promise<void> {

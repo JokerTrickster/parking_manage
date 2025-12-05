@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"archive/zip"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -44,6 +46,7 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 	// Download endpoints
 	e.GET("/v0.1/filestorage/:projectId/:category/download/*", handler.Download)
 	e.GET("/v0.1/filestorage/:projectId/:category/latest", handler.DownloadLatest)
+	e.POST("/v0.1/filestorage/:projectId/:category/download-multiple", handler.DownloadMultiple)
 
 	// Delete endpoint
 	e.DELETE("/v0.1/filestorage/:projectId/:category/delete/*", handler.Delete)
@@ -653,4 +656,95 @@ func extractCategoryFromPath(path string) string {
 		return parts[4] // Category is at index 4
 	}
 	return ""
+}
+
+// DownloadMultiple handles downloading multiple files as a ZIP archive
+// @Router /v0.1/filestorage/{projectId}/{category}/download-multiple [post]
+// @Summary Download multiple files as ZIP
+// @Description Downloads multiple files packaged into a single ZIP archive
+// @Tags File Storage
+// @Accept json
+// @Produce application/zip
+// @Param projectId path string true "Project ID"
+// @Param category path string true "Category"
+// @Param request body object true "Request body with filenames array"
+// @Success 200 {file} binary "ZIP file containing requested files"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+func (h *FileStorageHandler) DownloadMultiple(c echo.Context) error {
+	ctx, _, _ := common.CtxGenerate(c)
+
+	projectID := c.Param("projectId")
+	category := c.Param("category")
+
+	if projectID == "" || category == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "projectId and category are required",
+		})
+	}
+
+	// Parse request body
+	var req struct {
+		Filenames []string `json:"filenames"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "invalid request body: " + err.Error(),
+		})
+	}
+
+	if len(req.Filenames) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "at least one filename is required",
+		})
+	}
+
+	// Validate category
+	cat := entity.FileCategory(category)
+	if !cat.IsValid() {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("invalid category: %s", category),
+		})
+	}
+
+	// Set response headers for ZIP download
+	zipFilename := fmt.Sprintf("%s_%s_files.zip", projectID, category)
+	c.Response().Header().Set("Content-Type", "application/zip")
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", zipFilename))
+	c.Response().WriteHeader(http.StatusOK)
+
+	// Create ZIP writer
+	zipWriter := zip.NewWriter(c.Response().Writer)
+	defer zipWriter.Close()
+
+	// Download and add each file to ZIP
+	for _, filename := range req.Filenames {
+		fileReader, fileInfo, err := h.UseCase.DownloadFile(ctx, projectID, category, filename)
+		if err != nil {
+			// Skip files that can't be downloaded (log but continue)
+			continue
+		}
+
+		// Create file in ZIP (preserve folder structure if present)
+		zipFile, err := zipWriter.Create(filepath.ToSlash(filename))
+		if err != nil {
+			fileReader.Close()
+			continue
+		}
+
+		// Copy file content to ZIP
+		_, err = io.Copy(zipFile, fileReader)
+		fileReader.Close()
+
+		if err != nil {
+			// Error copying file, but continue with other files
+			continue
+		}
+	}
+
+	return nil
 }

@@ -122,6 +122,10 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
     await viewModel.deleteFiles(filenames);
   };
 
+  const handleBatchDownload = async (filenames: string[]) => {
+    await viewModel.downloadMultiple(filenames);
+  };
+
   const handleDeleteFolder = async (folderPath: string) => {
     if (window.confirm(`폴더 "${folderPath}"와 그 안의 모든 내용을 삭제하시겠습니까?`)) {
       await viewModel.deleteFolder(folderPath);
@@ -292,6 +296,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
                 onDownloadLatest={handleDownloadLatest}
                 onDelete={handleDelete}
                 onBatchDelete={handleBatchDelete}
+                onBatchDownload={handleBatchDownload}
               />
 
               {/* Pagination */}

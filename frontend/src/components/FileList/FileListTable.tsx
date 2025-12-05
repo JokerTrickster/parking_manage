@@ -36,6 +36,7 @@ interface FileListTableProps {
   onDownloadLatest: (originalName: string) => void;
   onDelete: (filename: string) => void;
   onBatchDelete?: (filenames: string[]) => void;
+  onBatchDownload?: (filenames: string[]) => void;
 }
 
 /**
@@ -52,6 +53,7 @@ export const FileListTable: React.FC<FileListTableProps> = ({
   onDownloadLatest,
   onDelete,
   onBatchDelete,
+  onBatchDownload,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 
@@ -89,6 +91,12 @@ export const FileListTable: React.FC<FileListTableProps> = ({
     }
   };
 
+  const handleBatchDownload = () => {
+    if (selectedFiles.size === 0) return;
+    onBatchDownload?.(Array.from(selectedFiles));
+    setSelectedFiles(new Set());
+  };
+
   // Empty state
   if (files.length === 0) {
     return (
@@ -105,21 +113,36 @@ export const FileListTable: React.FC<FileListTableProps> = ({
 
   return (
     <Box>
-      {/* Batch delete toolbar */}
-      {selectedFiles.size > 0 && onBatchDelete && (
+      {/* Batch actions toolbar */}
+      {selectedFiles.size > 0 && (onBatchDelete || onBatchDownload) && (
         <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.light', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="body2" color="primary.contrastText">
             {selectedFiles.size}개 선택됨
           </Typography>
-          <Button
-            variant="contained"
-            color="error"
-            size="small"
-            startIcon={<DeleteSweepIcon />}
-            onClick={handleBatchDelete}
-          >
-            선택 삭제
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {onBatchDownload && (
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={<GetAppIcon />}
+                onClick={handleBatchDownload}
+              >
+                다운로드
+              </Button>
+            )}
+            {onBatchDelete && (
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                startIcon={<DeleteSweepIcon />}
+                onClick={handleBatchDelete}
+              >
+                선택 삭제
+              </Button>
+            )}
+          </Box>
         </Box>
       )}
 

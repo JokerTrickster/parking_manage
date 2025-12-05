@@ -279,6 +279,33 @@ export class FileStorageService {
   }
 
   /**
+   * Download multiple files as ZIP archive
+   *
+   * @param projectId - Project identifier
+   * @param category - File category
+   * @param filenames - Array of filenames to download
+   * @returns ZIP file blob
+   */
+  static async downloadMultiple(
+    projectId: string,
+    category: FileCategory,
+    filenames: string[]
+  ): Promise<Blob> {
+    try {
+      const endpoint = API_ENDPOINTS.FILE_STORAGE.DOWNLOAD_MULTIPLE(projectId, category);
+
+      const response = await api.post(endpoint, { filenames }, {
+        responseType: 'blob',
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[FileStorageService] Multiple download failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete file by filename
    *
    * @param projectId - Project identifier
