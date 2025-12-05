@@ -93,36 +93,16 @@ export class FileUploadService {
     }
   }
 
-  // 폴더 업로드 (학습/테스트 이미지용)
+  // 폴더 업로드 (학습/테스트 이미지용) - 청크 단위로 업로드
   static async uploadFolder(
     files: FileList | File[],
     projectId: string,
     fileType: 'learning' | 'test'
   ): Promise<FileUploadResponse> {
     try {
-      const formData = new FormData();
-
-      // 선택된 파일 수 로그
-      const fileCount = files instanceof FileList ? files.length : files.length;
+      const filesArray = files instanceof FileList ? Array.from(files) : files;
+      const fileCount = filesArray.length;
       console.log(`[FileUploadService] 총 선택된 파일 수: ${fileCount}`);
-
-      // 모든 파일을 FormData에 추가
-      let addedCount = 0;
-      if (files instanceof FileList) {
-        for (let i = 0; i < files.length; i++) {
-          formData.append('files', files[i]);
-          addedCount++;
-          console.log(`[FileUploadService] 파일 추가 ${addedCount}/${fileCount}: ${files[i].name} (${files[i].size} bytes)`);
-        }
-      } else {
-        for (const file of files) {
-          formData.append('files', file);
-          addedCount++;
-          console.log(`[FileUploadService] 파일 추가 ${addedCount}/${fileCount}: ${file.name} (${file.size} bytes)`);
-        }
-      }
-
-      console.log(`[FileUploadService] FormData에 추가된 파일 수: ${addedCount}`);
 
       // fileType에 따라 적절한 엔드포인트 선택
       let endpoint: string;
@@ -137,10 +117,56 @@ export class FileUploadService {
           throw new Error('지원하지 않는 파일 타입입니다.');
       }
 
-      console.log(`[FileUploadService] 업로드 시작: ${endpoint}`);
-      const response = await api.post(endpoint, formData);
-      console.log(`[FileUploadService] 업로드 응답:`, response.data);
-      return response.data;
+      // 청크 크기: 500개씩 나눠서 업로드
+      const CHUNK_SIZE = 500;
+      const chunks = [];
+      for (let i = 0; i < filesArray.length; i += CHUNK_SIZE) {
+        chunks.push(filesArray.slice(i, i + CHUNK_SIZE));
+      }
+
+      console.log(`[FileUploadService] 총 ${chunks.length}개 청크로 분할 (청크당 최대 ${CHUNK_SIZE}개 파일)`);
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allUploadedFiles: string[] = [];
+
+      // 각 청크를 순차적으로 업로드
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
+        console.log(`[FileUploadService] 청크 ${chunkIndex + 1}/${chunks.length} 업로드 중... (${chunk.length}개 파일)`);
+
+        const formData = new FormData();
+        chunk.forEach(file => {
+          formData.append('files', file);
+        });
+
+        try {
+          const response = await api.post(endpoint, formData);
+          console.log(`[FileUploadService] 청크 ${chunkIndex + 1} 업로드 완료:`, response.data);
+
+          if (response.data.success) {
+            totalSuccess += response.data.success_count || 0;
+            totalFailed += response.data.failed_count || 0;
+            if (response.data.uploaded_files) {
+              allUploadedFiles.push(...response.data.uploaded_files);
+            }
+          }
+        } catch (error) {
+          console.error(`[FileUploadService] 청크 ${chunkIndex + 1} 업로드 실패:`, error);
+          totalFailed += chunk.length;
+        }
+      }
+
+      console.log(`[FileUploadService] 전체 업로드 완료: 성공 ${totalSuccess}개, 실패 ${totalFailed}개`);
+
+      return {
+        success: totalSuccess > 0,
+        message: `${totalSuccess}개 파일 업로드 성공${totalFailed > 0 ? `, ${totalFailed}개 실패` : ''}`,
+        total_files: fileCount,
+        success_count: totalSuccess,
+        failed_count: totalFailed,
+        uploaded_files: allUploadedFiles
+      };
     } catch (error) {
       console.error('폴더 업로드 실패:', error);
       throw error;
