@@ -16,26 +16,24 @@ export interface FolderInfo {
 }
 
 export class FileUploadService {
-  // 기존 폴더 조회
+  // 기존 폴더 조회 (FileStorage API 사용)
   static async getExistingFolders(projectId: string, fileType: 'learning' | 'test' | 'roi'): Promise<FolderInfo[]> {
     try {
-      let endpoint: string;
-      switch (fileType) {
-        case 'learning':
-          endpoint = API_ENDPOINTS.GET_LEARNING_FOLDERS(projectId);
-          break;
-        case 'test':
-          endpoint = API_ENDPOINTS.GET_TEST_FOLDERS(projectId);
-          break;
-        case 'roi':
-          endpoint = API_ENDPOINTS.GET_ROI_FOLDERS(projectId);
-          break;
-        default:
-          throw new Error('지원하지 않는 파일 타입입니다.');
-      }
-      
+      const endpoint = API_ENDPOINTS.FILE_STORAGE.LIST_FOLDERS(projectId, fileType);
       const response = await api.get(endpoint);
-      return response.data.folders || [];
+
+      console.log('[FileUploadService] Folders response:', response.data);
+
+      if (response.data.success && response.data.data && response.data.data.folders) {
+        // NestedFolderNode[] to FolderInfo[] conversion
+        return response.data.data.folders.map((folder: any) => ({
+          name: folder.name,
+          path: folder.path,
+          fileCount: folder.file_count || 0
+        }));
+      }
+
+      return [];
     } catch (error) {
       console.error('폴더 조회 실패:', error);
       return [];
