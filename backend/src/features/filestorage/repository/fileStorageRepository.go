@@ -41,10 +41,10 @@ func (r *FileStorageRepository) SaveFile(projectID, category, filename string, f
 		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Handle duplicate filenames by adding _1, _2, etc.
-	finalPath := r.getUniqueFilePath(filePath)
+	// Use filePath directly to overwrite existing files (no unique path generation)
+	finalPath := filePath
 
-	// Create file
+	// Create file (overwrites if exists)
 	dst, err := os.Create(finalPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file: %w", err)
