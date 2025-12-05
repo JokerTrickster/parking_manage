@@ -87,30 +87,80 @@ export class FileStorageService {
     onProgress?: (progress: number) => void
   ): Promise<UploadResponse> {
     try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
-
       const endpoint = API_ENDPOINTS.FILE_STORAGE.UPLOAD(projectId, category);
+      const totalFiles = files.length;
 
       console.log('[FileStorageService] Uploading files:', {
         projectId,
         category,
-        fileCount: files.length,
+        fileCount: totalFiles,
         totalSize: files.reduce((sum, f) => sum + f.size, 0),
       });
 
-      const response = await api.post(endpoint, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total && onProgress) {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            onProgress(progress);
-          }
-        },
-      });
+      // 청크 크기: 500개씩 나눠서 업로드
+      const CHUNK_SIZE = 500;
+      const chunks = [];
+      for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+        chunks.push(files.slice(i, i + CHUNK_SIZE));
+      }
 
-      console.log('[FileStorageService] Upload complete:', response.data);
-      return response.data;
+      console.log(`[FileStorageService] 총 ${chunks.length}개 청크로 분할 (청크당 최대 ${CHUNK_SIZE}개 파일)`);
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      let uploadedFiles: any[] = [];
+
+      // 각 청크를 순차적으로 업로드
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
+        console.log(`[FileStorageService] 청크 ${chunkIndex + 1}/${chunks.length} 업로드 중... (${chunk.length}개 파일)`);
+
+        const formData = new FormData();
+        chunk.forEach(file => formData.append('files', file));
+
+        try {
+          const response = await api.post(endpoint, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total && onProgress) {
+                // 전체 진행률 계산 (이전 청크 + 현재 청크)
+                const chunkProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                const overallProgress = Math.round(
+                  ((chunkIndex * CHUNK_SIZE + (chunk.length * chunkProgress / 100)) / totalFiles) * 100
+                );
+                onProgress(overallProgress);
+              }
+            },
+          });
+
+          console.log(`[FileStorageService] 청크 ${chunkIndex + 1} 업로드 완료:`, response.data);
+
+          if (response.data.success) {
+            totalSuccess += response.data.data?.success_count || chunk.length;
+            totalFailed += response.data.data?.failed_count || 0;
+            if (response.data.data?.uploaded_files) {
+              uploadedFiles.push(...response.data.data.uploaded_files);
+            }
+          }
+        } catch (error) {
+          console.error(`[FileStorageService] 청크 ${chunkIndex + 1} 업로드 실패:`, error);
+          totalFailed += chunk.length;
+        }
+      }
+
+      console.log(`[FileStorageService] 전체 업로드 완료: 성공 ${totalSuccess}개, 실패 ${totalFailed}개`);
+
+      // 최종 응답 반환 (마지막 청크 응답 형식 유지)
+      return {
+        success: totalSuccess > 0,
+        message: `${totalSuccess}개 파일 업로드 성공${totalFailed > 0 ? `, ${totalFailed}개 실패` : ''}`,
+        data: {
+          success_count: totalSuccess,
+          failed_count: totalFailed,
+          total_files: totalFiles,
+          uploaded_files: uploadedFiles,
+        },
+      };
     } catch (error) {
       console.error('[FileStorageService] Upload failed:', error);
       throw error;
