@@ -65,10 +65,20 @@ export class LearningDataManagementViewModel {
 
       const roiFileData = await LearningDataService.getROIFileData(this.projectId, roiFileName);
 
+      // Count total CCTVs and matches in ROI file
+      const ipAddresses = Object.keys(roiFileData);
+      let totalMatches = 0;
+      ipAddresses.forEach(ip => {
+        const cctvData = roiFileData[ip];
+        if (cctvData && cctvData.matches) {
+          totalMatches += cctvData.matches.length;
+        }
+      });
+
       console.log('[LearningDataVM] ROI file loaded:', {
-        cctv_id: roiFileData.cctv_id,
-        roi_count: roiFileData.rois?.length || 0,
-        full_data: roiFileData,
+        ip_count: ipAddresses.length,
+        total_matches: totalMatches,
+        cctv_ids: ipAddresses.map(ip => roiFileData[ip].cctv_id),
       });
 
       this.setState(prev => ({
