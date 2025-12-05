@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"main/common"
 	"net/http"
 
@@ -58,12 +59,19 @@ func (d *TestUploadParkingHandler) TestUpload(c echo.Context) error {
 	}
 
 	// multipart 폼 데이터 파싱 (10GB 메모리 제한 설정)
-	c.Request().ParseMultipartForm(10 << 30) // 10GB
-	form, err := c.MultipartForm()
+	err := c.Request().ParseMultipartForm(10 << 30) // 10GB
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
-			"message": "multipart 폼 데이터를 파싱할 수 없습니다: " + err.Error(),
+			"message": "multipart 폼 데이터 파싱 실패: " + err.Error(),
+		})
+	}
+
+	form := c.Request().MultipartForm
+	if form == nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"success": false,
+			"message": "multipart 폼이 없습니다",
 		})
 	}
 
@@ -73,6 +81,7 @@ func (d *TestUploadParkingHandler) TestUpload(c echo.Context) error {
 	// "files" 키로 여러 파일 (폴더 업로드)
 	if formFiles := form.File["files"]; len(formFiles) > 0 {
 		files = formFiles
+		fmt.Printf("[TestUpload] 수신된 파일 개수: %d\n", len(files))
 	} else {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
