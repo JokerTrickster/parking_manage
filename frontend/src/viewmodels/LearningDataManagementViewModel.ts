@@ -344,19 +344,37 @@ export class LearningDataManagementViewModel {
    * Save edited images - applies ROI fills to all images of selected CCTV
    */
   async saveEditedImage(): Promise<void> {
-    const { selectedLearningFolder, selectedCCTV, editedROIs } = this.state;
-
-    if (!selectedLearningFolder || !selectedCCTV) {
-      console.error('[LearningDataVM] Missing required data to save images');
-      return;
-    }
-
-    // Get CCTV info with all image files
+    // Use setState callback to get latest state (avoid stale closure)
+    let selectedLearningFolder: string | null = null;
+    let selectedCCTV: string | null = null;
+    let editedROIs: ROIPolygon[] = [];
     let cctvInfo: any = null;
+
     this.setState(prev => {
+      selectedLearningFolder = prev.selectedLearningFolder;
+      selectedCCTV = prev.selectedCCTV;
+      editedROIs = prev.editedROIs;
+
+      console.log('[LearningDataVM] Save state check:', {
+        selectedLearningFolder,
+        selectedCCTV,
+        editedROIsCount: editedROIs.length,
+        cctvListCount: prev.cctvList.length,
+      });
+
+      if (!selectedLearningFolder || !selectedCCTV) {
+        console.error('[LearningDataVM] Missing required data to save images');
+        return prev;
+      }
+
       cctvInfo = prev.cctvList.find(c => c.cctv_id === selectedCCTV);
       return { ...prev, saving: true, error: null };
     });
+
+    if (!selectedLearningFolder || !selectedCCTV) {
+      console.error('[LearningDataVM] Missing required data after state check');
+      return;
+    }
 
     if (!cctvInfo || !cctvInfo.image_files || cctvInfo.image_files.length === 0) {
       console.error('[LearningDataVM] No images found for CCTV:', selectedCCTV);
