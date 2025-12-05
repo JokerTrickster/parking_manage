@@ -142,9 +142,9 @@ const ROIImageCanvas: React.FC<ROIImageCanvasProps> = ({
       }
       ctx.closePath();
 
-      // Fill ROI if occupied
+      // Fill ROI if occupied (red background)
       if (isOccupied) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'; // White for occupied
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // Red for occupied
         ctx.fill();
       }
 

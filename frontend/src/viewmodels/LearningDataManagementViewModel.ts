@@ -341,85 +341,128 @@ export class LearningDataManagementViewModel {
   }
 
   /**
-   * Save edited image
+   * Save edited images - applies ROI fills to all images of selected CCTV
    */
   async saveEditedImage(): Promise<void> {
-    const { currentImage, currentImageFile, selectedLearningFolder, selectedCCTV, editedROIs } =
-      this.state;
+    const { selectedLearningFolder, selectedCCTV, editedROIs } = this.state;
 
-    if (!currentImage || !currentImageFile || !selectedLearningFolder || !selectedCCTV) {
-      console.error('[LearningDataVM] Missing required data to save image');
+    if (!selectedLearningFolder || !selectedCCTV) {
+      console.error('[LearningDataVM] Missing required data to save images');
       return;
     }
 
-    this.setState(prev => ({ ...prev, saving: true, error: null }));
+    // Get CCTV info with all image files
+    let cctvInfo: any = null;
+    this.setState(prev => {
+      cctvInfo = prev.cctvList.find(c => c.cctv_id === selectedCCTV);
+      return { ...prev, saving: true, error: null };
+    });
+
+    if (!cctvInfo || !cctvInfo.image_files || cctvInfo.image_files.length === 0) {
+      console.error('[LearningDataVM] No images found for CCTV:', selectedCCTV);
+      this.setState(prev => ({
+        ...prev,
+        saving: false,
+        error: 'No images found for this CCTV',
+      }));
+      return;
+    }
 
     try {
-      console.log('[LearningDataVM] Saving edited image...');
+      console.log('[LearningDataVM] Saving edited images for all', cctvInfo.image_files.length, 'images...');
 
-      // Create canvas to draw edited image
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Failed to get canvas context');
+      // Process all images
+      const totalImages = cctvInfo.image_files.length;
+      let processedCount = 0;
+      const errors: string[] = [];
 
-      // Load original image
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = reject;
-        img.src = currentImage;
-      });
+      for (const imageFileName of cctvInfo.image_files) {
+        try {
+          // Load original image from server
+          const imageUrl = await LearningDataService.getFirstImage(
+            this.projectId,
+            selectedLearningFolder,
+            selectedCCTV,
+            imageFileName
+          );
 
-      canvas.width = img.width;
-      canvas.height = img.height;
+          // Create canvas to draw edited image
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Failed to get canvas context');
 
-      // Draw original image
-      ctx.drawImage(img, 0, 0);
+          // Load image
+          const img = new Image();
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = imageUrl;
+          });
 
-      // Fill occupied ROIs with white
-      editedROIs.forEach(roi => {
-        if (roi.occupied) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.beginPath();
-          ctx.moveTo(roi.coords[0], roi.coords[1]);
-          for (let i = 2; i < roi.coords.length; i += 2) {
-            ctx.lineTo(roi.coords[i], roi.coords[i + 1]);
-          }
-          ctx.closePath();
-          ctx.fill();
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          // Draw original image
+          ctx.drawImage(img, 0, 0);
+
+          // Fill occupied ROIs with red (opaque for saving)
+          editedROIs.forEach(roi => {
+            if (roi.occupied) {
+              ctx.fillStyle = 'rgb(255, 0, 0)'; // Solid red for occupied
+              ctx.beginPath();
+              ctx.moveTo(roi.coords[0], roi.coords[1]);
+              for (let i = 2; i < roi.coords.length; i += 2) {
+                ctx.lineTo(roi.coords[i], roi.coords[i + 1]);
+              }
+              ctx.closePath();
+              ctx.fill();
+            }
+          });
+
+          // Convert canvas to blob
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob(blob => {
+              if (blob) resolve(blob);
+              else reject(new Error('Failed to create blob'));
+            }, 'image/jpeg', 0.95);
+          });
+
+          // Save to server
+          await LearningDataService.saveEditedImage({
+            projectId: this.projectId,
+            folderPath: selectedLearningFolder,
+            cctvId: selectedCCTV,
+            imageFile: imageFileName,
+            imageData: blob,
+          });
+
+          processedCount++;
+          console.log(`[LearningDataVM] Processed ${processedCount}/${totalImages}: ${imageFileName}`);
+
+          // Revoke blob URL to free memory
+          URL.revokeObjectURL(imageUrl);
+
+        } catch (error) {
+          console.error('[LearningDataVM] Failed to process image:', imageFileName, error);
+          errors.push(`${imageFileName}: ${error}`);
         }
-      });
+      }
 
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(blob => {
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to create blob'));
-        }, 'image/jpeg', 0.95);
-      });
-
-      // Save to server
-      await LearningDataService.saveEditedImage({
-        projectId: this.projectId,
-        folderPath: selectedLearningFolder,
-        cctvId: selectedCCTV,
-        imageFile: currentImageFile,
-        imageData: blob,
-      });
-
-      console.log('[LearningDataVM] Image saved successfully');
+      const successMessage = `Successfully saved ${processedCount}/${totalImages} images${errors.length > 0 ? ` (${errors.length} errors)` : ''}`;
+      console.log('[LearningDataVM]', successMessage);
 
       this.setState(prev => ({
         ...prev,
         saving: false,
         hasUnsavedChanges: false,
-        successMessage: 'Image saved successfully!',
+        successMessage,
+        error: errors.length > 0 ? `Some images failed: ${errors.join(', ')}` : null,
       }));
 
-      // Clear success message after 3 seconds
+      // Clear success message after 5 seconds
       setTimeout(() => {
         this.setState(prev => ({ ...prev, successMessage: null }));
-      }, 3000);
+      }, 5000);
     } catch (error) {
       console.error('[LearningDataVM] Failed to save image:', error);
       this.setState(prev => ({
