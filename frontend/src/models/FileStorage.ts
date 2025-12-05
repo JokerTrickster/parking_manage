@@ -125,7 +125,7 @@ export interface ChunkUploadOptions {
 }
 
 /**
- * Folder/File node structure for learning/test categories
+ * Folder/File node structure for learning/test categories (original)
  */
 export interface FolderNode {
   name: string;               // Folder/file name
@@ -137,7 +137,28 @@ export interface FolderNode {
 }
 
 /**
- * Folder list response
+ * File node structure (for nested folder API response)
+ */
+export interface FileNode {
+  name: string;
+  size: number;
+  created_at: string;
+}
+
+/**
+ * Nested folder node structure (for learning data management)
+ */
+export interface NestedFolderNode {
+  name: string;               // Folder name
+  path: string;               // Full path relative to category
+  files: FileNode[];          // Files in this folder
+  subfolders?: NestedFolderNode[];  // Subfolders (for learning category)
+  file_count: number;         // Total file count
+  created_at: string;         // Creation timestamp
+}
+
+/**
+ * Folder list response (old format for FileRepository)
  */
 export interface FolderListResponse {
   success: boolean;
@@ -146,5 +167,16 @@ export interface FolderListResponse {
     items: FolderNode[];      // List of folders and files
     total: number;
     currentPath: string;       // Current folder path
+  };
+}
+
+/**
+ * Nested folder list response (for learning data management)
+ */
+export interface NestedFolderListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    folders: NestedFolderNode[];    // List of folders with nested structure
   };
 }

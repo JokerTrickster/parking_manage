@@ -68,15 +68,20 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 		if isVersioned {
 			filename = util.GenerateVersionedFilename(fileHeader.Filename)
 		} else {
-			// For non-versioned files (learning/test images), preserve folder structure
-			// Extract relative path from Content-Disposition header
-			contentDisposition := fileHeader.Header.Get("Content-Disposition")
-			if contentDisposition != "" {
-				if filenameStart := strings.Index(contentDisposition, "filename=\""); filenameStart != -1 {
-					filenameStart += 10
-					if filenameEnd := strings.Index(contentDisposition[filenameStart:], "\""); filenameEnd != -1 {
-						relativePath := contentDisposition[filenameStart : filenameStart+filenameEnd]
-						filename = relativePath
+			// For non-versioned files (learning/test images), use folder_path if provided
+			if req.FolderPath != "" {
+				// Prepend folder_path to filename
+				filename = filepath.Join(req.FolderPath, fileHeader.Filename)
+			} else {
+				// Extract relative path from Content-Disposition header if present
+				contentDisposition := fileHeader.Header.Get("Content-Disposition")
+				if contentDisposition != "" {
+					if filenameStart := strings.Index(contentDisposition, "filename=\""); filenameStart != -1 {
+						filenameStart += 10
+						if filenameEnd := strings.Index(contentDisposition[filenameStart:], "\""); filenameEnd != -1 {
+							relativePath := contentDisposition[filenameStart : filenameStart+filenameEnd]
+							filename = relativePath
+						}
 					}
 				}
 			}
@@ -247,17 +252,10 @@ func (u *FileStorageUseCase) DownloadFile(ctx context.Context, projectID, catego
 	return file, fileInfo, nil
 }
 
-// GetLatestVersion returns the most recent version of a file
-// ListFolders returns folder structure for learning/test categories with nested folder support
+// ListFolders returns folder structure for roi/learning/test categories with nested folder support
 func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, category string, currentPath ...string) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)
 	defer cancel()
-
-	// Determine current path
-	var basePath string
-	if len(currentPath) > 0 && currentPath[0] != "" {
-		basePath = currentPath[0]
-	}
 
 	// List all files
 	files, err := u.Repository.ListFiles(projectID, category, nil)
@@ -265,104 +263,140 @@ func (u *FileStorageUseCase) ListFolders(ctx context.Context, projectID, categor
 		return nil, err
 	}
 
-	// Build folder/file structure from file paths
-	itemMap := make(map[string]map[string]interface{})
+	// Build folder structure
+	folderMap := make(map[string]*FolderNode)
 
 	for _, file := range files {
-		// Path format: ../../shared/{projectId}/{category}/{relative path}
-		// We want to extract only the {relative path} part
-
-		// Find the category in the path and extract everything after it
+		// Extract relative path from file.Path
 		categoryIndex := strings.Index(file.Path, string(filepath.Separator)+category+string(filepath.Separator))
 		if categoryIndex == -1 {
 			continue
 		}
 
-		// Extract relative path after category (everything after /{category}/)
 		startIndex := categoryIndex + len(string(filepath.Separator)) + len(category) + len(string(filepath.Separator))
 		relativePath := file.Path[startIndex:]
 
-		// If empty, skip this file (shouldn't happen with valid paths)
 		if relativePath == "" {
 			continue
 		}
 
-		// If we're in a subfolder, filter for items in current path
-		if basePath != "" {
-			if !strings.HasPrefix(relativePath, basePath+string(filepath.Separator)) {
-				continue
-			}
-			// Remove base path prefix
-			relativePath = strings.TrimPrefix(relativePath, basePath+string(filepath.Separator))
-		}
-
-		// Split path into parts
+		// Split path into parts (e.g., "2025-01-01/P1_B2_3/image.jpg" -> ["2025-01-01", "P1_B2_3", "image.jpg"])
 		parts := strings.Split(relativePath, string(filepath.Separator))
 		if len(parts) == 0 {
 			continue
 		}
 
-		itemName := parts[0]
-		isFolder := len(parts) > 1
+		// For ROI category: flat structure (files only at root level)
+		if category == "roi" {
+			// All files are at root level
+			rootFolder := folderMap["root"]
+			if rootFolder == nil {
+				rootFolder = &FolderNode{
+					Name:       "root",
+					Path:       "",
+					Files:      []FileNode{},
+					Subfolders: []FolderNode{},
+					FileCount:  0,
+					CreatedAt:  file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
+				}
+				folderMap["root"] = rootFolder
+			}
 
-		if isFolder {
-			// This is a folder (has more path components)
-			if itemMap[itemName] == nil {
-				fullPath := itemName
-				if basePath != "" {
-					fullPath = filepath.Join(basePath, itemName)
+			rootFolder.Files = append(rootFolder.Files, FileNode{
+				Name:      file.Filename,
+				Size:      file.SizeBytes,
+				CreatedAt: file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
+			})
+			rootFolder.FileCount++
+		} else if category == "learning" || category == "test" {
+			// Learning/Test category: 2-level nested structure (timestamp/cctvId/images)
+			if len(parts) >= 2 {
+				// First level: timestamp folder (e.g., "2025-01-01_10-30-00")
+				timestampFolder := parts[0]
+				cctvFolder := parts[1]
+				filename := parts[len(parts)-1]
+
+				// Get or create timestamp folder
+				folder := folderMap[timestampFolder]
+				if folder == nil {
+					folder = &FolderNode{
+						Name:       timestampFolder,
+						Path:       timestampFolder,
+						Files:      []FileNode{},
+						Subfolders: []FolderNode{},
+						FileCount:  0,
+						CreatedAt:  file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
+					}
+					folderMap[timestampFolder] = folder
 				}
-				itemMap[itemName] = map[string]interface{}{
-					"name":     itemName,
-					"path":     fullPath,
-					"isFolder": true,
-					"count":    0,
+
+				// Find or create CCTV subfolder
+				var cctvNode *FolderNode
+				for i := range folder.Subfolders {
+					if folder.Subfolders[i].Name == cctvFolder {
+						cctvNode = &folder.Subfolders[i]
+						break
+					}
 				}
-			}
-			// Increment count (files/folders inside)
-			if count, ok := itemMap[itemName]["count"].(int); ok {
-				itemMap[itemName]["count"] = count + 1
-			}
-		} else {
-			// This is a file at current level
-			if itemMap[itemName] == nil {
-				fullPath := itemName
-				if basePath != "" {
-					fullPath = filepath.Join(basePath, itemName)
+
+				if cctvNode == nil {
+					newCctvNode := FolderNode{
+						Name:       cctvFolder,
+						Path:       filepath.Join(timestampFolder, cctvFolder),
+						Files:      []FileNode{},
+						Subfolders: []FolderNode{},
+						FileCount:  0,
+						CreatedAt:  file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
+					}
+					folder.Subfolders = append(folder.Subfolders, newCctvNode)
+					cctvNode = &folder.Subfolders[len(folder.Subfolders)-1]
 				}
-				itemMap[itemName] = map[string]interface{}{
-					"name":     itemName,
-					"path":     fullPath,
-					"isFolder": false,
-					"size":     file.SizeBytes,
-				}
+
+				// Add file to CCTV folder
+				cctvNode.Files = append(cctvNode.Files, FileNode{
+					Name:      filename,
+					Size:      file.SizeBytes,
+					CreatedAt: file.UploadDate.Format("2006-01-02T15:04:05Z07:00"),
+				})
+				cctvNode.FileCount++
 			}
 		}
 	}
 
 	// Convert map to slice
-	items := make([]map[string]interface{}, 0, len(itemMap))
-	for _, item := range itemMap {
-		items = append(items, item)
+	folders := make([]FolderNode, 0, len(folderMap))
+	for _, folder := range folderMap {
+		folders = append(folders, *folder)
 	}
 
-	// Sort: folders first, then files, alphabetically
-	sort.Slice(items, func(i, j int) bool {
-		iIsFolder := items[i]["isFolder"].(bool)
-		jIsFolder := items[j]["isFolder"].(bool)
-
-		if iIsFolder != jIsFolder {
-			return iIsFolder // folders first
-		}
-		return items[i]["name"].(string) < items[j]["name"].(string)
+	// Sort folders by name
+	sort.Slice(folders, func(i, j int) bool {
+		return folders[i].Name < folders[j].Name
 	})
 
 	return map[string]interface{}{
-		"items":       items,
-		"total":       len(items),
-		"currentPath": basePath,
+		"folders": folders,
 	}, nil
 }
+
+// FolderNode represents a folder in the file structure
+type FolderNode struct {
+	Name       string       `json:"name"`
+	Path       string       `json:"path"`
+	Files      []FileNode   `json:"files"`
+	Subfolders []FolderNode `json:"subfolders"`
+	FileCount  int          `json:"file_count"`
+	CreatedAt  string       `json:"created_at"`
+}
+
+// FileNode represents a file in the file structure
+type FileNode struct {
+	Name      string `json:"name"`
+	Size      int64  `json:"size"`
+	CreatedAt string `json:"created_at"`
+}
+
+// GetLatestVersion returns the most recent version of a file
 
 func (u *FileStorageUseCase) GetLatestVersion(ctx context.Context, projectID, category, originalName string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, u.ContextTimeout)

@@ -11,7 +11,6 @@ import {
   Typography,
   Container,
   Paper,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -200,9 +199,9 @@ const LearningDataManagementPage: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Left Panel - Selection Controls */}
-        <Grid item xs={12} md={4}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 33.33%' } }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               선택 옵션
@@ -360,10 +359,10 @@ const LearningDataManagementPage: React.FC = () => {
               </Box>
             </Paper>
           )}
-        </Grid>
+        </Box>
 
         {/* Right Panel - Image Display */}
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 66.67%' } }}>
           <Paper sx={{ p: 3, minHeight: 600 }}>
             <Typography variant="h6" gutterBottom>
               이미지 편집
@@ -416,8 +415,8 @@ const LearningDataManagementPage: React.FC = () => {
               </Box>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Container>
   );
 };

@@ -14,7 +14,7 @@ import {
   SaveEditedImageRequest,
   SaveEditedImageResponse,
 } from '../models/LearningDataManagement';
-import { FolderListResponse } from '../models/FileStorage';
+import { NestedFolderListResponse } from '../models/FileStorage';
 
 const axiosConfig = {
   baseURL: apiConfig.BASE_URL,
@@ -32,19 +32,19 @@ export class LearningDataService {
       console.log('[LearningDataService] Fetching ROI files for project:', projectId);
 
       const endpoint = API_ENDPOINTS.FILE_STORAGE.LIST_FOLDERS(projectId, 'roi');
-      const response = await api.get<FolderListResponse>(endpoint);
+      const response = await api.get<NestedFolderListResponse>(endpoint);
 
       console.log('[LearningDataService] ROI files response:', response.data);
 
       if (response.data.success && response.data.data) {
         // Extract file names from folder structure
         const files: string[] = [];
-        response.data.data.folders.forEach(folder => {
+        response.data.data.folders.forEach((folder: any) => {
           if (folder.files) {
-            files.push(...folder.files.map(f => f.name));
+            files.push(...folder.files.map((f: any) => f.name));
           }
         });
-        return files.filter(f => f.endsWith('.json'));
+        return files.filter((f: string) => f.endsWith('.json'));
       }
 
       return [];
@@ -82,18 +82,18 @@ export class LearningDataService {
       console.log('[LearningDataService] Fetching learning folders for project:', projectId);
 
       const endpoint = API_ENDPOINTS.FILE_STORAGE.LIST_FOLDERS(projectId, 'learning');
-      const response = await api.get<FolderListResponse>(endpoint);
+      const response = await api.get<NestedFolderListResponse>(endpoint);
 
       console.log('[LearningDataService] Learning folders response:', response.data);
 
       if (response.data.success && response.data.data) {
-        return response.data.data.folders.map(folder => {
+        return response.data.data.folders.map((folder: any) => {
           // Extract CCTV IDs from subfolder names (e.g., "P1_B2_3" format)
           const cctvIds: string[] = [];
           let imageCount = 0;
 
           if (folder.subfolders) {
-            folder.subfolders.forEach(subfolder => {
+            folder.subfolders.forEach((subfolder: any) => {
               cctvIds.push(subfolder.name);
               imageCount += subfolder.file_count || 0;
             });
@@ -125,16 +125,16 @@ export class LearningDataService {
       console.log('[LearningDataService] Fetching CCTV list:', { projectId, folderPath });
 
       const endpoint = API_ENDPOINTS.FILE_STORAGE.LIST_FOLDERS(projectId, 'learning');
-      const response = await api.get<FolderListResponse>(endpoint);
+      const response = await api.get<NestedFolderListResponse>(endpoint);
 
       if (response.data.success && response.data.data) {
-        const targetFolder = response.data.data.folders.find(f => f.path === folderPath);
+        const targetFolder = response.data.data.folders.find((f: any) => f.path === folderPath);
 
         if (targetFolder && targetFolder.subfolders) {
-          const cctvList: CCTVInfo[] = targetFolder.subfolders.map(subfolder => ({
+          const cctvList: CCTVInfo[] = targetFolder.subfolders.map((subfolder: any) => ({
             cctv_id: subfolder.name,
             folder_path: `${folderPath}/${subfolder.name}`,
-            image_files: subfolder.files ? subfolder.files.map(f => f.name) : [],
+            image_files: subfolder.files ? subfolder.files.map((f: any) => f.name) : [],
           }));
 
           console.log('[LearningDataService] CCTV list:', cctvList);

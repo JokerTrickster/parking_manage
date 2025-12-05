@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -53,7 +54,8 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 	// Folder delete endpoint
 	e.DELETE("/v0.1/filestorage/:projectId/:category/folder/*", handler.DeleteFolder)
 
-	// Folder structure endpoints (learning/test only)
+	// Folder structure endpoints (roi/learning/test)
+	e.GET("/v0.1/filestorage/:projectId/roi/folders", handler.ListFolders)
 	e.GET("/v0.1/filestorage/:projectId/learning/folders", handler.ListFolders)
 	e.GET("/v0.1/filestorage/:projectId/test/folders", handler.ListFolders)
 
@@ -63,12 +65,13 @@ func NewFileStorageHandler(e *echo.Echo, useCase _interface.IFileStorageUseCase)
 // Upload handles file upload requests
 // @Router /v0.1/filestorage/{projectId}/{category}/upload [post]
 // @Summary Upload files with optional versioning
-// @Description Upload files to specified category. Map/CAD/ROI files are automatically versioned with timestamp suffix.
+// @Description Upload files to specified category. Map/CAD/ROI files are automatically versioned with timestamp suffix. Use folder_path query parameter to specify upload location.
 // @Tags File Storage
 // @Accept multipart/form-data
 // @Produce json
 // @Param projectId path string true "Project ID (e.g., banpo, osong)"
 // @Param category path string true "Category (map, cad, roi, learning, test)"
+// @Param folder_path query string false "Target folder path (e.g., 2025-01-01/P1_B2_3)"
 // @Param files formData file true "Files to upload (single or multiple)"
 // @Success 200 {object} response.ResUpload "Upload successful"
 // @Failure 400 {object} map[string]interface{} "Bad request"
@@ -121,11 +124,15 @@ func (h *FileStorageHandler) Upload(c echo.Context) error {
 		})
 	}
 
+	// Get optional folder_path parameter
+	folderPath := c.QueryParam("folder_path")
+
 	// Create upload request
 	uploadReq := request.UploadRequest{
-		ProjectID: projectID,
-		Category:  category,
-		Files:     files,
+		ProjectID:  projectID,
+		Category:   category,
+		Files:      files,
+		FolderPath: folderPath,
 	}
 
 	// Upload files
@@ -292,13 +299,13 @@ func (h *FileStorageHandler) Download(c echo.Context) error {
 // DownloadLatest handles downloading the latest version
 // @Router /v0.1/filestorage/{projectId}/{category}/latest [get]
 // @Summary Download latest version of a file
-// @Description Downloads the most recent version of a versioned file (map/cad/roi only)
+// @Description Downloads the most recent version of a versioned file (map/cad/roi only). For JSON files, returns parsed JSON instead of file stream.
 // @Tags File Storage
 // @Produce application/octet-stream
 // @Param projectId path string true "Project ID"
 // @Param category path string true "Category (map, cad, or roi)"
 // @Param original_name query string true "Original filename without version"
-// @Success 200 {file} binary "File content"
+// @Success 200 {file} binary "File content or parsed JSON"
 // @Failure 400 {object} map[string]interface{} "Bad request"
 // @Failure 404 {object} map[string]interface{} "File not found"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
@@ -352,7 +359,23 @@ func (h *FileStorageHandler) DownloadLatest(c echo.Context) error {
 	}
 	defer fileReader.Close()
 
-	// Set response headers
+	// Check if JSON file and parse it
+	if strings.HasSuffix(strings.ToLower(fileInfo.Filename), ".json") {
+		// Read file content
+		data, err := io.ReadAll(fileReader)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
+				"message": "failed to read JSON file: " + err.Error(),
+			})
+		}
+
+		// Return raw JSON data with proper content type
+		c.Response().Header().Set("Content-Type", "application/json")
+		return c.String(http.StatusOK, string(data))
+	}
+
+	// For non-JSON files, stream as before
 	c.Response().Header().Set("Content-Type", fileInfo.FileType)
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileInfo.Filename))
 	c.Response().Header().Set("Content-Length", strconv.FormatInt(fileInfo.SizeBytes, 10))
@@ -361,14 +384,14 @@ func (h *FileStorageHandler) DownloadLatest(c echo.Context) error {
 	return c.Stream(http.StatusOK, fileInfo.FileType, fileReader)
 }
 
-// ListFolders handles folder structure listing requests (learning/test only)
+// ListFolders handles folder structure listing requests (roi/learning/test)
 // @Router /v0.1/filestorage/{projectId}/{category}/folders [get]
 // @Summary List folder structure
-// @Description Returns folder tree structure for learning/test categories
+// @Description Returns folder tree structure for roi/learning/test categories
 // @Tags File Storage
 // @Produce json
 // @Param projectId path string true "Project ID"
-// @Param category path string true "Category (learning or test)"
+// @Param category path string true "Category (roi, learning or test)"
 // @Success 200 {object} map[string]interface{} "Folder structure"
 // @Failure 400 {object} map[string]interface{} "Bad request"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
@@ -393,11 +416,11 @@ func (h *FileStorageHandler) ListFolders(c echo.Context) error {
 		})
 	}
 
-	// Validate category (only learning/test supported)
-	if category != "learning" && category != "test" {
+	// Validate category (roi/learning/test supported)
+	if category != "roi" && category != "learning" && category != "test" {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
-			"message": "folder listing only supported for learning/test categories",
+			"message": "folder listing only supported for roi/learning/test categories",
 		})
 	}
 
