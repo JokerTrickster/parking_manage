@@ -124,11 +124,26 @@ export class LearningDataManagementViewModel {
    * Select CCTV and load first image
    */
   async selectCCTV(cctvId: string): Promise<void> {
+    console.log('[LearningDataVM] Selecting CCTV:', cctvId);
+    console.log('[LearningDataVM] Available CCTV list:', this.state.cctvList);
+
     const cctvInfo = this.state.cctvList.find(c => c.cctv_id === cctvId);
-    if (!cctvInfo || cctvInfo.image_files.length === 0) {
+    console.log('[LearningDataVM] Found CCTV info:', cctvInfo);
+
+    if (!cctvInfo) {
+      console.error('[LearningDataVM] CCTV not found in list');
       this.setState(prev => ({
         ...prev,
-        error: 'No images found for this CCTV.',
+        error: 'CCTV not found in list.',
+      }));
+      return;
+    }
+
+    if (cctvInfo.image_files.length === 0) {
+      console.error('[LearningDataVM] No image files in CCTV:', cctvInfo);
+      this.setState(prev => ({
+        ...prev,
+        error: `No images found for this CCTV. Files: ${JSON.stringify(cctvInfo)}`,
       }));
       return;
     }
