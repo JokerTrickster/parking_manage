@@ -100,10 +100,10 @@ const LearningDataManagementPage: React.FC = () => {
     }
   };
 
-  // Handle ROI click (toggle occupied state)
+  // Handle ROI click - only fill, no toggle
   const handleROIClick = (roiId: string) => {
     if (viewModel) {
-      viewModel.toggleROIOccupied(roiId);
+      viewModel.fillROI(roiId);
       setSelectedROI(roiId);
     }
   };
@@ -115,16 +115,23 @@ const LearningDataManagementPage: React.FC = () => {
     }
   };
 
-  // Handle empty ROI
-  const handleEmptyROI = (roiId: string) => {
-    if (viewModel) {
-      viewModel.emptyROI(roiId);
-    }
-  };
-
   // Handle save
   const handleSave = async () => {
-    if (viewModel) {
+    if (!viewModel) return;
+
+    // Show confirmation dialog
+    const occupiedCount = state.editedROIs.filter(roi => roi.occupied).length;
+    const totalImages = state.cctvList.find(c => c.cctv_id === state.selectedCCTV)?.image_files?.length || 0;
+
+    const confirmed = window.confirm(
+      `경고: 이 작업은 되돌릴 수 없습니다!\n\n` +
+      `- 채워진 ROI: ${occupiedCount}개\n` +
+      `- 처리할 이미지: ${totalImages}개\n` +
+      `- 모든 이미지에 ROI가 빨간색으로 영구 저장됩니다.\n\n` +
+      `계속하시겠습니까?`
+    );
+
+    if (confirmed) {
       await viewModel.saveEditedImage();
     }
   };
@@ -343,15 +350,9 @@ const LearningDataManagementPage: React.FC = () => {
                         size="small"
                         onClick={() => handleFillROI(roi.roi_id)}
                         disabled={roi.occupied}
+                        color={roi.occupied ? 'success' : 'primary'}
                       >
-                        채우기
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() => handleEmptyROI(roi.roi_id)}
-                        disabled={!roi.occupied}
-                      >
-                        비우기
+                        {roi.occupied ? '채워짐' : '채우기'}
                       </Button>
                     </CardActions>
                   </Card>
@@ -402,10 +403,11 @@ const LearningDataManagementPage: React.FC = () => {
                 </Box>
 
                 <Box sx={{ mt: 2 }}>
-                  <Alert severity="info">
+                  <Alert severity="warning">
                     <Typography variant="body2">
-                      <strong>사용 방법:</strong> ROI 영역을 클릭하여 점유 상태를 전환합니다.
-                      흰색으로 채워진 영역은 차량이 있는 것으로 학습됩니다.
+                      <strong>주의:</strong> ROI 영역을 클릭하거나 "채우기" 버튼을 눌러 선택하세요.
+                      저장하면 해당 CCTV의 모든 이미지에 빨간색으로 영구 저장됩니다.
+                      <strong>저장 후에는 되돌릴 수 없습니다!</strong>
                     </Typography>
                   </Alert>
                 </Box>

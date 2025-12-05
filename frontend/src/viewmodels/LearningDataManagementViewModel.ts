@@ -284,52 +284,14 @@ export class LearningDataManagementViewModel {
   }
 
   /**
-   * Toggle ROI occupied state (fill/empty)
-   */
-  toggleROIOccupied(roiId: string): void {
-    console.log('[LearningDataVM] Toggling ROI occupied state:', roiId);
-
-    this.setState(prev => {
-      const editedROIs = prev.editedROIs.map(roi =>
-        roi.roi_id === roiId ? { ...roi, occupied: !roi.occupied } : roi
-      );
-
-      return {
-        ...prev,
-        editedROIs,
-        hasUnsavedChanges: true,
-      };
-    });
-  }
-
-  /**
-   * Fill ROI (mark as occupied)
+   * Fill ROI (mark as occupied) - irreversible operation
    */
   fillROI(roiId: string): void {
-    console.log('[LearningDataVM] Filling ROI:', roiId);
+    console.log('[LearningDataVM] Filling ROI (irreversible):', roiId);
 
     this.setState(prev => {
       const editedROIs = prev.editedROIs.map(roi =>
         roi.roi_id === roiId ? { ...roi, occupied: true } : roi
-      );
-
-      return {
-        ...prev,
-        editedROIs,
-        hasUnsavedChanges: true,
-      };
-    });
-  }
-
-  /**
-   * Empty ROI (mark as vacant)
-   */
-  emptyROI(roiId: string): void {
-    console.log('[LearningDataVM] Emptying ROI:', roiId);
-
-    this.setState(prev => {
-      const editedROIs = prev.editedROIs.map(roi =>
-        roi.roi_id === roiId ? { ...roi, occupied: false } : roi
       );
 
       return {
