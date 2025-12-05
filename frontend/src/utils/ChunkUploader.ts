@@ -115,8 +115,16 @@ export class ChunkUploader {
    * @returns Validation result with error message if invalid
    */
   static validateFile(file: File, category: FileCategory): FileValidationResult {
+    console.log('[ChunkUploader] Validating file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      category
+    });
+
     // Check file size
     if (file.size > this.MAX_FILE_SIZE) {
+      console.log('[ChunkUploader] File too large:', file.name, file.size);
       return {
         valid: false,
         error: `파일 크기는 ${FileStorageService.formatFileSize(this.MAX_FILE_SIZE)}를 초과할 수 없습니다.`,
@@ -124,6 +132,7 @@ export class ChunkUploader {
     }
 
     if (file.size === 0) {
+      console.log('[ChunkUploader] Empty file:', file.name);
       return {
         valid: false,
         error: '파일이 비어있습니다.',
@@ -142,13 +151,22 @@ export class ChunkUploader {
     const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
     const allowedExts = validExtensions[category] || [];
 
+    console.log('[ChunkUploader] Extension check:', {
+      fileName: file.name,
+      fileExt,
+      allowedExts,
+      isValid: allowedExts.includes(fileExt)
+    });
+
     if (!allowedExts.includes(fileExt)) {
+      console.log('[ChunkUploader] Invalid extension:', file.name, fileExt);
       return {
         valid: false,
         error: `허용되지 않는 파일 형식입니다. (허용: ${allowedExts.join(', ')})`,
       };
     }
 
+    console.log('[ChunkUploader] File valid:', file.name);
     return { valid: true };
   }
 
