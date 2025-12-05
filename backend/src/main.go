@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"main/common"
 	"main/features"
+	"net/http"
 	"time"
 
 	_middleware "main/middleware"
@@ -19,11 +20,6 @@ import (
 func main() {
 
 	e := echo.New()
-
-	// Increase request size limits for folder uploads with multiple large images
-	// Set timeout to 10 minutes to handle large file uploads
-	e.Server.ReadTimeout = 10 * time.Minute
-	e.Server.WriteTimeout = 10 * time.Minute
 
 	// 환경 변수 로드
 	if err := common.LoadConfig(); err != nil {
@@ -63,8 +59,15 @@ func main() {
 		e.GET("/swagger/*", echoSwagger.WrapHandler)
 	}
 	e.HideBanner = true
-	e.Logger.Fatal(e.Start(":" + common.Env.Port))
-	// e.Logger.Fatal(e.Start(":8080"))
+
+	// Create custom HTTP server with increased timeouts for large file uploads
+	s := &http.Server{
+		Addr:         ":" + common.Env.Port,
+		ReadTimeout:  10 * time.Minute,
+		WriteTimeout: 10 * time.Minute,
+	}
+
+	e.Logger.Fatal(e.StartServer(s))
 
 	return
 }
