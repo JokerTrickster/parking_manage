@@ -15,13 +15,28 @@ export interface ROIPolygon {
 }
 
 /**
- * ROI file data structure
+ * ROI match data from file
+ */
+export interface ROIMatch {
+  img_center_roi: number[];
+  original_roi: number[];
+  parking_id: string;
+  parking_position: number[];
+}
+
+/**
+ * ROI data for a single CCTV (per IP address)
+ */
+export interface CCTVROIData {
+  cctv_id: string;
+  matches: ROIMatch[];
+}
+
+/**
+ * ROI file data structure (IP address -> CCTV data mapping)
  */
 export interface ROIFileData {
-  cctv_id: string;
-  rois: ROIPolygon[];
-  image_width?: number;
-  image_height?: number;
+  [ipAddress: string]: CCTVROIData;
 }
 
 /**

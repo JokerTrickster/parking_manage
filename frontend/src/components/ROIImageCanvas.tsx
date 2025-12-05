@@ -95,13 +95,15 @@ const ROIImageCanvas: React.FC<ROIImageCanvasProps> = ({
       offsetY = 0;
     }
 
-    // Update canvas state
-    setCanvasState(prev => ({
-      ...prev,
-      scale,
-      offsetX,
-      offsetY,
-    }));
+    // Store scale and offset for click handling (only if changed)
+    if (canvasState.scale !== scale || canvasState.offsetX !== offsetX || canvasState.offsetY !== offsetY) {
+      setCanvasState(prev => ({
+        ...prev,
+        scale,
+        offsetX,
+        offsetY,
+      }));
+    }
 
     // Set canvas size
     canvas.width = width;

@@ -217,22 +217,43 @@ export class LearningDataManagementViewModel {
       console.log('[LearningDataVM] Image loaded successfully, URL:', imageUrl);
 
       // Initialize edited ROIs from ROI file data
+      // ROI file structure: { "IP": { "cctv_id": "P1_B4_1_2", "matches": [...] } }
       let editedROIs: ROIPolygon[] = [];
-      console.log('[LearningDataVM] ROI matching:', {
-        hasRoiFileData: !!selectedRoiFileData,
-        roiFileCctvId: selectedRoiFileData?.cctv_id,
-        selectedCCTV: selectedCCTV,
-        match: selectedRoiFileData?.cctv_id === selectedCCTV,
-      });
 
-      if (selectedRoiFileData && selectedRoiFileData.cctv_id === selectedCCTV) {
-        editedROIs = selectedRoiFileData.rois.map((roi: any) => ({
-          ...roi,
-          occupied: false, // Default to not occupied
-        }));
-        console.log('[LearningDataVM] Loaded ROIs:', editedROIs.length, 'regions');
+      if (selectedRoiFileData) {
+        // Find matching CCTV by iterating through IP addresses
+        let matchingCCTVData: any = null;
+        let matchingIP: string | null = null;
+
+        for (const [ipAddress, cctvData] of Object.entries(selectedRoiFileData)) {
+          if ((cctvData as any).cctv_id === selectedCCTV) {
+            matchingCCTVData = cctvData;
+            matchingIP = ipAddress;
+            break;
+          }
+        }
+
+        console.log('[LearningDataVM] ROI matching:', {
+          hasRoiFileData: true,
+          selectedCCTV: selectedCCTV,
+          matchingIP: matchingIP,
+          matchFound: !!matchingCCTVData,
+          matchCount: matchingCCTVData?.matches?.length || 0,
+        });
+
+        if (matchingCCTVData && matchingCCTVData.matches) {
+          // Convert ROI matches to ROIPolygon format
+          editedROIs = matchingCCTVData.matches.map((match: any, index: number) => ({
+            roi_id: match.parking_id,
+            coords: match.original_roi,
+            occupied: false,
+          }));
+          console.log('[LearningDataVM] Loaded ROIs:', editedROIs.length, 'regions from IP', matchingIP);
+        } else {
+          console.warn('[LearningDataVM] No ROI match for CCTV:', selectedCCTV);
+        }
       } else {
-        console.warn('[LearningDataVM] No ROI match - image will display without ROI overlay');
+        console.warn('[LearningDataVM] No ROI file data loaded');
       }
 
       this.setState(prev => ({
