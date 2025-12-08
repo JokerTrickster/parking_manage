@@ -723,7 +723,7 @@ func (h *FileStorageHandler) DownloadMultiple(c echo.Context) error {
 
 	// Download and add each file to ZIP
 	for _, filename := range req.Filenames {
-		fileReader, fileInfo, err := h.UseCase.DownloadFile(ctx, projectID, category, filename)
+		fileReader, _, err := h.UseCase.DownloadFile(ctx, projectID, category, filename)
 		if err != nil {
 			// Skip files that can't be downloaded (log but continue)
 			continue
