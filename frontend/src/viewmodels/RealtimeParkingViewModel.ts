@@ -1,6 +1,7 @@
 import { FileStorageService } from '../services/FileStorageService';
-import LearningService from '../services/LearningService';
 import { API_ENDPOINTS, apiConfig } from '../config/api';
+import { CctvTemplateService } from '../services/CctvTemplateService';
+import { CctvTemplate } from '../models/CctvTemplate';
 
 export interface RealtimeSettings {
   learningImageFolder: string;
@@ -144,5 +145,68 @@ export class RealtimeParkingViewModel {
       console.error('실시간 CCTV 이미지 조회 실패:', error);
       throw error;
     }
+  }
+
+  /**
+   * 프로젝트의 CCTV 템플릿 조회
+   */
+  static getCctvTemplate(projectId: string): CctvTemplate | null {
+    return CctvTemplateService.getTemplateByProjectId(projectId);
+  }
+
+  /**
+   * 템플릿 기반 CCTV 이미지 URL 생성 (JSON endpoint 직접 사용)
+   */
+  static getTemplateBasedImageUrl(
+    projectId: string,
+    cctvId: string,
+    imageType: string
+  ): string {
+    const template = this.getCctvTemplate(projectId);
+    if (!template) {
+      throw new Error(`프로젝트 "${projectId}"의 템플릿을 찾을 수 없습니다.`);
+    }
+
+    const cctv = template.cctvList.find(c => c.cctvId === cctvId);
+    if (!cctv) {
+      throw new Error(`CCTV "${cctvId}"를 찾을 수 없습니다.`);
+    }
+
+    const imageConfig = cctv.images.find(img => img.type === imageType);
+    if (!imageConfig) {
+      throw new Error(`이미지 타입 "${imageType}"을 찾을 수 없습니다.`);
+    }
+
+    // JSON에 정의된 endpoint를 직접 사용 (캐시 방지 타임스탬프 추가)
+    const timestamp = new Date().getTime();
+    return `${imageConfig.endpoint}?t=${timestamp}`;
+  }
+
+  /**
+   * 템플릿 기반 CCTV 이미지 조회 (JSON에서 endpoint URL 직접 사용)
+   */
+  static getTemplateBasedCctvImages(
+    projectId: string,
+    cctvId: string
+  ): Record<string, string> {
+    const template = this.getCctvTemplate(projectId);
+    if (!template) {
+      throw new Error(`프로젝트 "${projectId}"의 템플릿을 찾을 수 없습니다.`);
+    }
+
+    const cctv = template.cctvList.find(c => c.cctvId === cctvId);
+    if (!cctv) {
+      throw new Error(`CCTV "${cctvId}"를 찾을 수 없습니다.`);
+    }
+
+    // JSON에서 endpoint URL을 직접 읽어서 반환 (캐시 방지 타임스탬프 추가)
+    const images: Record<string, string> = {};
+    const timestamp = new Date().getTime();
+
+    cctv.images.forEach(imageConfig => {
+      images[imageConfig.type] = `${imageConfig.endpoint}?t=${timestamp}`;
+    });
+
+    return images;
   }
 }

@@ -1,0 +1,44 @@
+{
+  "projectId": "osong",
+  "projectName": "오송 주차장",
+  "cctvList": [
+    {
+      "cctvId": "CCTV_001",
+      "displayName": "오송 1층 주차장",
+      "description": "오송 1층 주차장 모니터링",
+      "images": [
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "/api/projects/osong/realtime/cctv/CCTV_001/image/roi_result"
+        },
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "/api/projects/osong/realtime/cctv/CCTV_001/image/original"
+        }
+      ]
+    },
+    {
+      "cctvId": "CCTV_002",
+      "displayName": "오송 2층 주차장",
+      "description": "오송 2층 주차장 모니터링",
+      "images": [
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "/api/projects/osong/realtime/cctv/CCTV_002/image/roi_result"
+        },
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "/api/projects/osong/realtime/cctv/CCTV_002/image/original"
+        }
+      ]
+    }
+  ]
+}

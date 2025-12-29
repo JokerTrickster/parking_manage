@@ -1,0 +1,614 @@
+{
+  "projectId": "banpo",
+  "projectName": "반포 주차장",
+  "cctvList": [
+    {
+      "cctvId": "P1_B2_1_1",
+      "displayName": "P1 지하2층 1구역 1번",
+      "description": "반포 지하2층 1구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_1_2",
+      "displayName": "P1 지하2층 1구역 2번",
+      "description": "반포 지하2층 1구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_1_3",
+      "displayName": "P1 지하2층 1구역 3번",
+      "description": "반포 지하2층 1구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_1_4",
+      "displayName": "P1 지하2층 1구역 4번",
+      "description": "반포 지하2층 1구역 4번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_4.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_4_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_1_5",
+      "displayName": "P1 지하2층 1구역 5번",
+      "description": "반포 지하2층 1구역 5번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_5.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_5_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_1_6",
+      "displayName": "P1 지하2층 1구역 6번",
+      "description": "반포 지하2층 1구역 6번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_6.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_1_6_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_2_1",
+      "displayName": "P1 지하2층 2구역 1번",
+      "description": "반포 지하2층 2구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_2_2",
+      "displayName": "P1 지하2층 2구역 2번",
+      "description": "반포 지하2층 2구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_2_3",
+      "displayName": "P1 지하2층 2구역 3번",
+      "description": "반포 지하2층 2구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_2_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B2_3_1",
+      "displayName": "P1 지하2층 3구역 1번",
+      "description": "반포 지하2층 3구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_3_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B2_3_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_1",
+      "displayName": "P1 지하3층 1구역 1번",
+      "description": "반포 지하3층 1구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_2",
+      "displayName": "P1 지하3층 1구역 2번",
+      "description": "반포 지하3층 1구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_3",
+      "displayName": "P1 지하3층 1구역 3번",
+      "description": "반포 지하3층 1구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_4",
+      "displayName": "P1 지하3층 1구역 4번",
+      "description": "반포 지하3층 1구역 4번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_4.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_4_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_5",
+      "displayName": "P1 지하3층 1구역 5번",
+      "description": "반포 지하3층 1구역 5번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_5.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_5_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_1_6",
+      "displayName": "P1 지하3층 1구역 6번",
+      "description": "반포 지하3층 1구역 6번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_6.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_1_6_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_2_1",
+      "displayName": "P1 지하3층 2구역 1번",
+      "description": "반포 지하3층 2구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_2_2",
+      "displayName": "P1 지하3층 2구역 2번",
+      "description": "반포 지하3층 2구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_2_3",
+      "displayName": "P1 지하3층 2구역 3번",
+      "description": "반포 지하3층 2구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_2_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B3_3_1",
+      "displayName": "P1 지하3층 3구역 1번",
+      "description": "반포 지하3층 3구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_3_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.30.84:8081/images/P1_B3_3_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_1",
+      "displayName": "P1 지하4층 1구역 1번",
+      "description": "반포 지하4층 1구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_2",
+      "displayName": "P1 지하4층 1구역 2번",
+      "description": "반포 지하4층 1구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_3",
+      "displayName": "P1 지하4층 1구역 3번",
+      "description": "반포 지하4층 1구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_4",
+      "displayName": "P1 지하4층 1구역 4번",
+      "description": "반포 지하4층 1구역 4번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_4.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_4_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_5",
+      "displayName": "P1 지하4층 1구역 5번",
+      "description": "반포 지하4층 1구역 5번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_5.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_5_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B4_1_6",
+      "displayName": "P1 지하4층 1구역 6번",
+      "description": "반포 지하4층 1구역 6번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_6.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B4_1_6_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_1",
+      "displayName": "P1 지하5층 1구역 1번",
+      "description": "반포 지하5층 1구역 1번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_1.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_1_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_2",
+      "displayName": "P1 지하5층 1구역 2번",
+      "description": "반포 지하5층 1구역 2번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_2.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_2_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_3",
+      "displayName": "P1 지하5층 1구역 3번",
+      "description": "반포 지하5층 1구역 3번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_3.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_3_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_4",
+      "displayName": "P1 지하5층 1구역 4번",
+      "description": "반포 지하5층 1구역 4번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_4.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_4_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_5",
+      "displayName": "P1 지하5층 1구역 5번",
+      "description": "반포 지하5층 1구역 5번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_5.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_5_parking.jpg"
+        }
+      ]
+    },
+    {
+      "cctvId": "P1_B5_1_6",
+      "displayName": "P1 지하5층 1구역 6번",
+      "description": "반포 지하5층 1구역 6번 카메라",
+      "images": [
+        {
+          "type": "original",
+          "displayName": "원본 이미지",
+          "description": "ROI가 표시되지 않은 원본 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_6.jpg"
+        },
+        {
+          "type": "roi_result",
+          "displayName": "ROI 결과 이미지",
+          "description": "주차면이 표시된 결과 이미지",
+          "endpoint": "http://172.23.229.77:8081/images/P1_B5_1_6_parking.jpg"
+        }
+      ]
+    }
+  ]
+}

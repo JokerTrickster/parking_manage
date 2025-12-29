@@ -50,6 +50,7 @@ import { RealtimeParkingViewModel } from '../viewmodels/RealtimeParkingViewModel
 import LearningResultsView from './LearningResultsView';
 import { Project } from '../models/Project';
 import { touchFriendly, responsiveSpacing, responsiveGrid } from '../styles/responsive';
+import { CctvTemplate, CctvConfig } from '../models/CctvTemplate';
 
 interface RealtimeParkingViewProps {
   project: Project;
@@ -92,6 +93,14 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
   const [imageUpdateKey, setImageUpdateKey] = useState(0); // 이미지 강제 업데이트를 위한 키
   const [modalImage, setModalImage] = useState<{ src: string; title: string; alt: string } | null>(null);
 
+  // 템플릿 기반 CCTV
+  const [cctvTemplate, setCctvTemplate] = useState<CctvTemplate | null>(null);
+  const [templateBasedMode, setTemplateBasedMode] = useState(false);
+  const [selectedImageType, setSelectedImageType] = useState<string>('roi_result');
+
+  // 자동 새로고침 타이머
+  const [remainingTime, setRemainingTime] = useState(60); // 60초
+
   // Mobile UI states
   const [settingsExpanded, setSettingsExpanded] = useState(!isMobile);
   const [activeTab, setActiveTab] = useState(0);
@@ -101,10 +110,12 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
   // 타이머 참조
   const batchIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const learningIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const imageRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadAvailableFolders();
-    
+    loadCctvTemplate();
+
     // 컴포넌트 언마운트 시 모든 타이머 정리
     return () => {
       if (batchIntervalRef.current) {
@@ -113,12 +124,89 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
       if (learningIntervalRef.current) {
         clearInterval(learningIntervalRef.current);
       }
+      if (imageRefreshIntervalRef.current) {
+        clearInterval(imageRefreshIntervalRef.current);
+      }
     };
   }, [project.id]);
 
-  // selectedCctv가 변경될 때마다 이미지 업데이트
+  const loadCctvTemplate = async () => {
+    try {
+      const template = RealtimeParkingViewModel.getCctvTemplate(project.id);
+      if (template) {
+        setCctvTemplate(template);
+        setTemplateBasedMode(true);
+        console.log('CCTV 템플릿 로드 완료:', template);
+
+        // 첫 번째 CCTV 자동 선택
+        if (template.cctvList.length > 0) {
+          const firstCctv = template.cctvList[0].cctvId;
+          setSelectedCctv(firstCctv);
+
+          // 첫 번째 CCTV 이미지 URL 생성 (JSON에서 바로 읽음)
+          try {
+            const images = RealtimeParkingViewModel.getTemplateBasedCctvImages(project.id, firstCctv);
+            setSelectedCctvImages(images);
+            setImageUpdateKey(prev => prev + 1);
+            setCctvImageError(null);
+          } catch (error: any) {
+            console.error('첫 번째 CCTV 이미지 로드 실패:', error);
+            setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
+          }
+        }
+      } else {
+        console.warn(`프로젝트 "${project.id}"의 CCTV 템플릿이 없습니다.`);
+        setTemplateBasedMode(false);
+      }
+    } catch (error) {
+      console.error('CCTV 템플릿 로드 실패:', error);
+      setTemplateBasedMode(false);
+    }
+  };
+
+  // 템플릿 모드에서 선택된 CCTV 이미지 1분마다 자동 새로고침
   useEffect(() => {
-    if (selectedCctv && isRunning) {
+    if (templateBasedMode && selectedCctv && cctvTemplate) {
+      // 초기 이미지 로드
+      const refreshImages = () => {
+        try {
+          const images = RealtimeParkingViewModel.getTemplateBasedCctvImages(project.id, selectedCctv);
+          setSelectedCctvImages(images);
+          setImageUpdateKey(prev => prev + 1);
+          setCctvImageError(null);
+          setRemainingTime(60); // 타이머 리셋
+          console.log('이미지 새로고침:', selectedCctv);
+        } catch (error: any) {
+          console.error('이미지 새로고침 실패:', error);
+          setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
+        }
+      };
+
+      // 1분(60초)마다 이미지 새로고침
+      imageRefreshIntervalRef.current = setInterval(refreshImages, 60000);
+
+      // 1초마다 남은 시간 업데이트
+      const countdownInterval = setInterval(() => {
+        setRemainingTime(prev => {
+          if (prev <= 1) {
+            return 60;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (imageRefreshIntervalRef.current) {
+          clearInterval(imageRefreshIntervalRef.current);
+        }
+        clearInterval(countdownInterval);
+      };
+    }
+  }, [templateBasedMode, selectedCctv, cctvTemplate, project.id]);
+
+  // selectedCctv가 변경될 때마다 이미지 업데이트 (API 기반 모드)
+  useEffect(() => {
+    if (selectedCctv && isRunning && !templateBasedMode) {
       const updateCctvImages = async () => {
         try {
           const images = await RealtimeParkingViewModel.getRealtimeCctvImages(project.id, selectedCctv);
@@ -130,10 +218,10 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
           setCctvImageError(error.message || 'CCTV 이미지 업데이트 중 오류가 발생했습니다.');
         }
       };
-      
+
       updateCctvImages();
     }
-  }, [selectedCctv, isRunning, project.id]);
+  }, [selectedCctv, isRunning, templateBasedMode, project.id]);
 
   // 실시간 학습 완료 후 이미지 업데이트를 위한 상태
   const [lastLearningTime, setLastLearningTime] = useState<number>(0);
@@ -197,57 +285,70 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
       setError(null);
       setIsRunning(true);
 
-      // 배치 이미지 저장 시작 (30초마다) - 이미지 저장이 활성화된 경우에만
-      if (imageSavingEnabled) {
-        batchIntervalRef.current = setInterval(async () => {
-          try {
-            await RealtimeParkingViewModel.batchImageDownload(project.id);
-            console.log('배치 이미지 저장 완료');
-          } catch (error) {
-            console.error('배치 이미지 저장 실패:', error);
-          }
-        }, 30000); // 30초 = 30,000ms
-      }
-
-                // 실시간 학습 시작 (40초마다)
-          learningIntervalRef.current = setInterval(async () => {
+      // 템플릿 기반 모드: 템플릿에서 CCTV 목록 가져오기
+      if (templateBasedMode && cctvTemplate) {
+        const templateCctvs = cctvTemplate.cctvList.map(cctv => cctv.cctvId);
+        setCctvList(templateCctvs);
+        if (templateCctvs.length > 0 && !selectedCctv) {
+          setSelectedCctv(templateCctvs[0]);
+          // 첫 번째 CCTV 이미지 로드
+          await handleCctvSelect(templateCctvs[0]);
+        }
+        console.log('템플릿 기반 CCTV 목록 로드:', templateCctvs);
+      } else {
+        // 기존 API 기반 모드
+        // 배치 이미지 저장 시작 (30초마다) - 이미지 저장이 활성화된 경우에만
+        if (imageSavingEnabled) {
+          batchIntervalRef.current = setInterval(async () => {
             try {
-              const result = await RealtimeParkingViewModel.startRealtimeLearning(project.id, settings);
-              setRealtimeResults(result);
-              
-              // CCTV 리스트 업데이트 (선택된 CCTV는 유지)
-              if (result && result.cctvs) {
-                setCctvList(result.cctvs);
-                // 현재 선택된 CCTV가 새로운 리스트에 없는 경우에만 첫 번째로 변경
-                if (result.cctvs.length > 0 && selectedCctv && !result.cctvs.includes(selectedCctv)) {
-                  setSelectedCctv(result.cctvs[0]);
-                }
-              }
-              
-              // 실시간 학습 완료 시간 업데이트 (이미지 업데이트 트리거)
-              setLastLearningTime(Date.now());
-              
-              console.log('실시간 학습 완료:', result);
+              await RealtimeParkingViewModel.batchImageDownload(project.id);
+              console.log('배치 이미지 저장 완료');
             } catch (error) {
-              console.error('실시간 학습 실패:', error);
-              setError('실시간 학습 중 오류가 발생했습니다.');
+              console.error('배치 이미지 저장 실패:', error);
             }
-          }, 40000); // 40초 = 40,000ms
+          }, 30000); // 30초 = 30,000ms
+        }
 
-      // 첫 번째 실행
-      if (imageSavingEnabled) {
-        await RealtimeParkingViewModel.batchImageDownload(project.id);
-      }
-      const initialResult = await RealtimeParkingViewModel.startRealtimeLearning(project.id, settings);
-      setRealtimeResults(initialResult);
-      setLastLearningTime(Date.now()); // 초기 실행 완료 시간 설정
-      
-      // CCTV 리스트 설정 (초기 실행 시에만 첫 번째 CCTV 선택)
-      if (initialResult && initialResult.cctvs) {
-        setCctvList(initialResult.cctvs);
-        if (initialResult.cctvs.length > 0 && !selectedCctv) {
-          // 초기 실행 시에만 첫 번째 CCTV 선택
-          setSelectedCctv(initialResult.cctvs[0]);
+        // 실시간 학습 시작 (40초마다)
+        learningIntervalRef.current = setInterval(async () => {
+          try {
+            const result = await RealtimeParkingViewModel.startRealtimeLearning(project.id, settings);
+            setRealtimeResults(result);
+
+            // CCTV 리스트 업데이트 (선택된 CCTV는 유지)
+            if (result && result.cctvs) {
+              setCctvList(result.cctvs);
+              // 현재 선택된 CCTV가 새로운 리스트에 없는 경우에만 첫 번째로 변경
+              if (result.cctvs.length > 0 && selectedCctv && !result.cctvs.includes(selectedCctv)) {
+                setSelectedCctv(result.cctvs[0]);
+              }
+            }
+
+            // 실시간 학습 완료 시간 업데이트 (이미지 업데이트 트리거)
+            setLastLearningTime(Date.now());
+
+            console.log('실시간 학습 완료:', result);
+          } catch (error) {
+            console.error('실시간 학습 실패:', error);
+            setError('실시간 학습 중 오류가 발생했습니다.');
+          }
+        }, 40000); // 40초 = 40,000ms
+
+        // 첫 번째 실행
+        if (imageSavingEnabled) {
+          await RealtimeParkingViewModel.batchImageDownload(project.id);
+        }
+        const initialResult = await RealtimeParkingViewModel.startRealtimeLearning(project.id, settings);
+        setRealtimeResults(initialResult);
+        setLastLearningTime(Date.now()); // 초기 실행 완료 시간 설정
+
+        // CCTV 리스트 설정 (초기 실행 시에만 첫 번째 CCTV 선택)
+        if (initialResult && initialResult.cctvs) {
+          setCctvList(initialResult.cctvs);
+          if (initialResult.cctvs.length > 0 && !selectedCctv) {
+            // 초기 실행 시에만 첫 번째 CCTV 선택
+            setSelectedCctv(initialResult.cctvs[0]);
+          }
         }
       }
 
@@ -303,7 +404,37 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
   const handleCctvSelect = (cctvId: string) => {
     setSelectedCctv(cctvId);
-    // useEffect에서 자동으로 이미지 업데이트됨
+    setRemainingTime(60); // 새로운 CCTV 선택 시 타이머 리셋
+
+    // 템플릿 기반 모드에서는 JSON에서 바로 URL 생성
+    if (templateBasedMode && cctvTemplate) {
+      try {
+        const images = RealtimeParkingViewModel.getTemplateBasedCctvImages(project.id, cctvId);
+        setSelectedCctvImages(images);
+        setImageUpdateKey(prev => prev + 1);
+        setCctvImageError(null);
+      } catch (error: any) {
+        console.error('템플릿 기반 CCTV 이미지 로드 실패:', error);
+        setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
+      }
+    }
+    // 기존 API 기반 모드는 useEffect에서 자동으로 이미지 업데이트됨
+  };
+
+  const handleManualRefresh = () => {
+    if (templateBasedMode && cctvTemplate && selectedCctv) {
+      try {
+        const images = RealtimeParkingViewModel.getTemplateBasedCctvImages(project.id, selectedCctv);
+        setSelectedCctvImages(images);
+        setImageUpdateKey(prev => prev + 1);
+        setCctvImageError(null);
+        setRemainingTime(60); // 타이머 리셋
+        console.log('수동 새로고침:', selectedCctv);
+      } catch (error: any) {
+        console.error('수동 새로고침 실패:', error);
+        setCctvImageError(error.message || 'CCTV 이미지 로드 중 오류가 발생했습니다.');
+      }
+    }
   };
 
   const handleImageClick = (src: string, title: string, alt: string) => {
@@ -373,8 +504,8 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
         )}
       </Box>
 
-      {/* 데이터 선택 및 실시간 설정 - Desktop only */}
-      {!isMobile && (
+      {/* 데이터 선택 및 실시간 설정 - Desktop only, 템플릿 모드가 아닐 때만 표시 */}
+      {!isMobile && !templateBasedMode && (
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -493,46 +624,47 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
         </Card>
       )}
 
-      {/* 실시간 제어 */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
-          <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: { xs: 2, sm: 3 },
-            alignItems: { xs: 'stretch', sm: 'center' }
-          }}>
-            {!isRunning ? (
-              <Button
-                variant="contained"
-                startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
-                onClick={handleStartRealtime}
-                disabled={loading || !settings.learningImageFolder || !settings.roiFile}
-                fullWidth={isMobile}
-                sx={{
-                  ...touchFriendly.button,
-                  fontSize: { xs: '1rem', sm: '1.125rem' },
-                  py: { xs: 2, sm: 1.5 }
-                }}
-              >
-                {loading ? '시작 중...' : isMobile ? '실시간 모니터링 시작' : '실시간 영상 보기'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<Stop />}
-                onClick={handleStopRealtime}
-                fullWidth={isMobile}
-                sx={{
-                  ...touchFriendly.button,
-                  fontSize: { xs: '1rem', sm: '1.125rem' },
-                  py: { xs: 2, sm: 1.5 }
-                }}
-              >
-                {isMobile ? '모니터링 중단' : '실시간 영상 보기 중단'}
-              </Button>
-            )}
+      {/* 템플릿 모드가 아닐 때만 실시간 제어 버튼 표시 */}
+      {!templateBasedMode && (
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 2, sm: 3 },
+              alignItems: { xs: 'stretch', sm: 'center' }
+            }}>
+              {!isRunning ? (
+                <Button
+                  variant="contained"
+                  startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
+                  onClick={handleStartRealtime}
+                  disabled={loading || (!settings.learningImageFolder || !settings.roiFile)}
+                  fullWidth={isMobile}
+                  sx={{
+                    ...touchFriendly.button,
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                    py: { xs: 2, sm: 1.5 }
+                  }}
+                >
+                  {loading ? '시작 중...' : isMobile ? '실시간 모니터링 시작' : '실시간 영상 보기'}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<Stop />}
+                  onClick={handleStopRealtime}
+                  fullWidth={isMobile}
+                  sx={{
+                    ...touchFriendly.button,
+                    fontSize: { xs: '1rem', sm: '1.125rem' },
+                    py: { xs: 2, sm: 1.5 }
+                  }}
+                >
+                  {isMobile ? '모니터링 중단' : '실시간 영상 보기 중단'}
+                </Button>
+              )}
             
             {isRunning && (
               <Box sx={{
@@ -594,9 +726,176 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
           </Box>
         </CardContent>
       </Card>
+      )}
 
-      {/* 실시간 결과 */}
-      {realtimeResults && cctvList.length > 0 && (
+      {/* 템플릿 모드: 왼쪽 사이드 패널 + 이미지 표시 */}
+      {templateBasedMode && cctvTemplate && (
+        <Card>
+          <CardContent sx={{ ...responsiveSpacing.cardPadding, p: 0 }}>
+            <Box sx={{ display: 'flex', height: '800px' }}>
+              {/* 왼쪽 사이드 패널: CCTV 목록 */}
+              <Box sx={{
+                width: '300px',
+                borderRight: '1px solid #e0e0e0',
+                overflowY: 'auto',
+                backgroundColor: '#fafafa',
+                maxHeight: '800px'
+              }}>
+                <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff', position: 'sticky', top: 0, zIndex: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    CCTV 목록
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {cctvTemplate.cctvList.length}개 카메라
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 1 }}>
+                  {cctvTemplate.cctvList.map((cctv) => (
+                    <Box
+                      key={cctv.cctvId}
+                      onClick={() => handleCctvSelect(cctv.cctvId)}
+                      sx={{
+                        p: 1.5,
+                        mb: 0.5,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        backgroundColor: selectedCctv === cctv.cctvId ? '#1976d2' : 'transparent',
+                        color: selectedCctv === cctv.cctvId ? '#fff' : 'inherit',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: selectedCctv === cctv.cctvId ? '#1565c0' : '#e3f2fd',
+                        }
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                        {cctv.displayName}
+                      </Typography>
+                      <Typography variant="caption" sx={{
+                        display: 'block',
+                        mt: 0.5,
+                        opacity: 0.8,
+                        fontSize: '0.75rem'
+                      }}>
+                        {cctv.description}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* 오른쪽: 선택된 CCTV 이미지 표시 */}
+              <Box sx={{ flex: 1, p: 3 }}>
+                {selectedCctv && selectedCctvImages && (
+                  <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.displayName}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Chip
+                          icon={<RefreshIcon sx={{ fontSize: '1rem' }} />}
+                          label={`${remainingTime}초 후 새로고침`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={handleManualRefresh}
+                          sx={{ minWidth: '100px' }}
+                        >
+                          새로고침
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    {loadingCctvImages ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                        <CircularProgress size={60} />
+                      </Box>
+                    ) : cctvImageError ? (
+                      <Alert severity="error">{cctvImageError}</Alert>
+                    ) : (
+                      <Box sx={{
+                        display: 'grid',
+                        gap: 3,
+                        gridTemplateColumns: {
+                          xs: '1fr',
+                          md: 'repeat(2, 1fr)'
+                        }
+                      }}>
+                        {cctvTemplate.cctvList
+                          .find(c => c.cctvId === selectedCctv)
+                          ?.images.map((imageConfig) => (
+                            <Box key={imageConfig.type}>
+                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+                                {imageConfig.displayName}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  border: '2px solid #e0e0e0',
+                                  borderRadius: 2,
+                                  overflow: 'hidden',
+                                  backgroundColor: '#000',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s',
+                                  '&:hover': {
+                                    borderColor: '#1976d2',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                  }
+                                }}
+                                onClick={() => selectedCctvImages[imageConfig.type] && handleImageClick(
+                                  selectedCctvImages[imageConfig.type],
+                                  `${imageConfig.displayName} - ${selectedCctv}`,
+                                  `${selectedCctv} - ${imageConfig.type}`
+                                )}
+                              >
+                                {selectedCctvImages[imageConfig.type] ? (
+                                  <img
+                                    key={`${imageConfig.type}-${imageUpdateKey}`}
+                                    src={selectedCctvImages[imageConfig.type]}
+                                    alt={`${imageConfig.type} - ${selectedCctv}`}
+                                    style={{
+                                      width: '100%',
+                                      height: 'auto',
+                                      display: 'block'
+                                    }}
+                                    onError={(e) => {
+                                      console.error(`이미지 로드 실패: ${selectedCctv} - ${imageConfig.type}`, e.currentTarget.src);
+                                    }}
+                                  />
+                                ) : (
+                                  <Box sx={{
+                                    height: '400px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: '#f5f5f5'
+                                  }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                      이미지를 불러올 수 없습니다.
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                            </Box>
+                          ))
+                        }
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 기존 API 기반 실시간 결과 */}
+      {!templateBasedMode && realtimeResults && cctvList.length > 0 && (
         <Card>
           <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
             <Box sx={{
@@ -637,32 +936,43 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                     CCTV 목록 ({cctvList.length}개)
                   </Typography>
                   <Box sx={{ maxHeight: '350px', overflowY: 'auto' }}>
-                    {cctvList.map((cctvId) => (
-                      <Box
-                        key={cctvId}
-                        sx={{
-                          p: 2,
-                          mb: 1,
-                          border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
-                          borderRadius: 1,
-                          backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
-                            borderColor: '#1976d2'
-                          }
-                        }}
-                        onClick={() => handleCctvSelect(cctvId)}
-                      >
-                        <Typography variant="subtitle2" fontWeight="medium">
-                          {cctvId}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          실시간 모니터링 중
-                        </Typography>
-                      </Box>
-                    ))}
+                    {cctvList.map((cctvId) => {
+                      const cctvConfig = templateBasedMode && cctvTemplate
+                        ? cctvTemplate.cctvList.find(c => c.cctvId === cctvId)
+                        : null;
+
+                      return (
+                        <Box
+                          key={cctvId}
+                          sx={{
+                            p: 2,
+                            mb: 1,
+                            border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
+                              borderColor: '#1976d2'
+                            }
+                          }}
+                          onClick={() => handleCctvSelect(cctvId)}
+                        >
+                          <Typography variant="subtitle2" fontWeight="medium">
+                            {cctvConfig?.displayName || cctvId}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {cctvConfig?.description || '실시간 모니터링 중'}
+                          </Typography>
+                          {templateBasedMode && cctvConfig && (
+                            <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 0.5 }}>
+                              {cctvConfig.images.length}개 이미지 타입 사용 가능
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 </Box>
               )}
@@ -679,23 +989,34 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                       flexWrap: 'wrap',
                       gap: 1
                     }}>
-                      <Typography
-                        variant={isMobile ? "h6" : "h5"}
-                        color="primary"
-                        sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
-                      >
-                        {selectedCctv}
-                      </Typography>
+                      <Box>
+                        <Typography
+                          variant={isMobile ? "h6" : "h5"}
+                          color="primary"
+                          sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
+                        >
+                          {templateBasedMode && cctvTemplate
+                            ? cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.displayName || selectedCctv
+                            : selectedCctv
+                          }
+                        </Typography>
+                        {templateBasedMode && cctvTemplate && (
+                          <Typography variant="caption" color="text.secondary">
+                            {cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.description}
+                          </Typography>
+                        )}
+                      </Box>
                       {isMobile && (
                         <Chip
-                          label="실시간"
-                          color="success"
+                          label={templateBasedMode ? "템플릿" : "실시간"}
+                          color={templateBasedMode ? "primary" : "success"}
                           variant="outlined"
                           size="small"
                           icon={<CircleIcon sx={{ fontSize: 12 }} />}
                         />
                       )}
                     </Box>
+
                     
                     {loadingCctvImages ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
@@ -720,14 +1041,99 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         </Button>
                       </Box>
                     ) : selectedCctvImages ? (
-                      <Box sx={{
-                        display: 'grid',
-                        gap: { xs: 2, sm: 3 },
-                        gridTemplateColumns: {
-                          xs: '1fr',
-                          sm: 'repeat(auto-fit, minmax(300px, 1fr))'
-                        }
-                      }}>
+                      templateBasedMode ? (
+                        /* 템플릿 기반 모드: 2개 이미지를 나란히 표시 */
+                        <Box sx={{
+                          display: 'grid',
+                          gap: { xs: 2, sm: 3 },
+                          gridTemplateColumns: {
+                            xs: '1fr',
+                            md: 'repeat(2, 1fr)'
+                          }
+                        }}>
+                          {cctvTemplate?.cctvList
+                            .find(c => c.cctvId === selectedCctv)
+                            ?.images.map((imageConfig) => (
+                              <Box key={imageConfig.type}>
+                                <Typography variant="subtitle2" gutterBottom sx={{
+                                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                                  fontWeight: 600
+                                }}>
+                                  {imageConfig.displayName}
+                                </Typography>
+                                <Box sx={{
+                                  border: '1px solid #e0e0e0',
+                                  borderRadius: 1,
+                                  p: 1,
+                                  backgroundColor: '#fafafa',
+                                  position: 'relative',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => selectedCctvImages[imageConfig.type] && handleImageClick(
+                                  selectedCctvImages[imageConfig.type],
+                                  `${imageConfig.displayName} - ${selectedCctv}`,
+                                  `${selectedCctv} - ${imageConfig.type}`
+                                )}>
+                                  {selectedCctvImages[imageConfig.type] ? (
+                                    <>
+                                      <img
+                                        key={`${imageConfig.type}-${imageUpdateKey}`}
+                                        src={selectedCctvImages[imageConfig.type]}
+                                        alt={`${imageConfig.type} - ${selectedCctv}`}
+                                        style={{
+                                          width: '100%',
+                                          height: 'auto',
+                                          maxHeight: isMobile ? '300px' : '450px',
+                                          objectFit: 'contain',
+                                          transition: 'opacity 0.2s'
+                                        }}
+                                        onError={(e) => {
+                                          console.error(`이미지 로드 실패: ${selectedCctv} - ${imageConfig.type}`, e.currentTarget.src);
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                      />
+                                      <ZoomInIcon
+                                        sx={{
+                                          position: 'absolute',
+                                          top: 8,
+                                          right: 8,
+                                          color: 'white',
+                                          backgroundColor: 'rgba(0,0,0,0.5)',
+                                          borderRadius: '50%',
+                                          padding: { xs: '6px', sm: '4px' },
+                                          fontSize: { xs: '16px', sm: '20px' }
+                                        }}
+                                      />
+                                    </>
+                                  ) : (
+                                    <Box sx={{
+                                      height: { xs: '200px', sm: '300px' },
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      <Typography variant="body2" color="text.secondary">
+                                        이미지를 불러올 수 없습니다.
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </Box>
+                              </Box>
+                            ))
+                          }
+                        </Box>
+                      ) : (
+                        /* 기존 API 기반 모드: 모든 이미지 표시 */
+                        <Box sx={{
+                          display: 'grid',
+                          gap: { xs: 2, sm: 3 },
+                          gridTemplateColumns: {
+                            xs: '1fr',
+                            sm: 'repeat(auto-fit, minmax(300px, 1fr))'
+                          }
+                        }}>
                           {/* ROI 결과 이미지 */}
                           <Box>
                             <Typography variant="subtitle2" gutterBottom sx={{
@@ -834,6 +1240,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                             </Box>
                           </Box>
                         </Box>
+                      )
                     ) : (
                       <Box sx={{
                         display: 'flex',
