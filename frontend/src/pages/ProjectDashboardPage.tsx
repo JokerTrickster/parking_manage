@@ -52,20 +52,20 @@ const ProjectDashboardPage: React.FC = () => {
       path: `/project/${projectId}/roi-editor`,
     },
     {
-      id: 'learning-data-management',
-      title: '학습 데이터 관리',
-      description: 'ROI 파일과 학습 이미지를 선택하여 차량 점유 상태를 표시합니다',
-      icon: <StorageIcon />,
-      color: '#388e3c',
-      path: `/project/${projectId}/learning-data-management`,
-    },
-    {
       id: 'live-status',
       title: '실시간 주차현황',
       description: '실시간으로 주차 상태를 모니터링합니다',
       icon: <LiveIcon />,
       color: '#d32f2f',
       path: `/project/${projectId}/live-status`,
+    },
+    {
+      id: 'learning-data-management',
+      title: '학습 데이터 관리',
+      description: 'ROI 파일과 학습 이미지를 선택하여 차량 점유 상태를 표시합니다',
+      icon: <StorageIcon />,
+      color: '#388e3c',
+      path: `/project/${projectId}/learning-data-management`,
     },
     {
       id: 'algorithm-tuning',

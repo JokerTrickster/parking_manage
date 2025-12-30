@@ -7,7 +7,7 @@ interface RoiCanvasProps {
   editable?: boolean;
   onRoiClick?: (roiId: string) => void;
   selectedRoiId?: string;
-  editMode?: 'create' | 'update' | null;
+  editMode?: 'create' | 'update' | 'delete' | null;
   onRoiCreate?: (coordinates: number[]) => void;
   onRoiUpdate?: (roiId: string, coordinates: number[]) => void;
   isMobile?: boolean;
@@ -37,6 +37,7 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const [drawingPoints, setDrawingPoints] = useState<number[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [hoveredRoiId, setHoveredRoiId] = useState<string | null>(null);
 
   // 이미지 로드
   useEffect(() => {
@@ -111,9 +112,14 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     Object.entries(rois).forEach(([roiId, coordinates]) => {
       if (coordinates.length < 6) return; // 최소 3개 점 필요 (6개 좌표)
 
+      // editable이 false면 선택/호버 효과 없이 기본 연두색만 표시
+      const isSelected = editable && selectedRoiId === roiId;
+      const isHovered = editable && hoveredRoiId === roiId;
+
       ctx.beginPath();
-      ctx.strokeStyle = selectedRoiId === roiId ? '#00ff00' : '#00ff00';
-      ctx.lineWidth = Math.max(1, 2 * scaleX); // 스케일에 맞춰 선 두께 조정
+      // 선택됨: 노란색, 호버: 주황색, 일반: 연두색
+      ctx.strokeStyle = isSelected ? '#ffff00' : (isHovered ? '#ff8800' : '#00ff00');
+      ctx.lineWidth = Math.max(1, (isSelected ? 3 : 2) * scaleX); // 선택된 ROI는 더 두껍게
 
       // 첫 번째 점으로 이동 (좌표 스케일링 - X와 Y 각각 다르게)
       const x1 = coordinates[0] * scaleX + offsetX;
@@ -131,8 +137,14 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
       ctx.closePath();
       ctx.stroke();
 
+      // 선택된 ROI는 반투명 배경 추가 (editable일 때만)
+      if (isSelected) {
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.15)';
+        ctx.fill();
+      }
+
       // ROI ID 표시 (첫 번째 점 근처, 스케일에 맞춰 폰트 크기 조정)
-      ctx.fillStyle = selectedRoiId === roiId ? '#00ff00' : '#00ff00';
+      ctx.fillStyle = isSelected ? '#ffff00' : (isHovered ? '#ff8800' : '#00ff00');
       ctx.font = `${Math.max(8, 12 * scaleX)}px Arial`;
       ctx.fillText(roiId, x1 + 5 * scaleX, y1 - 5 * scaleY);
     });
@@ -176,7 +188,7 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
         ctx.stroke();
       }
     }
-  }, [imageLoaded, imageElement, rois, selectedRoiId, editMode, drawingPoints, isDrawing, isMobile, fullscreen]);
+  }, [imageLoaded, imageElement, rois, selectedRoiId, hoveredRoiId, editMode, drawingPoints, isDrawing, isMobile, fullscreen]);
 
   // 좌표 변환 함수
   const getImageCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -206,19 +218,20 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
 
   // ROI 클릭 이벤트
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!editable || !canvasRef.current || !imageElement) return;
+    if (!canvasRef.current || !imageElement) return;
 
     const coords = getImageCoordinates(event);
     if (!coords) return;
 
-    // 편집 모드인 경우
+    // 편집 모드인 경우 - 이때만 editable 체크
     if (editMode) {
+      if (!editable) return; // 편집 모드에서는 editable이 true여야 함
       setDrawingPoints(prev => [...prev, coords.x, coords.y]);
       setIsDrawing(true);
       return;
     }
 
-    // 일반 모드인 경우 ROI 선택
+    // 일반 모드인 경우 ROI 선택 - editable과 무관하게 동작
     if (onRoiClick) {
       Object.entries(rois).forEach(([roiId, coordinates]) => {
         if (isPointInPolygon(coords.x, coords.y, coordinates)) {
@@ -228,23 +241,26 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     }
   };
 
-  // 마우스 이동 이벤트 - 제거 (더 이상 마우스를 따라가지 않음)
-  // const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-  //   if (!editMode || !isDrawing) return;
+  // 마우스 이동 이벤트 - ROI 호버 감지
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || !imageElement || editMode) return;
 
-  //   const coords = getImageCoordinates(event);
-  //   if (!coords) return;
+    const coords = getImageCoordinates(event);
+    if (!coords) return;
 
-  //   // 실시간으로 그리기 업데이트
-  //   setDrawingPoints(prev => {
-  //     const newPoints = [...prev];
-  //     if (newPoints.length >= 2) {
-  //       newPoints[newPoints.length - 2] = coords.x;
-  //       newPoints[newPoints.length - 1] = coords.y;
-  //     }
-  //     return newPoints;
-  //   });
-  // };
+    // 마우스 아래에 있는 ROI 찾기
+    let foundRoiId: string | null = null;
+    Object.entries(rois).forEach(([roiId, coordinates]) => {
+      if (isPointInPolygon(coords.x, coords.y, coordinates)) {
+        foundRoiId = roiId;
+      }
+    });
+
+    // 호버 상태 업데이트
+    if (foundRoiId !== hoveredRoiId) {
+      setHoveredRoiId(foundRoiId);
+    }
+  };
 
   // ROI 완성 (첫 번째 점과 마지막 점 연결)
   const completeRoi = () => {
@@ -302,8 +318,9 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
+        onMouseMove={handleMouseMove}
         style={{
-          cursor: editMode ? 'crosshair' : (editable ? 'pointer' : 'default'),
+          cursor: editMode ? 'crosshair' : (hoveredRoiId ? 'pointer' : 'default'),
           width: '100%',
           height: '100%',
           maxWidth: '100%',
