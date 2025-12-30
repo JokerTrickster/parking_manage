@@ -18,7 +18,17 @@ import {
   useTheme,
   Drawer,
   IconButton,
-  Collapse
+  Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  Stack,
+  Chip,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -30,7 +40,8 @@ import {
   Menu as MenuIcon,
   ExpandMore as ExpandMoreIcon,
   Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon
+  FullscreenExit as FullscreenExitIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import { RoiService } from '../services/RoiService';
 import { FileStorageService } from '../services/FileStorageService';
@@ -58,12 +69,14 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const [roiFiles, setRoiFiles] = useState<string[]>([]);
   const [selectedRoiFile, setSelectedRoiFile] = useState<string>('');
   const [roiFileData, setRoiFileData] = useState<RoiFileData | null>(null);
+  const [originalRoiFileData, setOriginalRoiFileData] = useState<RoiFileData | null>(null); // 롤백용 원본 데이터
   const [cctvTemplate, setCctvTemplate] = useState<CctvTemplate | null>(null);
   const [cctvList, setCctvList] = useState<string[]>([]);
   const [selectedCctv, setSelectedCctv] = useState<string>('');
   const [cctvImageUrl, setCctvImageUrl] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [roiData, setRoiData] = useState<any>(null);
+  const [originalRoiData, setOriginalRoiData] = useState<any>(null); // 롤백용 선택된 CCTV의 원본 ROI 데이터
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -83,10 +96,63 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const [fileSelectionExpanded, setFileSelectionExpanded] = useState(!isMobile);
   const [fullscreenCanvas, setFullscreenCanvas] = useState(false);
 
+  // 다이얼로그 상태
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingRoiFile, setPendingRoiFile] = useState<string>('');
+
+  // 수정된 CCTV 추적
+  const [modifiedCctvs, setModifiedCctvs] = useState<Set<string>>(new Set());
+
   // Snackbar 닫기 핸들러
   const handleCloseSnackbar = () => {
     setSuccess('');
     setError('');
+  };
+
+  // CCTV가 수정되었는지 확인하는 함수
+  const checkCctvModified = (cctvId: string): boolean => {
+    if (!originalRoiFileData || !roiFileData) return false;
+
+    const originalData = (originalRoiFileData as any)[cctvId];
+    const currentData = (roiFileData as any)[cctvId];
+
+    // 둘 중 하나가 없으면 다른 것
+    if (!originalData && currentData) return true;
+    if (originalData && !currentData) return true;
+    if (!originalData && !currentData) return false;
+
+    // ROI 개수가 다르면 수정됨
+    const originalRois = originalData.rois || {};
+    const currentRois = currentData.rois || {};
+    if (Object.keys(originalRois).length !== Object.keys(currentRois).length) return true;
+
+    // ROI 좌표가 다르면 수정됨
+    for (const roiId in currentRois) {
+      if (!originalRois[roiId]) return true;
+      const originalCoords = JSON.stringify(originalRois[roiId]);
+      const currentCoords = JSON.stringify(currentRois[roiId]);
+      if (originalCoords !== currentCoords) return true;
+    }
+
+    return false;
+  };
+
+  // 수정된 CCTV 목록 업데이트
+  const updateModifiedCctvs = () => {
+    if (!cctvList || !roiFileData || !originalRoiFileData) {
+      setModifiedCctvs(new Set());
+      return;
+    }
+
+    const modified = new Set<string>();
+    cctvList.forEach(cctvId => {
+      if (checkCctvModified(cctvId)) {
+        modified.add(cctvId);
+      }
+    });
+    setModifiedCctvs(modified);
   };
 
   useEffect(() => {
@@ -94,6 +160,11 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     loadRoiFiles();
     loadCctvTemplate();
   }, [projectId]);
+
+  // ROI 데이터가 변경될 때마다 수정된 CCTV 목록 업데이트
+  useEffect(() => {
+    updateModifiedCctvs();
+  }, [roiData, roiFileData, cctvList]);
 
   // CCTV 템플릿 로드
   const loadCctvTemplate = () => {
@@ -134,6 +205,17 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const handleRoiFileSelect = async (fileName: string) => {
     if (!fileName) return;
 
+    // 기존 작업이 있으면 확인 다이얼로그 표시
+    if (selectedRoiFile && roiData && Object.keys(roiData.rois || {}).length > 0) {
+      setPendingRoiFile(fileName);
+      setConfirmDialogOpen(true);
+      return;
+    }
+
+    loadRoiFile(fileName);
+  };
+
+  const loadRoiFile = async (fileName: string) => {
     try {
       setLoading(true);
       setError('');
@@ -143,17 +225,15 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       // ROI 파일 다운로드 및 파싱
       const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
       const text = await blob.text();
-      // console.log('📄 ROI 파일 내용:', text);
       const data = JSON.parse(text);
-      // console.log('📊 파싱된 ROI 데이터:', data);
 
       // ROI 파일 전체를 저장 (IP 주소를 키로 하는 객체 구조)
       setRoiFileData(data);
+      setOriginalRoiFileData(JSON.parse(JSON.stringify(data))); // 원본 데이터 깊은 복사
 
       // banpo.json의 모든 CCTV 목록을 표시
       if (cctvTemplate && cctvTemplate.cctvList) {
         const allCctvIds = cctvTemplate.cctvList.map(cctv => cctv.cctvId);
-        // console.log('📋 전체 CCTV 목록:', allCctvIds);
         setCctvList(allCctvIds);
       } else {
         console.warn('⚠️ CCTV 템플릿이 없습니다.');
@@ -164,11 +244,23 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       console.error('❌ ROI 파일 선택 에러:', err);
       setError(`ROI 파일 '${fileName}'을 불러오는데 실패했습니다.`);
       setRoiFileData(null);
+      setOriginalRoiFileData(null);
       setCctvList([]);
       setSelectedCctv('');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmFileChange = () => {
+    setConfirmDialogOpen(false);
+    loadRoiFile(pendingRoiFile);
+    setPendingRoiFile('');
+  };
+
+  const handleCancelFileChange = () => {
+    setConfirmDialogOpen(false);
+    setPendingRoiFile('');
   };
 
   // CCTV 선택 - 템플릿에서 이미지 URL 가져오고 ROI 데이터 찾기
@@ -303,9 +395,11 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
       if (foundRoiData) {
         // console.log('📊 변환된 ROI 데이터:', foundRoiData);
         setRoiData(foundRoiData);
+        setOriginalRoiData(JSON.parse(JSON.stringify(foundRoiData))); // 원본 데이터 깊은 복사
       } else {
         console.warn(`⚠️ CCTV "${cctvId}"에 대한 ROI 데이터를 찾을 수 없습니다.`);
         setRoiData(null);
+        setOriginalRoiData(null);
       }
     }
   };
@@ -597,23 +691,74 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
-  // 파일 저장
-  const handleSaveFile = async () => {
-    if (!selectedRoiFile || !draftCreated) return;
+  // 롤백 기능 - 선택된 CCTV의 원본 ROI 데이터로 복원
+  const handleRollback = () => {
+    if (!originalRoiData) {
+      setError('롤백할 원본 데이터가 없습니다.');
+      return;
+    }
+
+    // 원본 데이터로 복원
+    setRoiData(JSON.parse(JSON.stringify(originalRoiData))); // 깊은 복사
+    setRoiEditMode(null);
+    setSelectedRoiId('');
+    setSuccess('원본 ROI 데이터로 롤백되었습니다.');
+  };
+
+  // 최종 저장 다이얼로그 열기
+  const handleOpenSaveDialog = () => {
+    setSaveDialogOpen(true);
+    setNewFileName('');
+  };
+
+  const handleCloseSaveDialog = () => {
+    setSaveDialogOpen(false);
+    setNewFileName('');
+  };
+
+  // 최종 저장 - 파일명 입력 후 다운로드
+  const handleFinalSave = async () => {
+    if (!selectedRoiFile || !newFileName.trim()) {
+      setError('파일명을 입력해주세요.');
+      return;
+    }
 
     try {
       setLoading(true);
-      
-      // 기존 saveDraftRoi API 사용 (Draft 파일을 원본 파일로 복사)
-      await RoiService.saveDraftRoi(projectId, selectedRoiFile);
-      
+
+      // 파일명에 .json 확장자 추가 (없으면)
+      const filename = newFileName.endsWith('.json') ? newFileName : `${newFileName}.json`;
+
+      // 현재 roiFileData를 JSON으로 변환
+      const file = new File(
+        [JSON.stringify(roiFileData, null, 2)],
+        filename,
+        { type: 'application/json' }
+      );
+
+      // 파일 다운로드 (브라우저)
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // 서버에도 업로드
+      await FileStorageService.uploadFiles(
+        projectId,
+        'roi',
+        [file]
+      );
+
+      setOriginalRoiFileData(JSON.parse(JSON.stringify(roiFileData))); // 원본 데이터 업데이트
+      setSuccess(`ROI 파일이 저장되었습니다: ${filename}`);
+      setSaveDialogOpen(false);
       setError('');
-      setSuccess('파일이 성공적으로 저장되었습니다.');
-      setDraftCreated(false);
-      setEditMode(false);
-      setDraftRoiData({}); // Draft 데이터 초기화
-      
-      // ROI 파일 리스트 새로고침
+
+      // ROI 파일 목록 새로고침
       await loadRoiFiles();
     } catch (err) {
       console.error('파일 저장 실패:', err);
@@ -655,6 +800,20 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
         >
           ROI 작업
         </Typography>
+
+        {/* 최종 저장 버튼 */}
+        {!isMobile && selectedRoiFile && (
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<SaveIcon />}
+            onClick={handleOpenSaveDialog}
+            size="large"
+            sx={{ mr: 1 }}
+          >
+            최종 저장
+          </Button>
+        )}
 
         {/* Mobile controls toggle */}
         {isMobile && (
@@ -740,11 +899,54 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                   >
                     {cctvList.map((cctvId) => (
                       <MenuItem key={cctvId} value={cctvId}>
-                        {cctvId}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                          <span>{cctvId}</span>
+                          {modifiedCctvs.has(cctvId) && (
+                            <Chip
+                              label="수정됨"
+                              size="small"
+                              color="warning"
+                              sx={{ ml: 'auto', height: 20, fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
+
+                {/* 수정된 CCTV 목록 */}
+                {modifiedCctvs.size > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Alert severity="warning" sx={{ mb: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        수정된 CCTV ({modifiedCctvs.size}개)
+                      </Typography>
+                    </Alert>
+                    <List dense sx={{ bgcolor: 'warning.light', borderRadius: 1, py: 0.5 }}>
+                      {Array.from(modifiedCctvs).map((cctvId) => (
+                        <ListItem
+                          key={cctvId}
+                          sx={{
+                            py: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'warning.main' },
+                            bgcolor: selectedCctv === cctvId ? 'warning.main' : 'transparent'
+                          }}
+                          onClick={() => handleCctvSelect(cctvId)}
+                        >
+                          <ListItemText
+                            primary={cctvId}
+                            primaryTypographyProps={{
+                              fontSize: '0.875rem',
+                              fontWeight: selectedCctv === cctvId ? 'bold' : 'normal'
+                            }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Box>
@@ -797,7 +999,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                       width: '100%',
                       height: fullscreenCanvas
                         ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                        : { xs: 280, sm: 320, md: 400 },
+                        : { xs: 400, sm: 500, md: 600, lg: 700 },
                       border: 1,
                       borderColor: 'divider',
                       display: 'flex',
@@ -831,9 +1033,9 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                           src={selectedImage.path}
                           alt="원본"
                           style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain'
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'fill'
                           }}
                         />
                       );
@@ -866,7 +1068,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                       width: '100%',
                       height: fullscreenCanvas
                         ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                        : { xs: 280, sm: 320, md: 400 },
+                        : { xs: 400, sm: 500, md: 600, lg: 700 },
                       border: 1,
                       borderColor: editMode ? 'primary.main' : 'divider',
                       borderWidth: editMode ? 2 : 1,
@@ -905,50 +1107,77 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                           src={selectedImage.path}
                           alt="편집"
                           style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain'
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'fill'
                           }}
                         />
                       );
                     })()}
                   </Box>
 
-                  {/* 편집 시작 버튼 */}
-                  {!editMode && !fullscreenCanvas && (
-                    <Box sx={{ mt: 2 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<EditIcon />}
-                        onClick={handleStartEdit}
-                        fullWidth
-                        disabled={!selectedRoiFile}
-                        sx={{
-                          ...touchFriendly.button,
-                          fontSize: { xs: '0.875rem', sm: '1rem' }
-                        }}
-                      >
-                        편집 시작
-                      </Button>
-                    </Box>
-                  )}
-
-                  {/* 편집 모드 종료 버튼 */}
-                  {editMode && !fullscreenCanvas && (
-                    <Box sx={{ mt: 2 }}>
+                  {/* 편집 버튼들 - 생성/수정/삭제/롤백 */}
+                  {selectedCctv && !fullscreenCanvas && (
+                    <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                       <Button
                         variant="outlined"
-                        color="secondary"
-                        onClick={handleEndEdit}
+                        startIcon={<AddIcon />}
+                        onClick={handleCreateRoi}
+                        size="small"
                         fullWidth
-                        sx={{
-                          ...touchFriendly.button,
-                          fontSize: { xs: '0.875rem', sm: '1rem' }
-                        }}
+                        disabled={roiEditMode !== null}
+                        sx={{ ...touchFriendly.button }}
                       >
-                        {isMobile ? "편집 종료" : "편집 모드 종료"}
+                        생성
                       </Button>
-                    </Box>
+                      <Button
+                        variant="outlined"
+                        startIcon={<EditIcon />}
+                        onClick={() => {
+                          if (selectedRoiId) {
+                            handleUpdateRoi(selectedRoiId);
+                          } else {
+                            setError('수정할 ROI를 먼저 선택해주세요.');
+                          }
+                        }}
+                        disabled={roiEditMode !== null}
+                        size="small"
+                        fullWidth
+                        sx={{ ...touchFriendly.button }}
+                      >
+                        수정
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => {
+                          if (selectedRoiId) {
+                            handleDeleteRoi(selectedRoiId);
+                          } else {
+                            setError('삭제할 ROI를 먼저 선택해주세요.');
+                          }
+                        }}
+                        disabled={roiEditMode !== null}
+                        size="small"
+                        fullWidth
+                        sx={{ ...touchFriendly.button }}
+                      >
+                        삭제
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="warning"
+                        startIcon={<UndoIcon />}
+                        onClick={handleRollback}
+                        disabled={!originalRoiData}
+                        size="small"
+                        fullWidth
+                        sx={{ ...touchFriendly.button }}
+                      >
+                        롤백
+                      </Button>
+                    </Stack>
                   )}
                 </CardContent>
               </Card>
@@ -1154,35 +1383,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
             </Box>
           )}
 
-          {/* 파일 저장 버튼 */}
-          {draftCreated && !fullscreenCanvas && (
-            <Box sx={{
-              mt: { xs: 3, sm: 4 },
-              display: 'flex',
-              justifyContent: 'center',
-              position: isMobile ? 'sticky' : 'static',
-              bottom: isMobile ? 16 : 'auto',
-              zIndex: isMobile ? 1200 : 'auto'
-            }}>
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<SaveIcon />}
-                onClick={handleSaveFile}
-                size={isMobile ? "medium" : "large"}
-                sx={{
-                  ...touchFriendly.button,
-                  fontSize: { xs: '1rem', sm: '1.125rem' },
-                  px: { xs: 4, sm: 6 },
-                  py: { xs: 1.5, sm: 2 },
-                  minWidth: { xs: 200, sm: 250 },
-                  boxShadow: isMobile ? 3 : undefined
-                }}
-              >
-                {isMobile ? "저장" : "파일 저장"}
-              </Button>
-            </Box>
-          )}
         </Box>
       )}
 
@@ -1260,13 +1460,13 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
               </Button>
             )}
 
-            {draftCreated && (
+            {selectedRoiFile && (
               <Button
                 variant="contained"
                 color="success"
                 startIcon={<SaveIcon />}
                 onClick={() => {
-                  handleSaveFile();
+                  handleOpenSaveDialog();
                   setMobileControlsOpen(false);
                 }}
                 fullWidth
@@ -1276,7 +1476,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                   py: 2
                 }}
               >
-                파일 저장
+                최종 저장
               </Button>
             )}
           </Box>
@@ -1326,15 +1526,59 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity="error" 
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
           sx={{ width: '100%' }}
           elevation={6}
         >
           {error}
         </Alert>
       </Snackbar>
+
+      {/* 최종 저장 다이얼로그 */}
+      <Dialog open={saveDialogOpen} onClose={handleCloseSaveDialog}>
+        <DialogTitle>ROI 파일 저장</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            저장할 ROI 파일의 이름을 입력하세요.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="파일명"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newFileName}
+            onChange={(e) => setNewFileName(e.target.value)}
+            placeholder="예: new_roi_data"
+            helperText=".json 확장자는 자동으로 추가됩니다."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSaveDialog}>취소</Button>
+          <Button onClick={handleFinalSave} variant="contained" disabled={!newFileName.trim()}>
+            저장 및 다운로드
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ROI 파일 변경 확인 다이얼로그 */}
+      <Dialog open={confirmDialogOpen} onClose={handleCancelFileChange}>
+        <DialogTitle>ROI 파일 변경</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            기존 작업했던 내용이 모두 삭제됩니다. 계속하시겠습니까?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelFileChange}>취소</Button>
+          <Button onClick={handleConfirmFileChange} color="error" variant="contained">
+            변경
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

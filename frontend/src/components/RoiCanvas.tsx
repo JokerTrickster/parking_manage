@@ -56,47 +56,39 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 동적 캔버스 크기 계산
+    // 동적 캔버스 크기 계산 - 부모 컨테이너에 맞춤
     const getCanvasSize = () => {
       if (fullscreen) {
         // 전체화면 모드: 최대 가능한 크기
-        const maxWidth = Math.min(window.innerWidth - 32, 800);
-        const maxHeight = Math.min(window.innerHeight * 0.6, 600);
-        return Math.min(maxWidth, maxHeight);
+        const maxWidth = Math.min(window.innerWidth - 32, 1200);
+        const maxHeight = Math.min(window.innerHeight * 0.8, 900);
+        return { width: maxWidth, height: maxHeight };
       } else if (isMobile) {
-        // 모바일: 화면 너비의 90%
-        return Math.min(window.innerWidth - 64, 400);
+        // 모바일: 화면 너비에 맞춤
+        const size = Math.min(window.innerWidth - 64, 500);
+        return { width: size, height: size };
       } else {
-        // 데스크톱: 기본 크기
-        return 360;
+        // 데스크톱: 부모 컨테이너 크기에 맞춤 (600-700px)
+        const parentElement = canvasRef.current?.parentElement;
+        if (parentElement) {
+          const rect = parentElement.getBoundingClientRect();
+          return { width: rect.width - 32, height: rect.height - 32 };
+        }
+        // 폴백: 큰 기본 크기
+        return { width: 700, height: 700 };
       }
     };
 
     const canvasSize = getCanvasSize();
-    const canvasWidth = canvasSize;
-    const canvasHeight = canvasSize;
+    const canvasWidth = canvasSize.width;
+    const canvasHeight = canvasSize.height;
 
-    // 이미지 비율 계산
-    const imageRatio = imageElement.width / imageElement.height;
-    const containerRatio = canvasWidth / canvasHeight;
-
-    let offsetX: number, offsetY: number, scale: number;
-
-    if (imageRatio > containerRatio) {
-      // 이미지가 더 넓음 - 너비에 맞춤
-      const scaledWidth = canvasWidth;
-      const scaledHeight = canvasWidth / imageRatio;
-      offsetX = 0;
-      offsetY = (canvasHeight - scaledHeight) / 2;
-      scale = scaledWidth / imageElement.width;
-    } else {
-      // 이미지가 더 높음 - 높이에 맞춤
-      const scaledHeight = canvasHeight;
-      const scaledWidth = canvasHeight * imageRatio;
-      offsetX = (canvasWidth - scaledWidth) / 2;
-      offsetY = 0;
-      scale = scaledHeight / imageElement.height;
-    }
+    // 캔버스를 가득 채우도록 설정 (비율 무시, fill 방식)
+    const offsetX = 0;
+    const offsetY = 0;
+    const scaleX = canvasWidth / imageElement.width;
+    const scaleY = canvasHeight / imageElement.height;
+    const scale = Math.max(scaleX, scaleY); // 더 큰 스케일을 사용하여 캔버스를 가득 채움
 
     // 캔버스 크기 설정
     canvas.width = canvasWidth;
@@ -107,14 +99,12 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     // 배경 지우기
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 이미지 그리기 (중앙 정렬, 비율 유지)
-    const drawWidth = imageElement.width * scale;
-    const drawHeight = imageElement.height * scale;
+    // 이미지 그리기 (캔버스를 가득 채움)
     ctx.drawImage(
       imageElement,
-      offsetX, offsetY,
-      drawWidth,
-      drawHeight
+      0, 0,
+      canvasWidth,
+      canvasHeight
     );
 
     // ROI 그리기 (좌표 스케일링)
@@ -123,17 +113,17 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
 
       ctx.beginPath();
       ctx.strokeStyle = selectedRoiId === roiId ? '#00ff00' : '#00ff00';
-      ctx.lineWidth = Math.max(1, 2 * scale); // 스케일에 맞춰 선 두께 조정
+      ctx.lineWidth = Math.max(1, 2 * scaleX); // 스케일에 맞춰 선 두께 조정
 
-      // 첫 번째 점으로 이동 (좌표 스케일링)
-      const x1 = coordinates[0] * scale + offsetX;
-      const y1 = coordinates[1] * scale + offsetY;
+      // 첫 번째 점으로 이동 (좌표 스케일링 - X와 Y 각각 다르게)
+      const x1 = coordinates[0] * scaleX + offsetX;
+      const y1 = coordinates[1] * scaleY + offsetY;
       ctx.moveTo(x1, y1);
 
       // 나머지 점들을 연결
       for (let i = 2; i < coordinates.length; i += 2) {
-        const x = coordinates[i] * scale + offsetX;
-        const y = coordinates[i + 1] * scale + offsetY;
+        const x = coordinates[i] * scaleX + offsetX;
+        const y = coordinates[i + 1] * scaleY + offsetY;
         ctx.lineTo(x, y);
       }
 
@@ -143,43 +133,43 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
 
       // ROI ID 표시 (첫 번째 점 근처, 스케일에 맞춰 폰트 크기 조정)
       ctx.fillStyle = selectedRoiId === roiId ? '#00ff00' : '#00ff00';
-      ctx.font = `${Math.max(8, 12 * scale)}px Arial`;
-      ctx.fillText(roiId, x1 + 5 * scale, y1 - 5 * scale);
+      ctx.font = `${Math.max(8, 12 * scaleX)}px Arial`;
+      ctx.fillText(roiId, x1 + 5 * scaleX, y1 - 5 * scaleY);
     });
 
     // 편집 모드에서 그리는 중인 ROI 표시
     if (editMode && drawingPoints.length > 0) {
       ctx.beginPath();
       ctx.strokeStyle = '#00ff00'; // 연두색으로 편집 중인 ROI 표시
-      ctx.lineWidth = Math.max(1, 2 * scale);
+      ctx.lineWidth = Math.max(1, 2 * scaleX);
       // 점선 제거 - 일반 선으로 표시
 
       // 첫 번째 점으로 이동
-      const x1 = drawingPoints[0] * scale + offsetX;
-      const y1 = drawingPoints[1] * scale + offsetY;
+      const x1 = drawingPoints[0] * scaleX + offsetX;
+      const y1 = drawingPoints[1] * scaleY + offsetY;
       ctx.moveTo(x1, y1);
 
       // 나머지 점들을 연결
       for (let i = 2; i < drawingPoints.length; i += 2) {
-        const x = drawingPoints[i] * scale + offsetX;
-        const y = drawingPoints[i + 1] * scale + offsetY;
+        const x = drawingPoints[i] * scaleX + offsetX;
+        const y = drawingPoints[i + 1] * scaleY + offsetY;
         ctx.lineTo(x, y);
       }
 
       // 클릭할 때마다 점들이 선으로 연결됨 (마우스 따라가기 제거)
 
       ctx.stroke();
-      
+
       // 클릭한 점들을 원으로 표시
       ctx.fillStyle = '#ff0000'; // 빨간색 점
       ctx.strokeStyle = '#ffffff'; // 흰색 테두리
-      ctx.lineWidth = Math.max(1, 1 * scale);
-      
+      ctx.lineWidth = Math.max(1, 1 * scaleX);
+
       for (let i = 0; i < drawingPoints.length; i += 2) {
-        const x = drawingPoints[i] * scale + offsetX;
-        const y = drawingPoints[i + 1] * scale + offsetY;
-        const radius = Math.max(3, 4 * scale);
-        
+        const x = drawingPoints[i] * scaleX + offsetX;
+        const y = drawingPoints[i + 1] * scaleY + offsetY;
+        const radius = Math.max(3, 4 * scaleX);
+
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, 2 * Math.PI);
         ctx.fill();
@@ -197,37 +187,21 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
-    // 고정 크기 360x360
-    const canvasWidth = 360;
-    const canvasHeight = 360;
+    // 캔버스 크기 (실제 크기)
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
 
-    // 이미지 비율 계산
-    const imageRatio = imageElement.width / imageElement.height;
-    const containerRatio = canvasWidth / canvasHeight;
-
-    let offsetX: number, offsetY: number, scale: number;
-
-    if (imageRatio > containerRatio) {
-      // 이미지가 더 넓음 - 너비에 맞춤
-      const scaledWidth = canvasWidth;
-      const scaledHeight = canvasWidth / imageRatio;
-      offsetX = 0;
-      offsetY = (canvasHeight - scaledHeight) / 2;
-      scale = scaledWidth / imageElement.width;
-    } else {
-      // 이미지가 더 높음 - 높이에 맞춤
-      const scaledHeight = canvasHeight;
-      const scaledWidth = canvasHeight * imageRatio;
-      offsetX = (canvasWidth - scaledWidth) / 2;
-      offsetY = 0;
-      scale = scaledHeight / imageElement.height;
-    }
+    // fill 방식으로 변경 - 캔버스에 맞춰 이미지를 늘림
+    const scaleX = canvasWidth / imageElement.width;
+    const scaleY = canvasHeight / imageElement.height;
+    const offsetX = 0;
+    const offsetY = 0;
 
     // 클릭 좌표를 원본 이미지 좌표로 변환 (정수형으로 반올림)
-    const originalX = Math.round((clickX - offsetX) / scale);
-    const originalY = Math.round((clickY - offsetY) / scale);
+    const originalX = Math.round((clickX - offsetX) / scaleX);
+    const originalY = Math.round((clickY - offsetY) / scaleY);
 
-    return { x: originalX, y: originalY, scale, offsetX, offsetY };
+    return { x: originalX, y: originalY, scaleX, scaleY, offsetX, offsetY };
   };
 
   // ROI 클릭 이벤트
@@ -324,22 +298,14 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   };
 
   return (
-    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+    <Box sx={{ position: 'relative', display: 'inline-block', width: '100%', height: '100%' }}>
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
         style={{
           cursor: editMode ? 'crosshair' : (editable ? 'pointer' : 'default'),
-          width: fullscreen
-            ? `${Math.min(window.innerWidth - 32, 800)}px`
-            : isMobile
-            ? `${Math.min(window.innerWidth - 64, 400)}px`
-            : '360px',
-          height: fullscreen
-            ? `${Math.min(window.innerHeight * 0.6, 600)}px`
-            : isMobile
-            ? `${Math.min(window.innerWidth - 64, 400)}px`
-            : '360px',
+          width: '100%',
+          height: '100%',
           maxWidth: '100%',
           touchAction: editMode ? 'none' : 'auto' // 터치 제스처 최적화
         }}

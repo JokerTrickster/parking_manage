@@ -14,7 +14,13 @@ import {
   IconButton,
   Chip,
   Stack,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  DialogContentText
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -22,7 +28,8 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import { Project } from '../models/Project';
 import { RoiData, RoiRegion, RoiFile } from '../models/RoiData';
@@ -42,6 +49,7 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
   const [roiFiles, setRoiFiles] = useState<string[]>([]);
   const [selectedRoiFile, setSelectedRoiFile] = useState<string>('');
   const [roiData, setRoiData] = useState<RoiData | null>(null);
+  const [originalRoiData, setOriginalRoiData] = useState<RoiData | null>(null); // 롤백용 원본 데이터
 
   const [cctvTemplate, setCctvTemplate] = useState<CctvTemplate | null>(null);
   const [selectedCctv, setSelectedCctv] = useState<string>('');
@@ -50,10 +58,17 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
   const [editMode, setEditMode] = useState<EditMode>('view');
   const [selectedRoiId, setSelectedRoiId] = useState<string | null>(null);
   const [tempRois, setTempRois] = useState<RoiRegion[]>([]);
+  const [editingRoiId, setEditingRoiId] = useState<string | null>(null); // 수정 중인 ROI ID
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  // 다이얼로그 상태
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingRoiFile, setPendingRoiFile] = useState<string>('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -97,6 +112,17 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
   const handleRoiFileSelect = async (filename: string) => {
     if (!filename) return;
 
+    // 기존 작업이 있으면 확인 다이얼로그 표시
+    if (selectedRoiFile && tempRois.length > 0) {
+      setPendingRoiFile(filename);
+      setConfirmDialogOpen(true);
+      return;
+    }
+
+    loadRoiFile(filename);
+  };
+
+  const loadRoiFile = async (filename: string) => {
     setSelectedRoiFile(filename);
 
     try {
@@ -105,6 +131,7 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
       const text = await blob.text();
       const data: RoiData = JSON.parse(text);
       setRoiData(data);
+      setOriginalRoiData(JSON.parse(JSON.stringify(data))); // 원본 데이터 깊은 복사
       setTempRois(data.rois);
 
       // ROI 파일의 CCTV ID로 자동 선택
@@ -136,6 +163,17 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmFileChange = () => {
+    setConfirmDialogOpen(false);
+    loadRoiFile(pendingRoiFile);
+    setPendingRoiFile('');
+  };
+
+  const handleCancelFileChange = () => {
+    setConfirmDialogOpen(false);
+    setPendingRoiFile('');
   };
 
 
@@ -249,7 +287,16 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
 
   const handleEditRoi = (roiId: string) => {
     setEditMode('edit');
+    setEditingRoiId(roiId); // 수정 중인 ROI ID 저장
     setSelectedRoiId(roiId);
+
+    // 기존 ROI를 임시로 숨김 (수정 모드)
+    const currentRoi = tempRois.find(roi => roi.roi_id === roiId);
+    if (currentRoi) {
+      // 현재 ROI를 제외한 나머지만 표시
+      const otherRois = tempRois.filter(roi => roi.roi_id !== roiId);
+      // 캔버스에서는 otherRois만 그리고, 편집은 currentRoi 좌표를 기반으로 시작
+    }
   };
 
   const handleDeleteRoi = (roiId: string) => {
@@ -257,6 +304,22 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
     setTempRois(updatedRois);
     setSelectedRoiId(null);
     setMessage(`${roiId}가 삭제되었습니다.`);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleRollback = () => {
+    if (!originalRoiData) {
+      setError('롤백할 원본 데이터가 없습니다.');
+      return;
+    }
+
+    // 원본 데이터로 복원
+    setTempRois(originalRoiData.rois);
+    setRoiData(JSON.parse(JSON.stringify(originalRoiData))); // 깊은 복사
+    setEditMode('view');
+    setSelectedRoiId(null);
+    setEditingRoiId(null);
+    setMessage('원본 ROI 데이터로 롤백되었습니다.');
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -269,8 +332,21 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
     }
   };
 
-  const handleSave = async () => {
-    if (!roiData || !selectedCctv) return;
+  const handleOpenSaveDialog = () => {
+    setSaveDialogOpen(true);
+    setNewFileName('');
+  };
+
+  const handleCloseSaveDialog = () => {
+    setSaveDialogOpen(false);
+    setNewFileName('');
+  };
+
+  const handleFinalSave = async () => {
+    if (!roiData || !selectedCctv || !newFileName.trim()) {
+      setError('파일명을 입력해주세요.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -287,16 +363,26 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
         image_height: imageHeight
       };
 
-      // 새로운 파일명 생성 (CCTV_ID_timestamp.json)
-      const timestamp = Date.now();
-      const newFilename = `${selectedCctv}_${timestamp}.json`;
+      // 파일명에 .json 확장자 추가 (없으면)
+      const filename = newFileName.endsWith('.json') ? newFileName : `${newFileName}.json`;
 
       const file = new File(
         [JSON.stringify(updatedData, null, 2)],
-        newFilename,
+        filename,
         { type: 'application/json' }
       );
 
+      // 파일 다운로드 (브라우저)
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // 서버에도 업로드 (선택사항)
       await FileStorageService.uploadFiles(
         project.id,
         'roi',
@@ -304,11 +390,14 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
       );
 
       setRoiData(updatedData);
+      setOriginalRoiData(JSON.parse(JSON.stringify(updatedData))); // 원본 데이터 업데이트
       setEditMode('view');
       setSelectedRoiId(null);
-      setMessage(`새로운 ROI 파일이 생성되었습니다: ${newFilename}`);
+      setEditingRoiId(null);
+      setMessage(`ROI 파일이 저장되었습니다: ${filename}`);
       setTimeout(() => setMessage(null), 5000);
       setError(null);
+      setSaveDialogOpen(false);
 
       // ROI 파일 목록 새로고침
       await loadRoiFiles();
@@ -332,6 +421,16 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
         <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
           ROI 편집기
         </Typography>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<SaveIcon />}
+          onClick={handleOpenSaveDialog}
+          disabled={!selectedCctv || tempRois.length === 0}
+          size="large"
+        >
+          최종 저장
+        </Button>
       </Box>
 
       {/* 메시지 및 에러 */}
@@ -371,43 +470,10 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
       {selectedCctv && cctvImageUrl && (
         <Card>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ mb: 2 }}>
               <Typography variant="h6">
                 ROI 편집 - {cctvTemplate?.cctvList.find(c => c.cctvId === selectedCctv)?.displayName}
               </Typography>
-              <Stack direction="row" spacing={1}>
-                {editMode === 'view' && (
-                  <>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AddIcon />}
-                      onClick={handleAddRoi}
-                      size="small"
-                    >
-                      추가
-                    </Button>
-                    <Button
-                      variant="contained"
-                      startIcon={<SaveIcon />}
-                      onClick={handleSave}
-                      disabled={JSON.stringify(tempRois) === JSON.stringify(roiData?.rois)}
-                      size="small"
-                    >
-                      저장
-                    </Button>
-                  </>
-                )}
-                {editMode !== 'view' && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<CancelIcon />}
-                    onClick={handleCancelEdit}
-                    size="small"
-                  >
-                    취소
-                  </Button>
-                )}
-              </Stack>
             </Box>
 
             <Divider sx={{ mb: 2 }} />
@@ -430,7 +496,7 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
               {/* ROI 편집 캔버스 */}
               <Box>
                 <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                  ROI 편집 ({tempRois.length}개 영역)
+                  편집 가능한 이미지 ({tempRois.length}개 영역)
                 </Typography>
                 <Box sx={{ border: '2px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', mb: 2 }}>
                   <canvas
@@ -439,10 +505,69 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
                   />
                 </Box>
 
+                {/* 편집 버튼 */}
+                <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddRoi}
+                    size="small"
+                    fullWidth
+                  >
+                    생성
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={() => selectedRoiId && handleEditRoi(selectedRoiId)}
+                    disabled={!selectedRoiId}
+                    size="small"
+                    fullWidth
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => selectedRoiId && handleDeleteRoi(selectedRoiId)}
+                    disabled={!selectedRoiId}
+                    size="small"
+                    fullWidth
+                  >
+                    삭제
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<UndoIcon />}
+                    onClick={handleRollback}
+                    disabled={!originalRoiData}
+                    size="small"
+                    fullWidth
+                  >
+                    롤백
+                  </Button>
+                </Stack>
+
+                {editMode !== 'view' && (
+                  <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<CancelIcon />}
+                      onClick={handleCancelEdit}
+                      size="small"
+                      fullWidth
+                    >
+                      편집 취소
+                    </Button>
+                  </Stack>
+                )}
+
                 {/* ROI 목록 */}
                 <Box>
                   <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                    ROI 목록 (클릭하여 편집/삭제)
+                    ROI 목록 (클릭하여 선택)
                   </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {tempRois.map((roi) => (
@@ -450,9 +575,7 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
                         key={roi.roi_id}
                         label={roi.roi_id}
                         color={roi.roi_id === selectedRoiId ? 'primary' : 'default'}
-                        onClick={() => handleEditRoi(roi.roi_id)}
-                        onDelete={() => handleDeleteRoi(roi.roi_id)}
-                        deleteIcon={<DeleteIcon />}
+                        onClick={() => setSelectedRoiId(roi.roi_id)}
                         sx={{ mb: 1 }}
                       />
                     ))}
@@ -463,6 +586,49 @@ const RoiEditorView: React.FC<RoiEditorViewProps> = ({ project, onBack }) => {
           </CardContent>
         </Card>
       )}
+      {/* 최종 저장 다이얼로그 */}
+      <Dialog open={saveDialogOpen} onClose={handleCloseSaveDialog}>
+        <DialogTitle>ROI 파일 저장</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            저장할 ROI 파일의 이름을 입력하세요.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="파일명"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newFileName}
+            onChange={(e) => setNewFileName(e.target.value)}
+            placeholder="예: new_roi_data"
+            helperText=".json 확장자는 자동으로 추가됩니다."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSaveDialog}>취소</Button>
+          <Button onClick={handleFinalSave} variant="contained" disabled={!newFileName.trim()}>
+            저장 및 다운로드
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ROI 파일 변경 확인 다이얼로그 */}
+      <Dialog open={confirmDialogOpen} onClose={handleCancelFileChange}>
+        <DialogTitle>ROI 파일 변경</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            기존 작업했던 내용이 모두 삭제됩니다. 계속하시겠습니까?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelFileChange}>취소</Button>
+          <Button onClick={handleConfirmFileChange} color="error" variant="contained">
+            변경
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
