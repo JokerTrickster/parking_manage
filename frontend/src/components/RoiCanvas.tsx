@@ -107,12 +107,14 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
     // 배경 지우기
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 이미지 그리기 (중앙 정렬)
+    // 이미지 그리기 (중앙 정렬, 비율 유지)
+    const drawWidth = imageElement.width * scale;
+    const drawHeight = imageElement.height * scale;
     ctx.drawImage(
       imageElement,
       offsetX, offsetY,
-      canvasWidth,
-      canvasHeight
+      drawWidth,
+      drawHeight
     );
 
     // ROI 그리기 (좌표 스케일링)

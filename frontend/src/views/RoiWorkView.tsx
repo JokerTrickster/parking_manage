@@ -40,6 +40,9 @@ import {
 } from '../models/Roi';
 import RoiCanvas, { RoiCanvasRef } from '../components/RoiCanvas';
 import { touchFriendly, responsiveSpacing, responsiveGrid } from '../styles/responsive';
+import { CctvTemplateService } from '../services/CctvTemplateService';
+import { CctvTemplate } from '../models/CctvTemplate';
+import { RoiData as RoiFileData } from '../models/RoiData';
 
 interface RoiWorkViewProps {
   projectId: string;
@@ -52,11 +55,13 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 상태 관리
-  const [testFolders, setTestFolders] = useState<any[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState<string>('');
-  const [folderImages, setFolderImages] = useState<ImageFile[]>([]);
-  const [roiFiles, setRoiFiles] = useState<any[]>([]);
+  const [roiFiles, setRoiFiles] = useState<string[]>([]);
   const [selectedRoiFile, setSelectedRoiFile] = useState<string>('');
+  const [roiFileData, setRoiFileData] = useState<RoiFileData | null>(null);
+  const [cctvTemplate, setCctvTemplate] = useState<CctvTemplate | null>(null);
+  const [cctvList, setCctvList] = useState<string[]>([]);
+  const [selectedCctv, setSelectedCctv] = useState<string>('');
+  const [cctvImageUrl, setCctvImageUrl] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [roiData, setRoiData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -85,25 +90,27 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
   };
 
   useEffect(() => {
-    loadTestFolders();
+    // console.log('🚀 RoiWorkView 컴포넌트 마운트됨!');
     loadRoiFiles();
+    loadCctvTemplate();
   }, [projectId]);
 
-  // 테스트 폴더 목록 로드 - FileStorageService 사용
-  const loadTestFolders = async () => {
+  // CCTV 템플릿 로드
+  const loadCctvTemplate = () => {
     try {
-      setLoading(true);
-      const response = await FileStorageService.listFolders(projectId, 'test');
-      // FolderNode 배열을 폴더 이름 배열로 변환
-      const folderNames = response.data.items
-        .filter(item => item.isFolder)
-        .map(folder => folder.name);
-      setTestFolders(folderNames);
-    } catch (err) {
-      setError('테스트 폴더 목록을 불러오는데 실패했습니다.');
-      console.error('테스트 폴더 로드 실패:', err);
-    } finally {
-      setLoading(false);
+      // console.log('🔧 loadCctvTemplate 호출됨, projectId:', projectId);
+      const template = CctvTemplateService.getTemplateByProjectId(projectId);
+      // console.log('📋 가져온 템플릿:', template);
+      if (template) {
+        setCctvTemplate(template);
+        // console.log('✅ CCTV 템플릿 로드 성공, CCTV 개수:', template.cctvList.length);
+      } else {
+        console.error(`❌ 프로젝트 "${projectId}"의 CCTV 템플릿을 찾을 수 없습니다.`);
+        setError(`프로젝트 "${projectId}"의 CCTV 템플릿을 찾을 수 없습니다.`);
+      }
+    } catch (error) {
+      console.error('❌ CCTV 템플릿 로드 실패:', error);
+      setError('CCTV 템플릿을 불러올 수 없습니다.');
     }
   };
 
@@ -123,87 +130,183 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     }
   };
 
-  // 폴더 선택 - 이미지 목록 로드 - FileStorageService 사용
-  const handleFolderSelect = async (folderName: string) => {
+  // ROI 파일 선택 - JSON 읽어서 전체 데이터 저장하고 banpo.json의 모든 CCTV 목록 표시
+  const handleRoiFileSelect = async (fileName: string) => {
+    if (!fileName) return;
+
     try {
       setLoading(true);
-      setSelectedFolder(folderName);
-      setError(''); // 에러 메시지 초기화
+      setError('');
 
-      // FileStorageService로 폴더 내 파일 조회
-      const response = await FileStorageService.listFolders(projectId, 'test', folderName);
+      setSelectedRoiFile(fileName);
 
-      // 파일만 필터링하여 ImageFile 형식으로 변환
-      const images: ImageFile[] = response.data.items
-        .filter(item => !item.isFolder)
-        .map(file => ({
-          name: file.name,
-          path: '', // 실제 이미지는 선택 시 로드
-          size: file.size || 0,
-          cctvId: '' // CCTV ID는 파일명에서 추출 가능하지만 현재는 빈 문자열
-        }));
+      // ROI 파일 다운로드 및 파싱
+      const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
+      const text = await blob.text();
+      // console.log('📄 ROI 파일 내용:', text);
+      const data = JSON.parse(text);
+      // console.log('📊 파싱된 ROI 데이터:', data);
 
-      setFolderImages(images);
+      // ROI 파일 전체를 저장 (IP 주소를 키로 하는 객체 구조)
+      setRoiFileData(data);
 
-      // 선택된 이미지와 ROI 파일 초기화
-      setSelectedImage(null);
-      setRoiData(null);
-      setSelectedRoiId('');
-
-    } catch (err) {
-      console.error('폴더 선택 에러:', err);
-      setError(`폴더 '${folderName}'의 이미지 목록을 불러오는데 실패했습니다. 폴더가 존재하지 않거나 접근할 수 없습니다.`);
-      setFolderImages([]);
-      setSelectedImage(null);
-      setRoiData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 이미지 선택 - FileStorageService 사용
-  const handleImageSelect = async (image: ImageFile) => {
-    try {
-      setLoading(true);
-      setError(''); // 에러 메시지 초기화
-
-      // FileStorageService로 이미지 다운로드
-      const filename = `${selectedFolder}/${image.name}`;
-      const imageBlob = await FileStorageService.downloadFile(projectId, 'test', filename);
-      const imageUrl = URL.createObjectURL(imageBlob);
-
-      // ImageFile 객체 업데이트
-      const updatedImage: ImageFile = {
-        ...image,
-        path: imageUrl
-      };
-
-      setSelectedImage(updatedImage);
-
-      // 이미지 선택 시 ROI 데이터 자동 로드
-      if (selectedRoiFile) {
-        loadRoiData(updatedImage, selectedRoiFile);
+      // banpo.json의 모든 CCTV 목록을 표시
+      if (cctvTemplate && cctvTemplate.cctvList) {
+        const allCctvIds = cctvTemplate.cctvList.map(cctv => cctv.cctvId);
+        // console.log('📋 전체 CCTV 목록:', allCctvIds);
+        setCctvList(allCctvIds);
+      } else {
+        console.warn('⚠️ CCTV 템플릿이 없습니다.');
+        setError('CCTV 템플릿을 불러올 수 없습니다.');
       }
+
     } catch (err) {
-      console.error('이미지 선택 에러:', err);
-      setError(`이미지 '${image.name}'을 불러오는데 실패했습니다.`);
-      setSelectedImage(null);
-      setRoiData(null);
+      console.error('❌ ROI 파일 선택 에러:', err);
+      setError(`ROI 파일 '${fileName}'을 불러오는데 실패했습니다.`);
+      setRoiFileData(null);
+      setCctvList([]);
+      setSelectedCctv('');
     } finally {
       setLoading(false);
     }
   };
 
-  // ROI 파일 선택
-  const handleRoiFileSelect = (fileName: string) => {
-    // 확장자 제거 (.json)
-    const roiFileName = fileName.replace(/\.json$/, '');
-    setSelectedRoiFile(roiFileName);
-    setError(''); // 에러 메시지 초기화
-    
-    // ROI 파일 선택 시 ROI 데이터 자동 로드
-    if (selectedImage) {
-      loadRoiData(selectedImage, roiFileName);
+  // CCTV 선택 - 템플릿에서 이미지 URL 가져오고 ROI 데이터 찾기
+  const handleCctvSelect = (cctvId: string) => {
+    // console.log('🎯 handleCctvSelect 호출됨, cctvId:', cctvId);
+    setSelectedCctv(cctvId);
+    setError('');
+
+    if (!cctvTemplate) {
+      console.error('❌ cctvTemplate이 null입니다!');
+      setError('CCTV 템플릿이 로드되지 않았습니다.');
+      return;
+    }
+
+    // console.log('🔍 템플릿에서 CCTV 찾기:', cctvTemplate.cctvList.map(c => c.cctvId));
+    const cctv = cctvTemplate.cctvList.find(c => c.cctvId === cctvId);
+    if (!cctv) {
+      console.error(`❌ CCTV "${cctvId}"를 템플릿에서 찾을 수 없습니다.`);
+      setError(`CCTV "${cctvId}"를 템플릿에서 찾을 수 없습니다.`);
+      return;
+    }
+
+    // console.log('✅ CCTV 찾음:', cctv);
+    const originalImage = cctv.images.find(img => img.type === 'original');
+    if (!originalImage) {
+      console.error(`❌ CCTV "${cctvId}"의 원본 이미지를 찾을 수 없습니다.`);
+      setError(`CCTV "${cctvId}"의 원본 이미지를 찾을 수 없습니다.`);
+      return;
+    }
+
+    // console.log('✅ 원본 이미지 찾음:', originalImage.endpoint);
+    const timestamp = new Date().getTime();
+    const imageUrl = `${originalImage.endpoint}?t=${timestamp}`;
+    setCctvImageUrl(imageUrl);
+
+    // 이미지 객체 생성 (기존 로직 호환용)
+    const imageFile: ImageFile = {
+      name: `${cctvId}.jpg`,
+      path: imageUrl,
+      size: 0,
+      cctvId: cctvId
+    };
+    // console.log('📸 이미지 파일 객체 생성:', imageFile);
+    setSelectedImage(imageFile);
+
+    // ROI 파일에서 선택된 CCTV ID에 맞는 ROI 데이터 찾기
+    if (roiFileData) {
+      // console.log('🔍 ROI 파일에서 cctv_id 찾기:', cctvId);
+
+      // ROI 파일 구조 감지 및 변환
+      let foundRoiData: any = null;
+
+      // 1. IP 주소를 키로 하는 구조 확인
+      // { "172.19.32.96": { "cctv_id": "P1_B5_3_1", "matches": [...] } }
+      for (const [key, data] of Object.entries(roiFileData)) {
+        if (data && typeof data === 'object' && 'cctv_id' in data) {
+          if (data.cctv_id === cctvId) {
+            // console.log(`✅ IP ${key}에서 ROI 데이터 찾음:`, data);
+
+            // matches 배열을 RoiCanvas 형식으로 변환
+            // { [roiId: string]: number[] }
+            const rois: { [roiId: string]: number[] } = {};
+            if ('matches' in data && Array.isArray(data.matches)) {
+              data.matches.forEach((match: any, index: number) => {
+                // original_roi를 상하좌우 반전
+                if (match.original_roi && Array.isArray(match.original_roi)) {
+                  const roiId = match.parking_id || `ROI_${String(index + 1).padStart(2, '0')}`;
+                  // 이미지 크기 - 640x640 기준
+                  const imgWidth = 640;
+                  const imgHeight = 640;
+
+                  // 좌표 상하좌우 반전
+                  const flippedCoords: number[] = [];
+                  for (let i = 0; i < match.original_roi.length; i += 2) {
+                    flippedCoords.push(imgWidth - match.original_roi[i]);  // X 좌우 반전
+                    flippedCoords.push(imgHeight - match.original_roi[i + 1]);  // Y 상하 반전
+                  }
+                  rois[roiId] = flippedCoords;
+                } else if (match.img_center_roi && Array.isArray(match.img_center_roi)) {
+                  // original_roi가 없으면 img_center_roi를 사용하되, 좌표 변환
+                  const roiId = match.parking_id || `ROI_${String(index + 1).padStart(2, '0')}`;
+                  // img_center_roi는 이미지 중심 기준이므로 변환 필요
+                  // 이미지 크기를 알아야 변환 가능 - 임시로 1920x1080 가정
+                  const imgWidth = 1920;
+                  const imgHeight = 1080;
+                  const centerX = imgWidth / 2;
+                  const centerY = imgHeight / 2;
+
+                  const convertedCoords: number[] = [];
+                  for (let i = 0; i < match.img_center_roi.length; i += 2) {
+                    // img_center_roi를 절대 좌표로 변환 후 상하좌우 반전
+                    const x = centerX - match.img_center_roi[i];  // X 좌우 반전 (중심 기준이므로 빼기)
+                    const y = centerY - match.img_center_roi[i + 1];  // Y 상하 반전 (중심 기준이므로 빼기)
+                    convertedCoords.push(x);
+                    convertedCoords.push(y);
+                  }
+                  rois[roiId] = convertedCoords;
+                }
+              });
+            }
+
+            foundRoiData = {
+              cctv_id: cctvId,
+              rois: rois
+            };
+            break;
+          }
+        }
+      }
+
+      // 2. 직접 구조 확인 (이미 RoiData 형식)
+      // { "cctv_id": "P1_B2_3", "rois": [{roi_id: "ROI_01", coords: [...]}] }
+      if (!foundRoiData && 'cctv_id' in roiFileData && roiFileData.cctv_id === cctvId) {
+        // console.log('✅ 직접 구조 ROI 데이터 찾음:', roiFileData);
+
+        // rois 배열을 객체로 변환
+        const rois: { [roiId: string]: number[] } = {};
+        if ('rois' in roiFileData && Array.isArray(roiFileData.rois)) {
+          roiFileData.rois.forEach((roi: any) => {
+            if (roi.roi_id && roi.coords) {
+              rois[roi.roi_id] = roi.coords;
+            }
+          });
+        }
+
+        foundRoiData = {
+          cctv_id: cctvId,
+          rois: rois
+        };
+      }
+
+      if (foundRoiData) {
+        // console.log('📊 변환된 ROI 데이터:', foundRoiData);
+        setRoiData(foundRoiData);
+      } else {
+        console.warn(`⚠️ CCTV "${cctvId}"에 대한 ROI 데이터를 찾을 수 없습니다.`);
+        setRoiData(null);
+      }
     }
   };
 
@@ -217,48 +320,43 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     setSelectedRoiId(roiId);
   };
 
-  // ROI 데이터 로드
+  // ROI 데이터 로드 (Draft 모드 지원)
   const loadRoiData = async (image: ImageFile, roiFile: string) => {
     try {
       setLoading(true);
-      setError(''); // 에러 메시지 초기화
-      
-      const cctvId = getDisplayImageName(image.name).split('.')[0]; // 이미지 이름에서 CCTV ID 추출 (_Current 제거 후)
-      
+      setError('');
+
+      const cctvId = image.cctvId || selectedCctv || getDisplayImageName(image.name).split('.')[0];
+
       if (draftCreated) {
-        // Draft 모드일 때: 저장된 Draft 데이터가 있으면 사용, 없으면 API에서 로드
+        // Draft 모드: 저장된 Draft 데이터 사용
         if (draftRoiData[cctvId]) {
           setRoiData(draftRoiData[cctvId]);
         } else {
-          // Draft 데이터가 없으면 API에서 로드하고 Draft에 저장
-          const response = await RoiService.readRoi(projectId, {
-            cctv_id: cctvId,
-            project_id: projectId,
-            roi_file: roiFile
-          });
-          setRoiData(response);
-          setDraftRoiData(prev => ({
-            ...prev,
-            [cctvId]: response
-          }));
+          // Draft 데이터가 없으면 현재 roiFileData 사용
+          if (roiFileData) {
+            setRoiData(roiFileData);
+            setDraftRoiData(prev => ({
+              ...prev,
+              [cctvId]: roiFileData
+            }));
+          }
         }
       } else {
-        // 일반 모드일 때: API에서 데이터 로드
-        const response = await RoiService.readRoi(projectId, {
-          cctv_id: cctvId,
-          project_id: projectId,
-          roi_file: roiFile
-        });
-        setRoiData(response);
+        // 일반 모드: roiFileData 사용
+        if (roiFileData) {
+          setRoiData(roiFileData);
+        }
       }
     } catch (err) {
       console.error('ROI 데이터 로드 에러:', err);
-      setError(`ROI 데이터를 불러오는데 실패했습니다. 이미지 '${image.name}'과 ROI 파일 '${roiFile}'의 조합을 확인해주세요.`);
+      setError(`ROI 데이터를 불러오는데 실패했습니다.`);
       setRoiData(null);
     } finally {
       setLoading(false);
     }
   };
+
 
   // ROI 생성
   const handleCreateRoi = () => {
@@ -598,34 +696,9 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
             gap: { xs: 2, sm: 3 },
             gridTemplateColumns: {
               xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(3, 1fr)'
+              sm: 'repeat(2, 1fr)'
             }
           }}>
-            {/* 테스트 폴더 선택 */}
-            <Card sx={{ height: 'fit-content' }}>
-              <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
-                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  테스트 폴더
-                </Typography>
-                <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                  <InputLabel>폴더 선택</InputLabel>
-                  <Select
-                    value={selectedFolder}
-                    onChange={(e) => handleFolderSelect(e.target.value)}
-                    label="폴더 선택"
-                    sx={{ minHeight: { xs: 44, sm: 56 } }}
-                  >
-                    {testFolders.map((folder) => (
-                      <MenuItem key={folder.name || folder} value={folder.name || folder}>
-                        {folder.name || folder}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </CardContent>
-            </Card>
-
             {/* ROI 파일 선택 */}
             <Card sx={{ height: 'fit-content' }}>
               <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
@@ -635,45 +708,39 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                 <FormControl fullWidth size={isMobile ? "small" : "medium"}>
                   <InputLabel>ROI 파일 선택</InputLabel>
                   <Select
-                    value={selectedRoiFile ? selectedRoiFile + '.json' : ''}
+                    value={selectedRoiFile}
                     onChange={(e) => handleRoiFileSelect(e.target.value)}
                     label="ROI 파일 선택"
                     sx={{ minHeight: { xs: 44, sm: 56 } }}
                   >
-                    {roiFiles.map((file) => {
-                      const fileName = typeof file === 'string' ? file : file.name;
-                      const displayName = fileName.replace(/\.json$/, '');
-                      return (
-                        <MenuItem key={fileName} value={fileName}>
-                          {displayName}
-                        </MenuItem>
-                      );
-                    })}
+                    {roiFiles.map((file) => (
+                      <MenuItem key={file} value={file}>
+                        {file.replace(/\.json$/, '')}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </CardContent>
             </Card>
 
-            {/* 이미지 선택 */}
+            {/* CCTV 선택 */}
             <Card sx={{ height: 'fit-content' }}>
               <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
                 <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  이미지 선택
+                  CCTV 선택
                 </Typography>
                 <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                  <InputLabel>이미지 선택</InputLabel>
+                  <InputLabel>CCTV 선택</InputLabel>
                   <Select
-                    value={selectedImage?.name || ''}
-                    onChange={(e) => {
-                      const image = folderImages.find(img => img.name === e.target.value);
-                      if (image) handleImageSelect(image);
-                    }}
-                    label="이미지 선택"
+                    value={selectedCctv}
+                    onChange={(e) => handleCctvSelect(e.target.value)}
+                    label="CCTV 선택"
+                    disabled={!selectedRoiFile || cctvList.length === 0}
                     sx={{ minHeight: { xs: 44, sm: 56 } }}
                   >
-                    {folderImages.map((image) => (
-                      <MenuItem key={image.name} value={image.name}>
-                        {getDisplayImageName(image.name)}
+                    {cctvList.map((cctvId) => (
+                      <MenuItem key={cctvId} value={cctvId}>
+                        {cctvId}
                       </MenuItem>
                     ))}
                   </Select>
@@ -707,70 +774,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
             gap: { xs: 2, sm: 3 },
             alignItems: fullscreenCanvas ? 'center' : 'stretch'
           }}>
-            {/* 원본 이미지 - Desktop only or fullscreen */}
-            {(!isMobile || fullscreenCanvas) && (
-              <Box sx={{
-                flex: fullscreenCanvas ? 'none' : 1,
-                width: fullscreenCanvas ? '100%' : 'auto',
-                maxWidth: fullscreenCanvas ? '100vw' : 'none'
-              }}>
-                <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
-                  <CardContent sx={{
-                    ...responsiveSpacing.cardPadding,
-                    pb: fullscreenCanvas ? 1 : undefined
-                  }}>
-                    <Typography variant="h6" gutterBottom sx={{
-                      fontSize: { xs: '1rem', sm: '1.25rem' },
-                      display: fullscreenCanvas ? 'none' : 'block'
-                    }}>
-                      원본 이미진 ({isMobile ? "상담" : "참고용"})
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: '100%',
-                        height: fullscreenCanvas
-                          ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                          : { xs: 280, sm: 320, md: 400 },
-                        border: 1,
-                        borderColor: 'divider',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: 'grey.100',
-                        overflow: 'hidden',
-                        borderRadius: 1
-                      }}
-                    >
-                      {roiData && roiData.rois ? (
-                        <RoiCanvas
-                          ref={roiCanvasRef}
-                          imageSrc={selectedImage.path}
-                          rois={roiData.rois}
-                          editable={false}
-                          selectedRoiId={selectedRoiId}
-                          editMode={roiEditMode}
-                          onRoiCreate={handleRoiCreate}
-                          onRoiUpdate={handleRoiUpdate}
-                          isMobile={isMobile}
-                          fullscreen={fullscreenCanvas}
-                        />
-                      ) : (
-                        <img
-                          src={selectedImage.path}
-                          alt="원본"
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain'
-                          }}
-                        />
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
-            )}
-
             {/* 편집 가능한 이미지 */}
             <Box sx={{
               flex: fullscreenCanvas ? 'none' : 1,
@@ -808,31 +811,37 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    {roiData && roiData.rois ? (
-                      <RoiCanvas
-                        ref={roiCanvasRef}
-                        imageSrc={selectedImage.path}
-                        rois={roiData.rois}
-                        editable={editMode}
-                        onRoiClick={handleRoiClick}
-                        selectedRoiId={selectedRoiId}
-                        editMode={roiEditMode}
-                        onRoiCreate={handleRoiCreate}
-                        onRoiUpdate={handleRoiUpdate}
-                        isMobile={isMobile}
-                        fullscreen={fullscreenCanvas}
-                      />
-                    ) : (
-                      <img
-                        src={selectedImage.path}
-                        alt="편집"
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '100%',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    )}
+                    {(() => {
+                      // console.log('🖼️ 편집 가능한 이미지 렌더링 체크');
+                      // console.log('  roiData:', roiData);
+                      // console.log('  roiData?.rois:', roiData?.rois);
+                      // console.log('  조건:', roiData && roiData.rois);
+                      return roiData && roiData.rois ? (
+                        <RoiCanvas
+                          ref={roiCanvasRef}
+                          imageSrc={selectedImage.path}
+                          rois={roiData.rois}
+                          editable={editMode}
+                          onRoiClick={handleRoiClick}
+                          selectedRoiId={selectedRoiId}
+                          editMode={roiEditMode}
+                          onRoiCreate={handleRoiCreate}
+                          onRoiUpdate={handleRoiUpdate}
+                          isMobile={isMobile}
+                          fullscreen={fullscreenCanvas}
+                        />
+                      ) : (
+                        <img
+                          src={selectedImage.path}
+                          alt="편집"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      );
+                    })()}
                   </Box>
 
                   {/* 편집 시작 버튼 */}
@@ -874,6 +883,76 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                 </CardContent>
               </Card>
             </Box>
+
+            {/* 원본 이미지 - Desktop only or fullscreen */}
+            {(!isMobile || fullscreenCanvas) && (
+              <Box sx={{
+                flex: fullscreenCanvas ? 'none' : 1,
+                width: fullscreenCanvas ? '100%' : 'auto',
+                maxWidth: fullscreenCanvas ? '100vw' : 'none'
+              }}>
+                <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
+                  <CardContent sx={{
+                    ...responsiveSpacing.cardPadding,
+                    pb: fullscreenCanvas ? 1 : undefined
+                  }}>
+                    <Typography variant="h6" gutterBottom sx={{
+                      fontSize: { xs: '1rem', sm: '1.25rem' },
+                      display: fullscreenCanvas ? 'none' : 'block'
+                    }}>
+                      원본 이미지 ({isMobile ? "참고용" : "참고용"})
+                    </Typography>
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: fullscreenCanvas
+                          ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
+                          : { xs: 280, sm: 320, md: 400 },
+                        border: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        overflow: 'hidden',
+                        borderRadius: 1
+                      }}
+                    >
+                      {(() => {
+                        // console.log('🖼️ 원본 이미지 렌더링 체크');
+                        // console.log('  roiData:', roiData);
+                        // console.log('  roiData?.rois:', roiData?.rois);
+                        // console.log('  조건:', roiData && roiData.rois);
+                        return roiData && roiData.rois ? (
+                          <RoiCanvas
+                            ref={roiCanvasRef}
+                            imageSrc={selectedImage.path}
+                            rois={roiData.rois}
+                            editable={false}
+                            selectedRoiId={selectedRoiId}
+                            editMode={roiEditMode}
+                            onRoiCreate={handleRoiCreate}
+                            onRoiUpdate={handleRoiUpdate}
+                            isMobile={isMobile}
+                            fullscreen={fullscreenCanvas}
+                          />
+                        ) : (
+                          <img
+                            src={selectedImage.path}
+                            alt="원본"
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              objectFit: 'contain'
+                            }}
+                          />
+                        );
+                      })()}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
           </Box>
 
           {/* ROI 편집 프레임 */}

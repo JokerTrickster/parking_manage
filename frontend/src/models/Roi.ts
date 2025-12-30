@@ -12,6 +12,8 @@ export interface TestFolder {
 export interface ImageFile {
   name: string;
   path: string;
+  size?: number;
+  cctvId?: string;
 }
 
 export interface RoiCoordinate {

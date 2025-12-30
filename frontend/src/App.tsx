@@ -8,6 +8,7 @@ import { RoiWorkView } from './views/RoiWorkView';
 import { ParkingTestView } from './views/ParkingTestView';
 import RealtimeParkingView from './views/RealtimeParkingView';
 import LearningDataView from './views/LearningDataView';
+import RoiEditorView from './views/RoiEditorView';
 
 // Import new placeholder pages
 import MapEditorPage from './pages/MapEditorPage';
@@ -52,6 +53,17 @@ function App() {
               <Route path="deployments/:deploymentId" element={<DeploymentDetailPage />} />
 
               {/* Actual functionality routes */}
+              <Route path="roi-editor-new" element={
+                <RoiEditorView
+                  project={{
+                    id: window.location.pathname.split('/')[2],
+                    name: 'Current Project',
+                    description: 'Current working project',
+                    location: 'Seoul'
+                  }}
+                  onBack={() => window.history.back()}
+                />
+              } />
               <Route path="roi-editor-actual" element={
                 <RoiWorkView
                   projectId={window.location.pathname.split('/')[2]}
