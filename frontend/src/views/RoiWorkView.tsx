@@ -257,6 +257,13 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
     setConfirmDialogOpen(false);
     loadRoiFile(pendingRoiFile);
     setPendingRoiFile('');
+
+    // ROI 파일 변경 시 초기화
+    setSelectedCctv('');
+    setSelectedImage(null);
+    setRoiData(null);
+    setOriginalRoiData(null);
+    setSelectedRoiId('');
   };
 
   const handleCancelFileChange = () => {

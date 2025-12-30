@@ -735,7 +735,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
             <Box sx={{ display: 'flex', height: '800px' }}>
               {/* 왼쪽 사이드 패널: CCTV 목록 */}
               <Box sx={{
-                width: '300px',
+                width: '250px',
                 borderRight: '1px solid #e0e0e0',
                 overflowY: 'auto',
                 backgroundColor: '#fafafa',
@@ -756,7 +756,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                       key={cctv.cctvId}
                       onClick={() => handleCctvSelect(cctv.cctvId)}
                       sx={{
-                        p: 1.5,
+                        p: 1,
                         mb: 0.5,
                         borderRadius: 1,
                         cursor: 'pointer',
@@ -768,16 +768,8 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         }
                       }}
                     >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                        {cctv.displayName}
-                      </Typography>
-                      <Typography variant="caption" sx={{
-                        display: 'block',
-                        mt: 0.5,
-                        opacity: 0.8,
-                        fontSize: '0.75rem'
-                      }}>
-                        {cctv.description}
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                        {cctv.cctvId}
                       </Typography>
                     </Box>
                   ))}
@@ -931,11 +923,11 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
             }}>
               {/* 데스크톱: CCTV 목록 */}
               {!isMobile && (
-                <Box sx={{ flex: '0 0 300px', borderRight: '1px solid #e0e0e0', pr: 2 }}>
+                <Box sx={{ flex: '0 0 250px', borderRight: '1px solid #e0e0e0', pr: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     CCTV 목록 ({cctvList.length}개)
                   </Typography>
-                  <Box sx={{ maxHeight: '350px', overflowY: 'auto' }}>
+                  <Box sx={{ maxHeight: '450px', overflowY: 'auto' }}>
                     {cctvList.map((cctvId) => {
                       const cctvConfig = templateBasedMode && cctvTemplate
                         ? cctvTemplate.cctvList.find(c => c.cctvId === cctvId)
@@ -945,8 +937,8 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         <Box
                           key={cctvId}
                           sx={{
-                            p: 2,
-                            mb: 1,
+                            p: 1,
+                            mb: 0.5,
                             border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
                             borderRadius: 1,
                             backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
@@ -959,17 +951,9 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                           }}
                           onClick={() => handleCctvSelect(cctvId)}
                         >
-                          <Typography variant="subtitle2" fontWeight="medium">
-                            {cctvConfig?.displayName || cctvId}
+                          <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.875rem' }}>
+                            {cctvId}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {cctvConfig?.description || '실시간 모니터링 중'}
-                          </Typography>
-                          {templateBasedMode && cctvConfig && (
-                            <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 0.5 }}>
-                              {cctvConfig.images.length}개 이미지 타입 사용 가능
-                            </Typography>
-                          )}
                         </Box>
                       );
                     })}
@@ -1449,10 +1433,10 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
               <Box
                 key={cctvId}
                 sx={{
-                  p: 2,
-                  m: 1,
+                  p: 1.5,
+                  m: 0.5,
                   border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
-                  borderRadius: 2,
+                  borderRadius: 1,
                   backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -1472,14 +1456,9 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="medium">
-                      {cctvId}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      실시간 모니터링 중
-                    </Typography>
-                  </Box>
+                  <Typography variant="body2" fontWeight="medium">
+                    {cctvId}
+                  </Typography>
                   {selectedCctv === cctvId && (
                     <Chip
                       label="선택됨"
