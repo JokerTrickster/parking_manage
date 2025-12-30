@@ -774,6 +774,76 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
             gap: { xs: 2, sm: 3 },
             alignItems: fullscreenCanvas ? 'center' : 'stretch'
           }}>
+            {/* 원본 이미지 - Desktop only or fullscreen */}
+            {(!isMobile || fullscreenCanvas) && (
+              <Box sx={{
+                flex: fullscreenCanvas ? 'none' : 1,
+                width: fullscreenCanvas ? '100%' : 'auto',
+                maxWidth: fullscreenCanvas ? '100vw' : 'none'
+              }}>
+                <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
+                  <CardContent sx={{
+                    ...responsiveSpacing.cardPadding,
+                    pb: fullscreenCanvas ? 1 : undefined
+                  }}>
+                    <Typography variant="h6" gutterBottom sx={{
+                      fontSize: { xs: '1rem', sm: '1.25rem' },
+                      display: fullscreenCanvas ? 'none' : 'block'
+                    }}>
+                      원본 이미지 ({isMobile ? "참고용" : "참고용"})
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: fullscreenCanvas
+                        ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
+                        : { xs: 280, sm: 320, md: 400 },
+                      border: 1,
+                      borderColor: 'divider',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'grey.100',
+                      overflow: 'hidden',
+                      borderRadius: 1
+                    }}
+                  >
+                    {(() => {
+                      // console.log('🖼️ 편집 가능한 이미지 렌더링 체크');
+                      // console.log('  roiData:', roiData);
+                      // console.log('  roiData?.rois:', roiData?.rois);
+                      // console.log('  조건:', roiData && roiData.rois);
+                      return roiData && roiData.rois ? (
+                        <RoiCanvas
+                          ref={roiCanvasRef}
+                          imageSrc={selectedImage.path}
+                          rois={roiData.rois}
+                          editable={false}
+                          selectedRoiId={selectedRoiId}
+                          editMode={roiEditMode}
+                          onRoiCreate={handleRoiCreate}
+                          onRoiUpdate={handleRoiUpdate}
+                          isMobile={isMobile}
+                          fullscreen={fullscreenCanvas}
+                        />
+                      ) : (
+                        <img
+                          src={selectedImage.path}
+                          alt="원본"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      );
+                    })()}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+            )}
+
             {/* 편집 가능한 이미지 */}
             <Box sx={{
               flex: fullscreenCanvas ? 'none' : 1,
@@ -883,76 +953,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) =
                 </CardContent>
               </Card>
             </Box>
-
-            {/* 원본 이미지 - Desktop only or fullscreen */}
-            {(!isMobile || fullscreenCanvas) && (
-              <Box sx={{
-                flex: fullscreenCanvas ? 'none' : 1,
-                width: fullscreenCanvas ? '100%' : 'auto',
-                maxWidth: fullscreenCanvas ? '100vw' : 'none'
-              }}>
-                <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
-                  <CardContent sx={{
-                    ...responsiveSpacing.cardPadding,
-                    pb: fullscreenCanvas ? 1 : undefined
-                  }}>
-                    <Typography variant="h6" gutterBottom sx={{
-                      fontSize: { xs: '1rem', sm: '1.25rem' },
-                      display: fullscreenCanvas ? 'none' : 'block'
-                    }}>
-                      원본 이미지 ({isMobile ? "참고용" : "참고용"})
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: '100%',
-                        height: fullscreenCanvas
-                          ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                          : { xs: 280, sm: 320, md: 400 },
-                        border: 1,
-                        borderColor: 'divider',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: 'grey.100',
-                        overflow: 'hidden',
-                        borderRadius: 1
-                      }}
-                    >
-                      {(() => {
-                        // console.log('🖼️ 원본 이미지 렌더링 체크');
-                        // console.log('  roiData:', roiData);
-                        // console.log('  roiData?.rois:', roiData?.rois);
-                        // console.log('  조건:', roiData && roiData.rois);
-                        return roiData && roiData.rois ? (
-                          <RoiCanvas
-                            ref={roiCanvasRef}
-                            imageSrc={selectedImage.path}
-                            rois={roiData.rois}
-                            editable={false}
-                            selectedRoiId={selectedRoiId}
-                            editMode={roiEditMode}
-                            onRoiCreate={handleRoiCreate}
-                            onRoiUpdate={handleRoiUpdate}
-                            isMobile={isMobile}
-                            fullscreen={fullscreenCanvas}
-                          />
-                        ) : (
-                          <img
-                            src={selectedImage.path}
-                            alt="원본"
-                            style={{
-                              maxWidth: '100%',
-                              maxHeight: '100%',
-                              objectFit: 'contain'
-                            }}
-                          />
-                        );
-                      })()}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
-            )}
           </Box>
 
           {/* ROI 편집 프레임 */}
