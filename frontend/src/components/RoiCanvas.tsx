@@ -12,6 +12,7 @@ interface RoiCanvasProps {
   onRoiUpdate?: (roiId: string, coordinates: number[]) => void;
   isMobile?: boolean;
   fullscreen?: boolean;
+  onPointsChange?: (points: number[]) => void;
 }
 
 export interface RoiCanvasRef {
@@ -30,7 +31,8 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   onRoiCreate,
   onRoiUpdate,
   isMobile = false,
-  fullscreen = false
+  fullscreen = false,
+  onPointsChange
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -38,6 +40,13 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   const [drawingPoints, setDrawingPoints] = useState<number[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hoveredRoiId, setHoveredRoiId] = useState<string | null>(null);
+
+  // drawingPoints가 변경될 때마다 부모 컴포넌트에 알림
+  useEffect(() => {
+    if (onPointsChange) {
+      onPointsChange(drawingPoints);
+    }
+  }, [drawingPoints, onPointsChange]);
 
   // 이미지 로드
   useEffect(() => {
@@ -73,7 +82,7 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
         const parentElement = canvasRef.current?.parentElement;
         if (parentElement) {
           const rect = parentElement.getBoundingClientRect();
-          return { width: rect.width - 32, height: rect.height - 32 };
+          return { width: rect.width, height: rect.height };
         }
         // 폴백: 큰 기본 크기
         return { width: 700, height: 700 };
@@ -272,7 +281,7 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
       completedPoints.push(completedPoints[0]); // 첫 번째 x 좌표
       completedPoints.push(completedPoints[1]); // 첫 번째 y 좌표
     }
-    
+
     if (editMode === 'create' && onRoiCreate) {
       onRoiCreate(completedPoints);
     } else if (editMode === 'update' && selectedRoiId && onRoiUpdate) {

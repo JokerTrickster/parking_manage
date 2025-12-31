@@ -1,1745 +1,1202 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Button,
-  Card,
-  CardContent,
-  TextField,
-  Alert,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Snackbar,
-  useMediaQuery,
-  useTheme,
-  Drawer,
   IconButton,
-  Collapse,
+  List,
+  ListItemText,
+  ListItemButton,
+  ListItemIcon,
+  Divider,
+  useTheme,
+  Alert,
+  AppBar,
+  Toolbar,
+  Drawer,
+  styled,
+  Paper,
+  Chip,
+  alpha,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText,
-  Stack,
-  Chip,
-  List,
-  ListItem,
-  ListItemText
+  TextField
 } from '@mui/material';
 import {
-  Edit as EditIcon,
+  Videocam as CctvIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
-  Add as AddIcon,
   Delete as DeleteIcon,
-  ArrowBack as BackIcon,
-  Menu as MenuIcon,
-  ExpandMore as ExpandMoreIcon,
-  Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon,
-  Undo as UndoIcon
+  Add as AddIcon,
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Compare as CompareIcon,
+  Info as InfoIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  Edit as EditIcon,
+  FolderOpen as FolderIcon
 } from '@mui/icons-material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ThemeContext } from '../App';
+import { GRADIENTS, SHADOWS } from '../styles/theme';
+import '../index.css';
+
 import { RoiService } from '../services/RoiService';
 import { FileStorageService } from '../services/FileStorageService';
-import {
-  ImageFile,
-  ReadRoiResponse
-} from '../models/Roi';
-import RoiCanvas, { RoiCanvasRef } from '../components/RoiCanvas';
-import { touchFriendly, responsiveSpacing, responsiveGrid } from '../styles/responsive';
 import { CctvTemplateService } from '../services/CctvTemplateService';
-import { CctvTemplate } from '../models/CctvTemplate';
 import { RoiData as RoiFileData } from '../models/RoiData';
+import { CctvTemplate } from '../models/CctvTemplate';
+import RoiCanvas, { RoiCanvasRef } from '../components/RoiCanvas';
 
+// --- Types ---
 interface RoiWorkViewProps {
-  projectId: string;
+  projectId?: string;
   onBack?: () => void;
 }
 
-export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId, onBack }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+// --- Constants ---
+const DRAWER_WIDTH = 260;
+const RIGHT_DRAWER_WIDTH = 300;
+const HEADER_HEIGHT = 40; // Minimal header
+const CONTROL_BAR_HEIGHT = 56; // Workspace control bar
 
-  // 상태 관리
+// Styled Components
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'openLeft' && prop !== 'openRight' })<{
+  openLeft?: boolean;
+  openRight?: boolean;
+}>(({ theme, openLeft, openRight }) => ({
+  flexGrow: 1,
+  height: '100vh',
+  marginTop: 0,
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  marginLeft: -DRAWER_WIDTH,
+  marginRight: -RIGHT_DRAWER_WIDTH,
+  backgroundColor: theme.palette.background.default,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  position: 'relative',
+  ...(openLeft && {
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+  ...(openRight && {
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginRight: 0,
+  }),
+}));
+
+export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProjectId, onBack }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { mode, toggleTheme } = useContext(ThemeContext);
+  const params = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+
+  const projectId = params.projectId || propProjectId || '';
+
+  // --- State ---
   const [roiFiles, setRoiFiles] = useState<string[]>([]);
   const [selectedRoiFile, setSelectedRoiFile] = useState<string>('');
-  const [roiFileData, setRoiFileData] = useState<RoiFileData | null>(null);
-  const [originalRoiFileData, setOriginalRoiFileData] = useState<RoiFileData | null>(null); // 롤백용 원본 데이터
+
   const [cctvTemplate, setCctvTemplate] = useState<CctvTemplate | null>(null);
   const [cctvList, setCctvList] = useState<string[]>([]);
   const [selectedCctv, setSelectedCctv] = useState<string>('');
-  const [cctvImageUrl, setCctvImageUrl] = useState<string>('');
-  const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
-  const [roiData, setRoiData] = useState<any>(null);
-  const [originalRoiData, setOriginalRoiData] = useState<any>(null); // 롤백용 선택된 CCTV의 원본 ROI 데이터
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
 
-  // ROI 편집 상태
-  const [editMode, setEditMode] = useState(false);
-  const [draftCreated, setDraftCreated] = useState(false);
-  const [selectedRoiId, setSelectedRoiId] = useState<string>('');
-  const [draftRoiData, setDraftRoiData] = useState<{ [cctvId: string]: any }>({});
+  const [roiFileData, setRoiFileData] = useState<RoiFileData | null>(null);
+  const [roiData, setRoiData] = useState<any>(null);
+
+  const [cctvImageUrl, setCctvImageUrl] = useState<string>('');
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>('');
+
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>(''); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(true);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(true);
+  const [showDualView, setShowDualView] = useState(true);
+
   const [roiEditMode, setRoiEditMode] = useState<'create' | 'update' | 'delete' | null>(null);
-  const [tempRoiId, setTempRoiId] = useState<string>('');
-  const [tempRoiNumber, setTempRoiNumber] = useState<string>('');
-  const [editingRoiBackup, setEditingRoiBackup] = useState<{ roiId: string; coordinates: number[] } | null>(null);
+  const [selectedRoiId, setSelectedRoiId] = useState<string>('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const roiCanvasRef = useRef<RoiCanvasRef>(null);
 
-  // Mobile UI 상태
-  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
-  const [fileSelectionExpanded, setFileSelectionExpanded] = useState(!isMobile);
-  const [fullscreenCanvas, setFullscreenCanvas] = useState(false);
+  const [showRoiIdDialog, setShowRoiIdDialog] = useState(false);
+  const [newRoiId, setNewRoiId] = useState<string>('');
+  const [pendingCreatePoints, setPendingCreatePoints] = useState<number[] | null>(null);
+  const [currentDrawingPoints, setCurrentDrawingPoints] = useState<number[]>([]);
 
-  // 다이얼로그 상태
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [newFileName, setNewFileName] = useState('');
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [pendingRoiFile, setPendingRoiFile] = useState<string>('');
+  // --- Layout Sizing Logic ---
+  const referenceContainerRef = useRef<HTMLDivElement>(null);
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+  const [referenceSize, setReferenceSize] = useState<{ w: number, h: number } | null>(null);
+  const [workspaceSize, setWorkspaceSize] = useState<{ w: number, h: number } | null>(null);
 
-  // 수정된 CCTV 추적
-  const [modifiedCctvs, setModifiedCctvs] = useState<Set<string>>(new Set());
-
-  // Snackbar 닫기 핸들러
-  const handleCloseSnackbar = () => {
-    setSuccess('');
-    setError('');
-  };
-
-  // CCTV가 수정되었는지 확인하는 함수
-  const checkCctvModified = (cctvId: string): boolean => {
-    if (!originalRoiFileData || !roiFileData) return false;
-
-    const originalData = (originalRoiFileData as any)[cctvId];
-    const currentData = (roiFileData as any)[cctvId];
-
-    // 둘 중 하나가 없으면 다른 것
-    if (!originalData && currentData) return true;
-    if (originalData && !currentData) return true;
-    if (!originalData && !currentData) return false;
-
-    // ROI 개수가 다르면 수정됨
-    const originalRois = originalData.rois || {};
-    const currentRois = currentData.rois || {};
-    if (Object.keys(originalRois).length !== Object.keys(currentRois).length) return true;
-
-    // ROI 좌표가 다르면 수정됨
-    for (const roiId in currentRois) {
-      if (!originalRois[roiId]) return true;
-      const originalCoords = JSON.stringify(originalRois[roiId]);
-      const currentCoords = JSON.stringify(currentRois[roiId]);
-      if (originalCoords !== currentCoords) return true;
-    }
-
-    return false;
-  };
-
-  // 수정된 CCTV 목록 업데이트
-  const updateModifiedCctvs = () => {
-    if (!cctvList || !roiFileData || !originalRoiFileData) {
-      setModifiedCctvs(new Set());
-      return;
-    }
-
-    const modified = new Set<string>();
-    cctvList.forEach(cctvId => {
-      if (checkCctvModified(cctvId)) {
-        modified.add(cctvId);
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (entry.target === referenceContainerRef.current) {
+          setReferenceSize({ w: width, h: height });
+        } else if (entry.target === workspaceContainerRef.current) {
+          setWorkspaceSize({ w: width, h: height });
+        }
       }
     });
-    setModifiedCctvs(modified);
+
+    if (referenceContainerRef.current) observer.observe(referenceContainerRef.current);
+    if (workspaceContainerRef.current) observer.observe(workspaceContainerRef.current);
+
+    return () => observer.disconnect();
+  }, [showDualView, leftDrawerOpen, rightDrawerOpen]);
+
+  // Helper to get maximized square style - 두 컨테이너 모두 같은 높이 사용
+  const getUnifiedSquareStyle = () => {
+    if (!referenceSize || !workspaceSize) {
+      return {
+        reference: { width: '100%' as string | number, height: '100%' as string | number },
+        workspace: { width: '100%' as string | number, height: '100%' as string | number }
+      };
+    }
+
+    // 두 컨테이너의 높이 중 더 작은 값을 공통 높이로 사용
+    const commonHeight = Math.min(referenceSize.h, workspaceSize.h);
+
+    // 각 컨테이너의 너비를 기준으로 정사각형 크기 계산 (공통 높이 사용)
+    const refSide = Math.min(referenceSize.w, commonHeight);
+    const workSide = Math.min(workspaceSize.w, commonHeight);
+
+    // 두 정사각형 중 더 작은 크기를 공통으로 사용하여 높이를 완전히 동일하게
+    const finalSide = Math.min(refSide, workSide);
+
+    return {
+      reference: { width: finalSide as string | number, height: finalSide as string | number },
+      workspace: { width: finalSide as string | number, height: finalSide as string | number }
+    };
   };
+
+  const unifiedSizes = getUnifiedSquareStyle();
+
+  // --- Effects ---
+  useEffect(() => {
+    if (!projectId) { setError('Invalid Project ID'); return; }
+    loadInitialData();
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // console.log('🚀 RoiWorkView 컴포넌트 마운트됨!');
-    loadRoiFiles();
-    loadCctvTemplate();
-  }, [projectId]);
+    if (cctvTemplate) setCctvList(cctvTemplate.cctvList.map(c => c.cctvId));
+  }, [cctvTemplate]);
 
-  // ROI 데이터가 변경될 때마다 수정된 CCTV 목록 업데이트
-  useEffect(() => {
-    updateModifiedCctvs();
-  }, [roiData, roiFileData, cctvList]);
 
-  // CCTV 템플릿 로드
-  const loadCctvTemplate = () => {
-    try {
-      // console.log('🔧 loadCctvTemplate 호출됨, projectId:', projectId);
-      const template = CctvTemplateService.getTemplateByProjectId(projectId);
-      // console.log('📋 가져온 템플릿:', template);
-      if (template) {
-        setCctvTemplate(template);
-        // console.log('✅ CCTV 템플릿 로드 성공, CCTV 개수:', template.cctvList.length);
-      } else {
-        console.error(`❌ 프로젝트 "${projectId}"의 CCTV 템플릿을 찾을 수 없습니다.`);
-        setError(`프로젝트 "${projectId}"의 CCTV 템플릿을 찾을 수 없습니다.`);
-      }
-    } catch (error) {
-      console.error('❌ CCTV 템플릿 로드 실패:', error);
-      setError('CCTV 템플릿을 불러올 수 없습니다.');
-    }
+
+  // --- Logic ---
+  const loadInitialData = async () => {
+    try { await Promise.all([loadRoiLists(), loadTemplate()]); } catch { }
   };
 
-  // ROI 파일 목록 로드 - FileStorageService 사용
-  const loadRoiFiles = async () => {
+  const loadRoiLists = async () => {
     try {
-      setLoading(true);
-      const response = await FileStorageService.listFiles(projectId, 'roi');
-      // FileInfo 배열에서 파일 이름만 추출
-      const fileNames = response.data.files.map(file => file.filename);
-      setRoiFiles(fileNames);
-    } catch (err) {
-      setError('ROI 파일 목록을 불러오는데 실패했습니다.');
-      console.error('ROI 파일 로드 실패:', err);
-    } finally {
-      setLoading(false);
-    }
+      const res = await FileStorageService.listFiles(projectId, 'roi');
+      setRoiFiles(res.data.files.map(f => f.filename));
+    } catch { setError('ROI 파일 목록 로드 실패'); }
   };
 
-  // ROI 파일 선택 - JSON 읽어서 전체 데이터 저장하고 banpo.json의 모든 CCTV 목록 표시
+  const loadTemplate = async () => {
+    try {
+      const t = CctvTemplateService.getTemplateByProjectId(projectId);
+      if (t) setCctvTemplate(t);
+    } catch { }
+  };
+
   const handleRoiFileSelect = async (fileName: string) => {
-    if (!fileName) return;
+    if (selectedRoiFile === fileName) return;
 
-    // 기존 작업이 있으면 확인 다이얼로그 표시
-    if (selectedRoiFile && roiData && Object.keys(roiData.rois || {}).length > 0) {
-      setPendingRoiFile(fileName);
-      setConfirmDialogOpen(true);
-      return;
-    }
-
-    loadRoiFile(fileName);
-  };
-
-  const loadRoiFile = async (fileName: string) => {
     try {
-      setLoading(true);
-      setError('');
-
       setSelectedRoiFile(fileName);
-
-      // ROI 파일 다운로드 및 파싱
+      setError('');
       const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
       const text = await blob.text();
-      const data = JSON.parse(text);
+      setRoiFileData(JSON.parse(text));
 
-      // ROI 파일 전체를 저장 (IP 주소를 키로 하는 객체 구조)
-      setRoiFileData(data);
-      setOriginalRoiFileData(JSON.parse(JSON.stringify(data))); // 원본 데이터 깊은 복사
-
-      // banpo.json의 모든 CCTV 목록을 표시
-      if (cctvTemplate && cctvTemplate.cctvList) {
-        const allCctvIds = cctvTemplate.cctvList.map(cctv => cctv.cctvId);
-        setCctvList(allCctvIds);
-      } else {
-        console.warn('⚠️ CCTV 템플릿이 없습니다.');
-        setError('CCTV 템플릿을 불러올 수 없습니다.');
-      }
-
-    } catch (err) {
-      console.error('❌ ROI 파일 선택 에러:', err);
-      setError(`ROI 파일 '${fileName}'을 불러오는데 실패했습니다.`);
-      setRoiFileData(null);
-      setOriginalRoiFileData(null);
-      setCctvList([]);
+      setHasUnsavedChanges(false);
       setSelectedCctv('');
-    } finally {
-      setLoading(false);
-    }
+      setRoiData(null);
+      setCctvImageUrl('');
+      setOriginalImageUrl('');
+    } catch { setError(`파일 '${fileName}' 로드 실패`); }
   };
 
-  const handleConfirmFileChange = () => {
-    setConfirmDialogOpen(false);
-    loadRoiFile(pendingRoiFile);
-    setPendingRoiFile('');
-
-    // ROI 파일 변경 시 초기화
-    setSelectedCctv('');
-    setSelectedImage(null);
-    setRoiData(null);
-    setOriginalRoiData(null);
-    setSelectedRoiId('');
-  };
-
-  const handleCancelFileChange = () => {
-    setConfirmDialogOpen(false);
-    setPendingRoiFile('');
-  };
-
-  // CCTV 선택 - 템플릿에서 이미지 URL 가져오고 ROI 데이터 찾기
   const handleCctvSelect = (cctvId: string) => {
-    // console.log('🎯 handleCctvSelect 호출됨, cctvId:', cctvId);
+    if (selectedCctv === cctvId) return;
     setSelectedCctv(cctvId);
     setError('');
 
-    if (!cctvTemplate) {
-      console.error('❌ cctvTemplate이 null입니다!');
-      setError('CCTV 템플릿이 로드되지 않았습니다.');
-      return;
-    }
-
-    // console.log('🔍 템플릿에서 CCTV 찾기:', cctvTemplate.cctvList.map(c => c.cctvId));
+    if (!cctvTemplate) return;
     const cctv = cctvTemplate.cctvList.find(c => c.cctvId === cctvId);
-    if (!cctv) {
-      console.error(`❌ CCTV "${cctvId}"를 템플릿에서 찾을 수 없습니다.`);
-      setError(`CCTV "${cctvId}"를 템플릿에서 찾을 수 없습니다.`);
-      return;
-    }
+    if (!cctv) { setError('CCTV 정보 없음'); return; }
 
-    // console.log('✅ CCTV 찾음:', cctv);
-    const originalImage = cctv.images.find(img => img.type === 'original');
-    if (!originalImage) {
-      console.error(`❌ CCTV "${cctvId}"의 원본 이미지를 찾을 수 없습니다.`);
-      setError(`CCTV "${cctvId}"의 원본 이미지를 찾을 수 없습니다.`);
-      return;
-    }
-
-    // console.log('✅ 원본 이미지 찾음:', originalImage.endpoint);
     const timestamp = new Date().getTime();
-    const imageUrl = `${originalImage.endpoint}?t=${timestamp}`;
-    setCctvImageUrl(imageUrl);
 
-    // 이미지 객체 생성 (기존 로직 호환용)
-    const imageFile: ImageFile = {
-      name: `${cctvId}.jpg`,
-      path: imageUrl,
-      size: 0,
-      cctvId: cctvId
-    };
-    // console.log('📸 이미지 파일 객체 생성:', imageFile);
-    setSelectedImage(imageFile);
+    // Configs
+    const originalConfig = cctv.images.find(img => img.type === 'original');
+    if (originalConfig) setOriginalImageUrl(`${originalConfig.endpoint}?t=${timestamp}`);
 
-    // ROI 파일에서 선택된 CCTV ID에 맞는 ROI 데이터 찾기
-    if (roiFileData) {
-      // console.log('🔍 ROI 파일에서 cctv_id 찾기:', cctvId);
+    const viewConfig = cctv.images.find(img => img.type === 'original') || cctv.images[0];
+    if (viewConfig) setCctvImageUrl(`${viewConfig.endpoint}?t=${timestamp}`);
+    else { setError('이미지 설정 없음'); return; }
 
-      // ROI 파일 구조 감지 및 변환
-      let foundRoiData: any = null;
+    extractRoiDataForCctv(cctvId, roiFileData);
+  };
 
-      // 1. IP 주소를 키로 하는 구조 확인
-      // { "172.19.32.96": { "cctv_id": "P1_B5_3_1", "matches": [...] } }
-      for (const [key, data] of Object.entries(roiFileData)) {
-        if (data && typeof data === 'object' && 'cctv_id' in data) {
-          if (data.cctv_id === cctvId) {
-            // console.log(`✅ IP ${key}에서 ROI 데이터 찾음:`, data);
+  const extractRoiDataForCctv = (cctvId: string, currentFileData: any) => {
+    if (!currentFileData) {
+      setRoiData({ cctv_id: cctvId, rois: {} });
+      return;
+    }
+    let foundData = null;
 
-            // matches 배열을 RoiCanvas 형식으로 변환
-            // { [roiId: string]: number[] }
-            const rois: { [roiId: string]: number[] } = {};
-            if ('matches' in data && Array.isArray(data.matches)) {
-              data.matches.forEach((match: any, index: number) => {
-                // original_roi를 상하좌우 반전
-                if (match.original_roi && Array.isArray(match.original_roi)) {
-                  const roiId = match.parking_id || `ROI_${String(index + 1).padStart(2, '0')}`;
-                  // 이미지 크기 - 640x640 기준
-                  const imgWidth = 640;
-                  const imgHeight = 640;
-
-                  // 좌표 상하좌우 반전
-                  const flippedCoords: number[] = [];
-                  for (let i = 0; i < match.original_roi.length; i += 2) {
-                    flippedCoords.push(imgWidth - match.original_roi[i]);  // X 좌우 반전
-                    flippedCoords.push(imgHeight - match.original_roi[i + 1]);  // Y 상하 반전
-                  }
-                  rois[roiId] = flippedCoords;
-                } else if (match.img_center_roi && Array.isArray(match.img_center_roi)) {
-                  // original_roi가 없으면 img_center_roi를 사용하되, 좌표 변환
-                  const roiId = match.parking_id || `ROI_${String(index + 1).padStart(2, '0')}`;
-                  // img_center_roi는 이미지 중심 기준이므로 변환 필요
-                  // 이미지 크기를 알아야 변환 가능 - 임시로 1920x1080 가정
-                  const imgWidth = 1920;
-                  const imgHeight = 1080;
-                  const centerX = imgWidth / 2;
-                  const centerY = imgHeight / 2;
-
-                  const convertedCoords: number[] = [];
-                  for (let i = 0; i < match.img_center_roi.length; i += 2) {
-                    // img_center_roi를 절대 좌표로 변환 후 상하좌우 반전
-                    const x = centerX - match.img_center_roi[i];  // X 좌우 반전 (중심 기준이므로 빼기)
-                    const y = centerY - match.img_center_roi[i + 1];  // Y 상하 반전 (중심 기준이므로 빼기)
-                    convertedCoords.push(x);
-                    convertedCoords.push(y);
-                  }
-                  rois[roiId] = convertedCoords;
-                }
-              });
+    // 1. Search Matches
+    for (const data of Object.values(currentFileData)) {
+      if (data && typeof data === 'object' && (data as any).cctv_id === cctvId) {
+        const rois: { [id: string]: number[] } = {};
+        const matches = (data as any).matches || [];
+        matches.forEach((match: any, idx: number) => {
+          const roiId = match.parking_id || `ROI_${String(idx + 1).padStart(2, '0')}`;
+          const imgWidth = 640;
+          const imgHeight = 640;
+          const coords: number[] = [];
+          if (match.original_roi) {
+            for (let i = 0; i < match.original_roi.length; i += 2) {
+              coords.push(imgWidth - match.original_roi[i]);
+              coords.push(imgHeight - match.original_roi[i + 1]);
             }
-
-            foundRoiData = {
-              cctv_id: cctvId,
-              rois: rois
-            };
-            break;
+            rois[roiId] = coords;
           }
-        }
-      }
-
-      // 2. 직접 구조 확인 (이미 RoiData 형식)
-      // { "cctv_id": "P1_B2_3", "rois": [{roi_id: "ROI_01", coords: [...]}] }
-      if (!foundRoiData && 'cctv_id' in roiFileData && roiFileData.cctv_id === cctvId) {
-        // console.log('✅ 직접 구조 ROI 데이터 찾음:', roiFileData);
-
-        // rois 배열을 객체로 변환
-        const rois: { [roiId: string]: number[] } = {};
-        if ('rois' in roiFileData && Array.isArray(roiFileData.rois)) {
-          roiFileData.rois.forEach((roi: any) => {
-            if (roi.roi_id && roi.coords) {
-              rois[roi.roi_id] = roi.coords;
-            }
-          });
-        }
-
-        foundRoiData = {
-          cctv_id: cctvId,
-          rois: rois
-        };
-      }
-
-      if (foundRoiData) {
-        // console.log('📊 변환된 ROI 데이터:', foundRoiData);
-        setRoiData(foundRoiData);
-        setOriginalRoiData(JSON.parse(JSON.stringify(foundRoiData))); // 원본 데이터 깊은 복사
-      } else {
-        console.warn(`⚠️ CCTV "${cctvId}"에 대한 ROI 데이터를 찾을 수 없습니다.`);
-        setRoiData(null);
-        setOriginalRoiData(null);
+        });
+        foundData = { cctv_id: cctvId, rois };
+        break;
       }
     }
-  };
-
-  // 이미지 파일명에서 _Current 제거
-  const getDisplayImageName = (imageName: string) => {
-    return imageName.replace(/_Current$/, '');
-  };
-
-  // ROI 클릭 핸들러 - 선택만 (수정/삭제 버튼 표시용)
-  const handleRoiClick = (roiId: string) => {
-    // 편집 모드가 아닐 때만 선택 가능
-    if (roiEditMode === null) {
-      setSelectedRoiId(roiId);
-    }
-  };
-
-  // ROI 수정 시작
-  const startEditRoi = (roiId: string) => {
-    setSelectedRoiId(roiId);
-    setRoiEditMode('update');
-
-    // 기존 ROI를 백업하고 화면에서 제거
-    if (roiData && roiData.rois && roiData.rois[roiId]) {
-      setEditingRoiBackup({
-        roiId: roiId,
-        coordinates: [...roiData.rois[roiId]]
+    // 2. Fallback
+    if (!foundData && currentFileData.cctv_id === cctvId) {
+      const rois: { [id: string]: number[] } = {};
+      (currentFileData.rois || []).forEach((r: any) => {
+        if (r.roi_id && r.coords) rois[r.roi_id] = r.coords;
       });
-
-      const updatedRois = { ...roiData.rois };
-      delete updatedRois[roiId];
-      setRoiData({
-        ...roiData,
-        rois: updatedRois
-      });
+      foundData = { cctv_id: cctvId, rois };
     }
+
+    const finalData = foundData || { cctv_id: cctvId, rois: {} };
+    setRoiData(finalData);
   };
 
-  // ROI 데이터 로드 (Draft 모드 지원)
-  const loadRoiData = async (image: ImageFile, roiFile: string) => {
+  // Actions
+  const handleSave = async () => {
+    if (!selectedRoiFile || !hasUnsavedChanges) return;
     try {
-      setLoading(true);
-      setError('');
+      // Save current roiData to file
+      await RoiService.saveDraftRoi(projectId, selectedRoiFile);
+      setSuccess('저장 완료');
+      setHasUnsavedChanges(false);
+      loadRoiLists();
+    } catch { setError('저장 실패'); }
+  };
 
-      const cctvId = image.cctvId || selectedCctv || getDisplayImageName(image.name).split('.')[0];
-
-      if (draftCreated) {
-        // Draft 모드: 저장된 Draft 데이터 사용
-        if (draftRoiData[cctvId]) {
-          setRoiData(draftRoiData[cctvId]);
-        } else {
-          // Draft 데이터가 없으면 현재 roiFileData 사용
-          if (roiFileData) {
-            setRoiData(roiFileData);
-            setDraftRoiData(prev => ({
-              ...prev,
-              [cctvId]: roiFileData
-            }));
-          }
-        }
-      } else {
-        // 일반 모드: roiFileData 사용
-        if (roiFileData) {
-          setRoiData(roiFileData);
-        }
-      }
-    } catch (err) {
-      console.error('ROI 데이터 로드 에러:', err);
-      setError(`ROI 데이터를 불러오는데 실패했습니다.`);
-      setRoiData(null);
-    } finally {
-      setLoading(false);
+  const handleCreateRoi = (points: number[]) => {
+    if (points.length < 6) {
+      setError('최소 3개 이상의 점을 선택해주세요');
+      return;
     }
+    setPendingCreatePoints(points);
+    setNewRoiId('');
+    setShowRoiIdDialog(true);
+    setCurrentDrawingPoints([]);
   };
 
-
-  // ROI 생성
-  const handleCreateRoi = () => {
-    setRoiEditMode('create');
-    setTempRoiId('');
-    setTempRoiNumber('');
-  };
-
-  // ROI 수정
-  const handleUpdateRoi = (roiId: string) => {
-    setRoiEditMode('update');
-    setSelectedRoiId(roiId);
-  };
-
-  // ROI 삭제 준비 (화면에서 제거하고 확인 대기)
-  const handleDeleteRoi = (roiId: string) => {
-    if (!roiData || !roiData.rois || !roiData.rois[roiId]) return;
-
-    // 편집 모드가 아닐 때만 삭제 모드 진입
-    if (roiEditMode === null) {
-      setSelectedRoiId(roiId);
-      setRoiEditMode('delete' as any); // 'delete' 모드 추가
-
-      // 기존 ROI를 백업하고 화면에서 제거
-      setEditingRoiBackup({
-        roiId: roiId,
-        coordinates: [...roiData.rois[roiId]]
-      });
-
-      const updatedRois = { ...roiData.rois };
-      delete updatedRois[roiId];
-      setRoiData({
-        ...roiData,
-        rois: updatedRois
-      });
+  const handleConfirmRoiId = () => {
+    if (!newRoiId.trim()) {
+      setError('ROI ID를 입력해주세요');
+      return;
     }
-  };
+    if (!roiData || !pendingCreatePoints) return;
 
-  // ROI 삭제 확정
-  const confirmDeleteRoi = async () => {
-    if (!selectedImage || !selectedRoiFile || !roiFileData || !editingRoiBackup) return;
-
-    const roiId = editingRoiBackup.roiId;
-    const cctvId = selectedCctv || getDisplayImageName(selectedImage.name).split('.')[0];
-
-    try {
-      setLoading(true);
-
-      // roiFileData 전체 업데이트 - IP 주소를 키로 하는 구조에서 해당 CCTV 데이터 업데이트
-      const updatedRoiFileData = { ...roiFileData } as any;
-      for (const [ipKey, data] of Object.entries(updatedRoiFileData)) {
-        if (data && typeof data === 'object' && 'cctv_id' in data && data.cctv_id === cctvId) {
-          // matches 배열에서 해당 ROI 삭제
-          if ('matches' in data && Array.isArray(data.matches)) {
-            const updatedMatches = data.matches.filter((m: any) => m.parking_id !== roiId);
-            (updatedRoiFileData as any)[ipKey] = {
-              ...data,
-              matches: updatedMatches
-            };
-          }
-          break;
-        }
-      }
-      setRoiFileData(updatedRoiFileData);
-
-      setRoiEditMode(null);
-      setEditingRoiBackup(null);
-      setSelectedRoiId('');
-      setSuccess('ROI가 성공적으로 삭제되었습니다.');
-      setError('');
-    } catch (err) {
-      setError('ROI 삭제에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-
-  // 편집 시작
-  const handleStartEdit = async () => {
-    if (!selectedRoiFile) return;
-
-    try {
-      setLoading(true);
-      // ROI Draft 생성 (확장자 제거된 파일명 사용)
-      await RoiService.createDraftRoi(projectId, selectedRoiFile);
-      setEditMode(true);
-      setDraftCreated(true);
-      setError('');
-      
-      // 편집 모드로 전환 후 ROI 데이터 다시 로드 (초안 파일 사용)
-      if (selectedImage) {
-        await loadRoiData(selectedImage, selectedRoiFile);
-      }
-    } catch (err) {
-      setError('편집 모드 시작에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 화면 좌표를 JSON 저장 좌표로 역변환 (상하좌우 반전)
-  const convertToOriginalCoordinates = (coordinates: number[]): number[] => {
-    const imgWidth = 640;
-    const imgHeight = 640;
-    const originalCoords: number[] = [];
-
-    for (let i = 0; i < coordinates.length; i += 2) {
-      // 역변환: 로드할 때 (imgWidth - x, imgHeight - y)로 변환했으므로
-      // 저장할 때도 동일하게 (imgWidth - x, imgHeight - y) 적용
-      originalCoords.push(imgWidth - coordinates[i]);      // X 좌우 반전
-      originalCoords.push(imgHeight - coordinates[i + 1]); // Y 상하 반전
-    }
-
-    return originalCoords;
-  };
-
-  // ROI 생성 완료
-  const handleRoiCreate = async (coordinates: number[]) => {
-    if (!tempRoiNumber.trim()) {
-      setError('ROI 번호를 입력해주세요.');
+    const id = newRoiId.trim();
+    if (roiData.rois[id]) {
+      setError('이미 존재하는 ROI ID입니다');
       return;
     }
 
-    if (!selectedImage || !selectedRoiFile || !roiData || !roiFileData) {
-      setError('필수 정보가 누락되었습니다.');
-      return;
-    }
-
-    const roiId = `PARKINGLOCATIONS_${tempRoiNumber}`;
-    const cctvId = selectedCctv || getDisplayImageName(selectedImage.name).split('.')[0];
-
-    // 좌표를 정수형으로 반올림
-    const roundedCoordinates = coordinates.map(coord => Math.round(coord));
-
-    // JSON 저장용 좌표로 역변환 (상하좌우 반전)
-    const originalCoordinates = convertToOriginalCoordinates(roundedCoordinates);
-
-    try {
-      setLoading(true);
-
-      // 현재 CCTV의 ROI 데이터 업데이트
-      const updatedRois = { ...(roiData.rois || {}) };
-      updatedRois[roiId] = roundedCoordinates;
-      const updatedRoiData = {
-        ...roiData,
-        rois: updatedRois
-      };
-
-      setRoiData(updatedRoiData);
-
-      // roiFileData 전체 업데이트 - IP 주소를 키로 하는 구조에서 해당 CCTV 데이터 업데이트
-      const updatedRoiFileData = { ...roiFileData } as any;
-      for (const [ipKey, data] of Object.entries(updatedRoiFileData)) {
-        if (data && typeof data === 'object' && 'cctv_id' in data && data.cctv_id === cctvId) {
-          // matches 배열에 새 ROI 추가
-          if ('matches' in data && Array.isArray(data.matches)) {
-            const newMatch = {
-              parking_id: roiId,
-              original_roi: originalCoordinates  // 역변환된 좌표로 저장
-            };
-            (updatedRoiFileData as any)[ipKey] = {
-              ...data,
-              matches: [...data.matches, newMatch]
-            };
-          }
-          break;
-        }
-      }
-      setRoiFileData(updatedRoiFileData);
-
-      setRoiEditMode(null);
-      setTempRoiId('');
-      setTempRoiNumber('');
-      setSuccess('ROI가 성공적으로 생성되었습니다.');
-      setError('');
-    } catch (err) {
-      setError('ROI 생성에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ROI 수정 완료
-  const handleRoiUpdate = async (roiId: string, coordinates: number[]) => {
-    if (!selectedImage || !selectedRoiFile || !roiData || !roiFileData) {
-      setError('필수 정보가 누락되었습니다.');
-      return;
-    }
-
-    const cctvId = selectedCctv || getDisplayImageName(selectedImage.name).split('.')[0];
-
-    // 좌표를 정수형으로 반올림
-    const roundedCoordinates = coordinates.map(coord => Math.round(coord));
-
-    // JSON 저장용 좌표로 역변환 (상하좌우 반전)
-    const originalCoordinates = convertToOriginalCoordinates(roundedCoordinates);
-
-    try {
-      setLoading(true);
-
-      // 현재 CCTV의 ROI 데이터 업데이트
-      const updatedRois = { ...(roiData.rois || {}) };
-      updatedRois[roiId] = roundedCoordinates;
-      const updatedRoiData = {
-        ...roiData,
-        rois: updatedRois
-      };
-
-      setRoiData(updatedRoiData);
-
-      // roiFileData 전체 업데이트 - IP 주소를 키로 하는 구조에서 해당 CCTV 데이터 업데이트
-      const updatedRoiFileData = { ...roiFileData } as any;
-      for (const [ipKey, data] of Object.entries(updatedRoiFileData)) {
-        if (data && typeof data === 'object' && 'cctv_id' in data && data.cctv_id === cctvId) {
-          // matches 배열에서 해당 ROI 찾아서 업데이트
-          if ('matches' in data && Array.isArray(data.matches)) {
-            const matchIndex = data.matches.findIndex((m: any) => m.parking_id === roiId);
-            if (matchIndex !== -1) {
-              const updatedMatches = [...data.matches];
-              updatedMatches[matchIndex] = {
-                ...updatedMatches[matchIndex],
-                original_roi: originalCoordinates  // 역변환된 좌표로 저장
-              };
-              (updatedRoiFileData as any)[ipKey] = {
-                ...data,
-                matches: updatedMatches
-              };
-            }
-          }
-          break;
-        }
-      }
-      setRoiFileData(updatedRoiFileData);
-
-      setRoiEditMode(null);
-      setEditingRoiBackup(null);
-      setSuccess('ROI가 성공적으로 수정되었습니다.');
-      setError('');
-    } catch (err) {
-      setError('ROI 수정에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ROI 편집 저장
-  const handleSaveRoiEdit = () => {
-    if (roiCanvasRef.current) {
-      roiCanvasRef.current.completeRoi();
-    }
-  };
-
-  // ROI 편집 취소
-  const handleCancelRoiEdit = () => {
-    if (roiCanvasRef.current) {
-      roiCanvasRef.current.cancelRoiEdit();
-    }
-
-    // 백업된 ROI 복원 (수정 또는 삭제 취소 시)
-    if (editingRoiBackup && roiData) {
-      const updatedRois = { ...roiData.rois };
-      updatedRois[editingRoiBackup.roiId] = editingRoiBackup.coordinates;
-      setRoiData({
-        ...roiData,
-        rois: updatedRois
-      });
-      setEditingRoiBackup(null);
-    }
-
+    const newRois = { ...roiData.rois, [id]: pendingCreatePoints.map(Math.round) };
+    setRoiData({ ...roiData, rois: newRois });
     setRoiEditMode(null);
-    setTempRoiId('');
-    setTempRoiNumber('');
-    setSelectedRoiId('');
+    setSelectedRoiId(id);
+    setHasUnsavedChanges(true);
+
+    setShowRoiIdDialog(false);
+    setPendingCreatePoints(null);
+    setNewRoiId('');
   };
 
-  // 편집 취소
-  const handleCancelEdit = () => {
+  const handleUpdateRoi = (id: string, points: number[]) => {
+    if (!roiData) return;
+    const newRois = { ...roiData.rois, [id]: points.map(Math.round) };
+    setRoiData({ ...roiData, rois: newRois });
     setRoiEditMode(null);
-    setTempRoiId('');
-    setTempRoiNumber('');
+    setHasUnsavedChanges(true);
   };
 
-  // 편집 모드 종료
-  const handleEndEdit = async () => {
-    setEditMode(false);
-    setDraftCreated(false);
-    setDraftRoiData({}); // Draft 데이터 초기화
-    
-    // 편집 모드 종료 후 원본 파일로 ROI 데이터 다시 로드
-    if (selectedImage && selectedRoiFile) {
-      await loadRoiData(selectedImage, selectedRoiFile);
-    }
+  const handleDeleteRoi = (id: string) => {
+    if (!roiData) return;
+    const newRois = { ...roiData.rois };
+    delete newRois[id];
+    setRoiData({ ...roiData, rois: newRois });
+    if (selectedRoiId === id) setSelectedRoiId('');
+    setHasUnsavedChanges(true);
   };
 
-  // 롤백 기능 - 선택된 CCTV의 원본 ROI 데이터로 복원
   const handleRollback = () => {
-    if (!originalRoiData) {
-      setError('롤백할 원본 데이터가 없습니다.');
-      return;
-    }
-
-    // 원본 데이터로 복원
-    setRoiData(JSON.parse(JSON.stringify(originalRoiData))); // 깊은 복사
-    setRoiEditMode(null);
-    setSelectedRoiId('');
-    setSuccess('원본 ROI 데이터로 롤백되었습니다.');
-  };
-
-  // 최종 저장 다이얼로그 열기
-  const handleOpenSaveDialog = () => {
-    setSaveDialogOpen(true);
-    setNewFileName('');
-  };
-
-  const handleCloseSaveDialog = () => {
-    setSaveDialogOpen(false);
-    setNewFileName('');
-  };
-
-  // 최종 저장 - 파일명 입력 후 다운로드
-  const handleFinalSave = async () => {
-    if (!selectedRoiFile || !newFileName.trim()) {
-      setError('파일명을 입력해주세요.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // 타임스탬프 생성 (YYYYMMDD_HHMMSS 형식)
-      const now = new Date();
-      const timestamp = now.toISOString()
-        .replace(/T/, '_')
-        .replace(/\..+/, '')
-        .replace(/:/g, '')
-        .replace(/-/g, '')
-        .substring(0, 15); // YYYYMMDD_HHMMSS
-
-      // 파일명에 타임스탬프와 .json 확장자 추가
-      const baseFileName = newFileName.replace(/\.json$/, ''); // 기존 .json 제거
-      const filename = `${baseFileName}_${timestamp}.json`;
-
-      // 현재 roiFileData를 JSON으로 변환
-      const file = new File(
-        [JSON.stringify(roiFileData, null, 2)],
-        filename,
-        { type: 'application/json' }
-      );
-
-      // 서버에 업로드
-      await FileStorageService.uploadFiles(
-        projectId,
-        'roi',
-        [file]
-      );
-
-      setOriginalRoiFileData(JSON.parse(JSON.stringify(roiFileData))); // 원본 데이터 업데이트
-      setSuccess(`ROI 파일이 저장되었습니다: ${filename}`);
-      setSaveDialogOpen(false);
-      setError('');
-
-      // ROI 파일 목록 새로고침
-      await loadRoiFiles();
-    } catch (err) {
-      console.error('파일 저장 실패:', err);
-      setError('파일 저장에 실패했습니다.');
-    } finally {
-      setLoading(false);
+    // Reload data from file to discard changes
+    if (selectedRoiFile) {
+      handleRoiFileSelect(selectedRoiFile);
     }
   };
 
   return (
-    <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding, pb: { xs: 8, md: 3 } }}>
-      {/* 헤더 */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        ...responsiveSpacing.sectionMargin,
-        flexWrap: { xs: 'wrap', sm: 'nowrap' },
-        gap: 1
-      }}>
-        {onBack && (
-          <Button
-            startIcon={<BackIcon />}
-            onClick={onBack}
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default', overflow: 'hidden', position: 'relative' }}>
+
+      {/* Left Sidebar */}
+      <Drawer
+        variant="persistent"
+        anchor="left"
+        open={leftDrawerOpen}
+        sx={{
+          width: DRAWER_WIDTH,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: DRAWER_WIDTH,
+            boxSizing: 'border-box',
+            top: 0,
+            height: '100%',
+            bgcolor: 'background.paper',
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            color: 'text.primary'
+          },
+        }}
+      >
+        <Box sx={{ overflow: 'auto' }}>
+          <Paper
+            elevation={0}
             sx={{
-              ...touchFriendly.button,
-              mr: { xs: 0, sm: 2 },
-              mb: { xs: 1, sm: 0 },
-              minWidth: { xs: 'auto', sm: 'unset' }
+              p: 2,
+              pb: 1,
+              bgcolor: isDark ? alpha(theme.palette.primary.main, 0.05) : alpha(theme.palette.primary.main, 0.03),
+              borderRadius: 0
             }}
-            size={isSmallMobile ? "small" : "medium"}
           >
-            {isSmallMobile ? "뒤로" : "대시보드로"}
-          </Button>
-        )}
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          component="h1"
-          sx={{ flexGrow: 1, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}
-        >
-          ROI 작업
-        </Typography>
-
-        {/* 최종 저장 버튼 */}
-        {!isMobile && selectedRoiFile && (
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<SaveIcon />}
-            onClick={handleOpenSaveDialog}
-            size="large"
-            sx={{ mr: 1 }}
-          >
-            최종 저장
-          </Button>
-        )}
-
-        {/* Mobile controls toggle */}
-        {isMobile && (
-          <IconButton
-            onClick={() => setMobileControlsOpen(!mobileControlsOpen)}
-            sx={{ ...touchFriendly.iconButton }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
-      </Box>
-
-
-
-      {/* 파일 선택 섹션 */}
-      <Box sx={{ ...responsiveSpacing.sectionMargin }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Typography variant={isMobile ? "h6" : "h5"} sx={{ flexGrow: 1 }}>
-            파일 선택
-          </Typography>
-          {isMobile && (
-            <IconButton
-              onClick={() => setFileSelectionExpanded(!fileSelectionExpanded)}
-              sx={{ ...touchFriendly.iconButton }}
-            >
-              <ExpandMoreIcon
+            <Typography variant="overline" sx={{
+              color: 'primary.main',
+              fontWeight: 700,
+              letterSpacing: 1
+            }}>
+              ROI FILES
+            </Typography>
+          </Paper>
+          <List dense disablePadding>
+            {roiFiles.map(f => (
+              <ListItemButton
+                key={f}
+                selected={selectedRoiFile === f}
+                onClick={() => handleRoiFileSelect(f)}
+                className={selectedRoiFile === f ? 'animate-fade-in' : ''}
                 sx={{
-                  transform: fileSelectionExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.3s'
+                  pl: 3,
+                  borderLeft: selectedRoiFile === f ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
+                  transition: 'all 0.2s ease',
+                  '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.15)
+                    }
+                  },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.action.hover, 0.05)
+                  }
                 }}
-              />
-            </IconButton>
+              >
+                <ListItemText
+                  primary={f}
+                  primaryTypographyProps={{
+                    fontSize: 13,
+                    color: selectedRoiFile === f ? 'primary.main' : 'text.secondary',
+                    fontWeight: selectedRoiFile === f ? 600 : 400
+                  }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+
+          <Divider sx={{ my: 2 }} />
+
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              pb: 1,
+              bgcolor: isDark ? alpha(theme.palette.secondary.main, 0.05) : alpha(theme.palette.secondary.main, 0.03),
+              borderRadius: 0
+            }}
+          >
+            <Typography variant="overline" sx={{
+              color: 'secondary.main',
+              fontWeight: 700,
+              letterSpacing: 1
+            }}>
+              CCTV CAMERAS
+            </Typography>
+          </Paper>
+          <List dense disablePadding>
+            {cctvList.map(id => (
+              <ListItemButton
+                key={id}
+                selected={selectedCctv === id}
+                onClick={() => handleCctvSelect(id)}
+                disabled={!selectedRoiFile}
+                className={selectedCctv === id ? 'animate-fade-in' : ''}
+                sx={{
+                  pl: 3,
+                  borderLeft: selectedCctv === id ? `3px solid ${theme.palette.secondary.main}` : '3px solid transparent',
+                  transition: 'all 0.2s ease',
+                  '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.secondary.main, 0.15)
+                    }
+                  },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.action.hover, 0.05)
+                  },
+                  '&.Mui-disabled': {
+                    opacity: 0.5
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <CctvIcon
+                    fontSize="small"
+                    sx={{
+                      color: selectedCctv === id ? 'secondary.main' : 'text.disabled',
+                      transition: 'color 0.2s'
+                    }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={id}
+                  primaryTypographyProps={{
+                    fontSize: 13,
+                    color: selectedCctv === id ? 'secondary.main' : 'text.secondary',
+                    fontWeight: selectedCctv === id ? 600 : 400
+                  }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+
+      {/* Main Content */}
+      <Main openLeft={leftDrawerOpen} openRight={rightDrawerOpen} sx={{ height: '100vh', marginTop: 0 }}>
+
+        {/* Header Bar */}
+        <Paper
+          elevation={0}
+          sx={{
+            px: 2,
+            py: 1,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: isDark ? alpha(theme.palette.background.paper, 0.5) : theme.palette.background.paper,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            zIndex: 5,
+            flexShrink: 0
+          }}
+        >
+          <IconButton
+            size="small"
+            onClick={() => {
+              if (hasUnsavedChanges) {
+                if (window.confirm('저장하지 않은 변경사항이 있습니다. 나가시겠습니까?')) {
+                  navigate(-1);
+                }
+              } else {
+                navigate(-1);
+              }
+            }}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{
+            fontWeight: 700,
+            color: 'text.primary'
+          }}>
+            ROI 편집기
+          </Typography>
+          {selectedRoiFile && (
+            <Typography variant="body2" sx={{
+              color: 'text.secondary',
+              ml: 'auto'
+            }}>
+              {selectedRoiFile}
+            </Typography>
           )}
+        </Paper>
+
+        {/* Helper/Expand Button (Left) */}
+        <Box sx={{ position: 'absolute', top: 70, left: 10, zIndex: 10 }}>
+          <IconButton
+            size="small"
+            onClick={() => setLeftDrawerOpen(!leftDrawerOpen)}
+            className="hover-lift"
+            sx={{
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              color: 'text.secondary',
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              '&:hover': {
+                bgcolor: 'background.paper',
+                color: 'primary.main',
+                borderColor: 'primary.main',
+                boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
+              }
+            }}
+          >
+            {leftDrawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
         </Box>
 
-        <Collapse in={fileSelectionExpanded}>
-          <Box sx={{
-            display: 'grid',
-            gap: { xs: 2, sm: 3 },
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)'
-            }
-          }}>
-            {/* ROI 파일 선택 */}
-            <Card sx={{ height: 'fit-content' }}>
-              <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
-                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  ROI 파일
-                </Typography>
-                <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                  <InputLabel>ROI 파일 선택</InputLabel>
-                  <Select
-                    value={selectedRoiFile}
-                    onChange={(e) => handleRoiFileSelect(e.target.value)}
-                    label="ROI 파일 선택"
-                    sx={{ minHeight: { xs: 44, sm: 56 } }}
-                  >
-                    {roiFiles.map((file) => (
-                      <MenuItem key={file} value={file}>
-                        {file.replace(/\.json$/, '')}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </CardContent>
-            </Card>
+        {/* Canvas Area (Top Aligned) */}
+        <Box sx={{
+          flex: 1,
+          display: 'flex',
+          bgcolor: isDark ? '#0a0a0a' : '#f5f5f5',
+          position: 'relative',
+          overflow: 'hidden',
+          alignItems: 'flex-start'
+        }}>
 
-            {/* CCTV 선택 */}
-            <Card sx={{ height: 'fit-content' }}>
-              <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
-                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  CCTV 선택
+          {showDualView && (
+            <Box sx={{
+              flex: 1,
+              height: '100%',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  px: 2,
+                  height: 40,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 0,
+                  bgcolor: isDark ? alpha(theme.palette.background.paper, 0.5) : theme.palette.background.paper,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <Typography variant="caption" sx={{
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  letterSpacing: 1
+                }}>
+                  REFERENCE
                 </Typography>
-                <FormControl fullWidth size={isMobile ? "small" : "medium"}>
-                  <InputLabel>CCTV 선택</InputLabel>
-                  <Select
-                    value={selectedCctv}
-                    onChange={(e) => handleCctvSelect(e.target.value)}
-                    label="CCTV 선택"
-                    disabled={!selectedRoiFile || cctvList.length === 0}
-                    sx={{ minHeight: { xs: 44, sm: 56 } }}
-                  >
-                    {cctvList.map((cctvId) => (
-                      <MenuItem key={cctvId} value={cctvId}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                          <span>{cctvId}</span>
-                          {modifiedCctvs.has(cctvId) && (
-                            <Chip
-                              label="수정됨"
-                              size="small"
-                              color="warning"
-                              sx={{ ml: 'auto', height: 20, fontSize: '0.7rem' }}
-                            />
-                          )}
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* 수정된 CCTV 목록 */}
-                {modifiedCctvs.size > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Alert severity="warning" sx={{ mb: 1 }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        수정된 CCTV ({modifiedCctvs.size}개)
-                      </Typography>
-                    </Alert>
-                    <List dense sx={{ bgcolor: 'warning.light', borderRadius: 1, py: 0.5 }}>
-                      {Array.from(modifiedCctvs).map((cctvId) => (
-                        <ListItem
-                          key={cctvId}
-                          sx={{
-                            py: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'warning.main' },
-                            bgcolor: selectedCctv === cctvId ? 'warning.main' : 'transparent'
-                          }}
-                          onClick={() => handleCctvSelect(cctvId)}
-                        >
-                          <ListItemText
-                            primary={cctvId}
-                            primaryTypographyProps={{
-                              fontSize: '0.875rem',
-                              fontWeight: selectedCctv === cctvId ? 'bold' : 'normal'
-                            }}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
+              </Paper>
+              <Box ref={referenceContainerRef} sx={{
+                flex: 1,
+                position: 'relative',
+                bgcolor: isDark ? '#000' : '#fafafa',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                pt: 2
+              }}>
+                {originalImageUrl ? (
+                  <Box sx={{
+                    width: unifiedSizes.reference.width,
+                    height: unifiedSizes.reference.height,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexShrink: 0
+                  }}>
+                    <RoiCanvas
+                      imageSrc={originalImageUrl}
+                      rois={roiData?.rois || {}}
+                      editable={false}
+                      onRoiClick={(id) => { setSelectedRoiId(id); setRightDrawerOpen(true); }}
+                      selectedRoiId={selectedRoiId}
+                      isMobile={false}
+                      fullscreen={false}
+                    />
+                  </Box>
+                ) : (
+                  <Box sx={{
+                    mt: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}>
+                    <Typography color="text.disabled">No Image</Typography>
                   </Box>
                 )}
-              </CardContent>
-            </Card>
-          </Box>
-        </Collapse>
-      </Box>
-
-      {/* 이미지 비교 및 편집 섹션 */}
-      {selectedImage && selectedRoiFile && (
-        <Box sx={{ ...responsiveSpacing.sectionMargin }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant={isMobile ? "h6" : "h5"} sx={{ flexGrow: 1 }}>
-              {isMobile ? "ROI 편집" : "이미지 비교 및 ROI 편집"}
-            </Typography>
-            {selectedImage && (
-              <IconButton
-                onClick={() => setFullscreenCanvas(!fullscreenCanvas)}
-                sx={{ ...touchFriendly.iconButton, ml: 1 }}
-              >
-                {fullscreenCanvas ? <FullscreenExitIcon /> : <FullscreenIcon />}
-              </IconButton>
-            )}
-          </Box>
+              </Box>
+            </Box>
+          )}
 
           <Box sx={{
-            display: { xs: 'flex', md: 'flex' },
-            flexDirection: { xs: 'column', md: fullscreenCanvas ? 'column' : 'row' },
-            gap: { xs: 2, sm: 3 },
-            alignItems: fullscreenCanvas ? 'center' : 'stretch'
+            flex: 1,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
           }}>
-            {/* 원본 이미지 - Desktop only or fullscreen */}
-            {(!isMobile || fullscreenCanvas) && (
-              <Box sx={{
-                flex: fullscreenCanvas ? 'none' : 1,
-                width: fullscreenCanvas ? '100%' : 'auto',
-                maxWidth: fullscreenCanvas ? '100vw' : 'none'
+            <Paper
+              elevation={0}
+              sx={{
+                px: 2,
+                height: 40,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 0,
+                bgcolor: isDark ? alpha(theme.palette.primary.main, 0.05) : alpha(theme.palette.primary.main, 0.02),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <Typography variant="caption" sx={{
+                color: 'primary.main',
+                fontWeight: 600,
+                letterSpacing: 1
               }}>
-                <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
-                  <CardContent sx={{
-                    ...responsiveSpacing.cardPadding,
-                    pb: fullscreenCanvas ? 1 : undefined
+                WORKSPACE
+              </Typography>
+              {hasUnsavedChanges && (
+                <Chip
+                  label="Editing"
+                  size="small"
+                  className="animate-pulse-glow"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.7rem',
+                    bgcolor: alpha(theme.palette.warning.main, 0.2),
+                    color: 'warning.main',
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.warning.main, 0.3)
+                  }}
+                />
+              )}
+            </Paper>
+            <Box ref={workspaceContainerRef} sx={{
+              flex: 1,
+              position: 'relative',
+              bgcolor: isDark ? '#000' : '#fafafa',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              pt: 2
+            }}>
+              {cctvImageUrl ? (
+                <>
+                  <Box sx={{
+                    width: unifiedSizes.workspace.width,
+                    height: unifiedSizes.workspace.height,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxSizing: 'border-box',
+                    position: 'relative',
+                    flexShrink: 0
                   }}>
-                    <Typography variant="h6" gutterBottom sx={{
-                      fontSize: { xs: '1rem', sm: '1.25rem' },
-                      display: fullscreenCanvas ? 'none' : 'block'
-                    }}>
-                      원본 이미지 ({isMobile ? "참고용" : "참고용"})
-                  </Typography>
-                  <Box
+                    <RoiCanvas
+                      ref={roiCanvasRef}
+                      imageSrc={cctvImageUrl}
+                      rois={roiData?.rois || {}}
+                      editable={true}
+                      onRoiClick={(id) => { setSelectedRoiId(id); setRightDrawerOpen(true); }}
+                      selectedRoiId={selectedRoiId}
+                      editMode={roiEditMode}
+                      onRoiCreate={handleCreateRoi}
+                      onRoiUpdate={handleUpdateRoi}
+                      onPointsChange={setCurrentDrawingPoints}
+                      isMobile={false}
+                      fullscreen={false}
+                    />
+                  </Box>
+
+                  {/* Workspace Control Bar - 고정된 위치, 이미지 바로 아래 */}
+                  <Paper
+                    elevation={2}
                     sx={{
                       width: '100%',
-                      height: fullscreenCanvas
-                        ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                        : { xs: 400, sm: 500, md: 600, lg: 700 },
-                      border: 1,
+                      maxWidth: 'calc(100% - 32px)',
+                      mx: 2,
+                      mt: 2,
+                      px: 2,
+                      py: 1.5,
+                      bgcolor: isDark ? alpha(theme.palette.background.paper, 0.95) : 'background.paper',
+                      borderRadius: 1,
+                      border: '1px solid',
                       borderColor: 'divider',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: 'grey.100',
-                      overflow: 'hidden',
-                      borderRadius: 1
+                      justifyContent: 'space-between',
+                      gap: 2,
+                      zIndex: 10,
+                      flexWrap: 'wrap',
+                      flexShrink: 0
                     }}
                   >
-                    {roiData && roiData.rois ? (
-                      <RoiCanvas
-                        imageSrc={selectedImage.path}
-                        rois={roiData.rois}
-                        editable={false}
-                        isMobile={isMobile}
-                        fullscreen={fullscreenCanvas}
-                      />
-                    ) : (
-                      <img
-                        src={selectedImage.path}
-                        alt="원본"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'fill'
-                        }}
-                      />
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-            )}
-
-            {/* 편집 가능한 이미지 */}
-            <Box sx={{
-              flex: fullscreenCanvas ? 'none' : 1,
-              width: fullscreenCanvas ? '100%' : 'auto',
-              maxWidth: fullscreenCanvas ? '100vw' : 'none'
-            }}>
-              <Card sx={{ boxShadow: fullscreenCanvas ? 0 : undefined }}>
-                <CardContent sx={{
-                  ...responsiveSpacing.cardPadding,
-                  pb: fullscreenCanvas ? 1 : undefined
-                }}>
-                  <Typography variant="h6" gutterBottom sx={{
-                    fontSize: { xs: '1rem', sm: '1.25rem' },
-                    display: fullscreenCanvas ? 'none' : 'block'
-                  }}>
-                    {isMobile ? "ROI 편집" : "편집 가능한 이미지"}
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: fullscreenCanvas
-                        ? { xs: 'calc(100vh - 200px)', sm: 'calc(100vh - 150px)' }
-                        : { xs: 400, sm: 500, md: 600, lg: 700 },
-                      border: 1,
-                      borderColor: editMode ? 'primary.main' : 'divider',
-                      borderWidth: editMode ? 2 : 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: editMode ? 'primary.light' : 'grey.100',
-                      backgroundOpacity: editMode ? 0.05 : 1,
-                      overflow: 'hidden',
-                      position: 'relative',
-                      borderRadius: 1,
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {(() => {
-                      // console.log('🖼️ 편집 가능한 이미지 렌더링 체크');
-                      // console.log('  roiData:', roiData);
-                      // console.log('  roiData?.rois:', roiData?.rois);
-                      // console.log('  조건:', roiData && roiData.rois);
-                      return roiData && roiData.rois ? (
-                        <RoiCanvas
-                          ref={roiCanvasRef}
-                          imageSrc={selectedImage.path}
-                          rois={roiData.rois}
-                          editable={true}
-                          onRoiClick={handleRoiClick}
-                          selectedRoiId={selectedRoiId}
-                          editMode={roiEditMode}
-                          onRoiCreate={handleRoiCreate}
-                          onRoiUpdate={handleRoiUpdate}
-                          isMobile={isMobile}
-                          fullscreen={fullscreenCanvas}
-                        />
+                    {/* Left: ROI Actions */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {roiEditMode === 'create' && currentDrawingPoints.length >= 6 ? (
+                        <>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => {
+                              roiCanvasRef.current?.completeRoi();
+                            }}
+                            sx={{
+                              bgcolor: theme.palette.success.main,
+                              color: '#fff',
+                              '&:hover': {
+                                bgcolor: theme.palette.success.dark,
+                                boxShadow: `0 2px 8px ${alpha(theme.palette.success.main, 0.3)}`
+                              }
+                            }}
+                          >
+                            완료
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              roiCanvasRef.current?.cancelRoiEdit();
+                              setRoiEditMode(null);
+                              setCurrentDrawingPoints([]);
+                            }}
+                            sx={{
+                              borderColor: alpha(theme.palette.error.main, 0.5),
+                              color: 'error.main',
+                              '&:hover': {
+                                borderColor: 'error.main',
+                                bgcolor: alpha(theme.palette.error.main, 0.1)
+                              }
+                            }}
+                          >
+                            취소
+                          </Button>
+                        </>
                       ) : (
-                        <img
-                          src={selectedImage.path}
-                          alt="편집"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'fill'
-                          }}
-                        />
-                      );
-                    })()}
-                  </Box>
-
-                  {/* 편집 버튼들 - 생성/수정/삭제/롤백 */}
-                  {selectedCctv && !fullscreenCanvas && (
-                    <>
-                      {roiEditMode === 'create' ? (
-                        <Box sx={{ mt: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                            <Typography variant="body1" sx={{ whiteSpace: 'nowrap' }}>
-                              PARKINGLOCATIONS_
-                            </Typography>
-                            <TextField
-                              label="번호"
-                              value={tempRoiNumber}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                setTempRoiNumber(value);
-                              }}
-                              placeholder="숫자만 입력"
-                              fullWidth
-                              size="small"
-                              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                            />
-                          </Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            이미지에서 클릭하여 ROI를 그리세요. 최소 3개 점이 필요합니다.
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              variant="contained"
-                              onClick={handleSaveRoiEdit}
-                              disabled={!tempRoiNumber.trim()}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              저장
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              onClick={handleCancelRoiEdit}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              취소
-                            </Button>
-                          </Stack>
-                        </Box>
-                      ) : roiEditMode === 'update' ? (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            <strong>{selectedRoiId}</strong> 수정 중: 이미지에서 클릭하여 새 ROI를 그리세요. 최소 3개 점이 필요합니다.
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              variant="contained"
-                              onClick={handleSaveRoiEdit}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              저장
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              onClick={handleCancelRoiEdit}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              취소
-                            </Button>
-                          </Stack>
-                        </Box>
-                      ) : roiEditMode === 'delete' ? (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
-                            <strong>{selectedRoiId}</strong>를 삭제하시겠습니까?
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={confirmDeleteRoi}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              삭제
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              onClick={handleCancelRoiEdit}
-                              sx={{ flex: 1, ...touchFriendly.button }}
-                            >
-                              취소
-                            </Button>
-                          </Stack>
-                        </Box>
-                      ) : (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            • ROI를 클릭하여 선택 후 수정/삭제 가능합니다
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              variant="outlined"
-                              startIcon={<AddIcon />}
-                              onClick={handleCreateRoi}
-                              size="small"
-                              fullWidth
-                              disabled={roiEditMode !== null}
-                              sx={{ ...touchFriendly.button }}
-                            >
-                              생성
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="warning"
-                              startIcon={<UndoIcon />}
-                              onClick={handleRollback}
-                              disabled={!originalRoiData}
-                              size="small"
-                              fullWidth
-                              sx={{ ...touchFriendly.button }}
-                            >
-                              롤백
-                            </Button>
-                          </Stack>
-                          <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                            <Button
-                              variant="outlined"
-                              startIcon={<EditIcon />}
-                              onClick={() => startEditRoi(selectedRoiId)}
-                              size="small"
-                              fullWidth
-                              disabled={!selectedRoiId || roiEditMode !== null}
-                              sx={{ ...touchFriendly.button }}
-                            >
-                              수정
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              startIcon={<DeleteIcon />}
-                              onClick={() => handleDeleteRoi(selectedRoiId)}
-                              size="small"
-                              fullWidth
-                              disabled={!selectedRoiId || roiEditMode !== null}
-                              sx={{ ...touchFriendly.button }}
-                            >
-                              삭제
-                            </Button>
-                          </Stack>
-                        </Box>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-
-          {/* ROI 편집 프레임 */}
-          {editMode && (
-            <Box sx={{ mt: 4 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    ROI 편집 도구
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* ROI 생성 섹션 */}
-                    <Box>
-                      <Typography variant="subtitle1" gutterBottom>
-                        ROI 생성
-                      </Typography>
-                      
-                                             {roiEditMode === 'create' ? (
-                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                             <Typography variant="body1" sx={{ whiteSpace: 'nowrap' }}>
-                               PARKINGLOCATIONS_
-                             </Typography>
-                             <TextField
-                               label="번호"
-                               value={tempRoiNumber}
-                               onChange={(e) => {
-                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                 setTempRoiNumber(value);
-                               }}
-                               placeholder="숫자만 입력"
-                               fullWidth
-                               inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                             />
-                           </Box>
-                           <Typography variant="body2" color="text.secondary">
-                             이미지에서 클릭하여 ROI를 그리세요. 최소 3개 점이 필요합니다.
-                           </Typography>
-                           <Box sx={{ display: 'flex', gap: 1 }}>
-                                                            <Button
-                                 variant="contained"
-                                 onClick={handleSaveRoiEdit}
-                                 disabled={!tempRoiNumber.trim()}
-                                 sx={{ flex: 1 }}
-                               >
-                                 저장
-                               </Button>
-                             <Button
-                               variant="outlined"
-                               onClick={handleCancelRoiEdit}
-                               sx={{ flex: 1 }}
-                             >
-                               취소
-                             </Button>
-                           </Box>
-                         </Box>
-                       ) : (
                         <Button
-                          variant="outlined"
+                          variant="contained"
+                          size="small"
                           startIcon={<AddIcon />}
-                          onClick={handleCreateRoi}
-                          fullWidth
+                          onClick={() => { setRoiEditMode('create'); setSelectedRoiId(''); setCurrentDrawingPoints([]); }}
+                          disabled={roiEditMode === 'create'}
+                          sx={{
+                            bgcolor: roiEditMode === 'create' ? theme.palette.action.disabled : theme.palette.success.main,
+                            color: '#fff',
+                            '&:hover': {
+                              bgcolor: roiEditMode === 'create' ? theme.palette.action.disabled : theme.palette.success.dark,
+                              boxShadow: roiEditMode === 'create' ? 'none' : `0 2px 8px ${alpha(theme.palette.success.main, 0.3)}`
+                            }
+                          }}
                         >
-                          ROI 생성
+                          {roiEditMode === 'create' ? '점 3개 이상 클릭하세요' : '추가'}
                         </Button>
                       )}
+
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => { setRoiEditMode('update'); }}
+                        disabled={!selectedRoiId}
+                        sx={{
+                          bgcolor: theme.palette.primary.main,
+                          color: '#fff',
+                          '&:hover': {
+                            bgcolor: theme.palette.primary.dark,
+                            boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`
+                          },
+                          '&.Mui-disabled': {
+                            bgcolor: alpha(theme.palette.action.disabled, 0.5),
+                            color: theme.palette.action.disabled
+                          }
+                        }}
+                      >
+                        수정
+                      </Button>
+
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDeleteRoi(selectedRoiId)}
+                        disabled={!selectedRoiId}
+                        sx={{
+                          bgcolor: theme.palette.error.main,
+                          color: '#fff',
+                          '&:hover': {
+                            bgcolor: theme.palette.error.dark,
+                            boxShadow: `0 2px 8px ${alpha(theme.palette.error.main, 0.3)}`
+                          },
+                          '&.Mui-disabled': {
+                            bgcolor: alpha(theme.palette.action.disabled, 0.5),
+                            color: theme.palette.action.disabled
+                          }
+                        }}
+                      >
+                        삭제
+                      </Button>
                     </Box>
 
-                    {/* ROI 수정/삭제 섹션 */}
-                    {roiData && roiData.rois && Object.keys(roiData.rois).length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle1" gutterBottom sx={{
-                          fontSize: { xs: '1rem', sm: '1.125rem' },
-                          fontWeight: 600
-                        }}>
-                          ROI 수정/삭제
-                        </Typography>
-                        
-                        {roiEditMode === 'update' ? (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-                            <Typography variant="body2" color="text.secondary" sx={{
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                              lineHeight: 1.4
-                            }}>
-                              <strong>{selectedRoiId}</strong> 수정 중:
-                              {isMobile
-                                ? " 이미지를 터치하여 새 ROI 영역을 그리세요."
-                                : " 이미지에서 클릭하여 새 ROI를 그리세요. 최소 3개 점이 필요합니다."
-                              }
-                            </Typography>
-                            <Box sx={{
-                              display: 'flex',
-                              flexDirection: { xs: 'column', sm: 'row' },
-                              gap: 1
-                            }}>
-                              <Button
-                                variant="contained"
-                                onClick={handleSaveRoiEdit}
-                                sx={{
-                                  ...touchFriendly.button,
-                                  flex: 1,
-                                  fontSize: { xs: '0.875rem', sm: '1rem' }
-                                }}
-                              >
-                                저장
-                              </Button>
-                              <Button
-                                variant="outlined"
-                                onClick={handleCancelRoiEdit}
-                                sx={{
-                                  ...touchFriendly.button,
-                                  flex: 1,
-                                  fontSize: { xs: '0.875rem', sm: '1rem' }
-                                }}
-                              >
-                                취소
-                              </Button>
-                            </Box>
-                          </Box>
-                        ) : (
-                          <Box sx={{
-                            display: 'grid',
-                            gap: 1,
-                            gridTemplateColumns: { xs: '1fr', sm: '1fr', md: '1fr' },
-                            maxHeight: fullscreenCanvas ? '20vh' : 'none',
-                            overflow: fullscreenCanvas ? 'auto' : 'visible'
-                          }}>
-                            {roiData.rois && Object.keys(roiData.rois).map((roiId) => (
-                              <Box key={roiId} sx={{
-                                display: 'flex',
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                gap: 1,
-                                mb: { xs: 1, sm: 0 },
-                                p: 1,
-                                border: selectedRoiId === roiId ? '2px solid' : '1px solid',
-                                borderColor: selectedRoiId === roiId ? 'primary.main' : 'divider',
-                                borderRadius: 1,
-                                bgcolor: selectedRoiId === roiId ? 'primary.light' : 'transparent',
-                                backgroundOpacity: selectedRoiId === roiId ? 0.05 : 1
-                              }}>
-                                <Typography variant="body2" sx={{
-                                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                  fontWeight: selectedRoiId === roiId ? 600 : 400,
-                                  color: selectedRoiId === roiId ? 'primary.main' : 'text.secondary',
-                                  mb: { xs: 0.5, sm: 0 },
-                                  alignSelf: 'center'
-                                }}>
-                                  {roiId.replace('PARKINGLOCATIONS_', 'P')}
-                                </Typography>
-                                <Box sx={{
-                                  display: 'flex',
-                                  gap: 1,
-                                  flex: 1
-                                }}>
-                                  <Button
-                                    variant="outlined"
-                                    startIcon={<EditIcon />}
-                                    onClick={() => handleUpdateRoi(roiId)}
-                                    size="small"
-                                    disabled={roiEditMode !== null}
-                                    sx={{
-                                      ...touchFriendly.button,
-                                      flex: 1,
-                                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                      minWidth: { xs: 'auto', sm: 80 }
-                                    }}
-                                  >
-                                    {isMobile ? "수정" : `수정`}
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="error"
-                                    startIcon={<DeleteIcon />}
-                                    onClick={() => handleDeleteRoi(roiId)}
-                                    size="small"
-                                    disabled={roiEditMode !== null}
-                                    sx={{
-                                      ...touchFriendly.button,
-                                      flex: 1,
-                                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                      minWidth: { xs: 'auto', sm: 80 }
-                                    }}
-                                  >
-                                    삭제
-                                  </Button>
-                                </Box>
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
-                      </Box>
-                    )}
+                    {/* Right: Save/Rollback */}
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {hasUnsavedChanges && (
+                        <Chip
+                          label="변경사항 있음"
+                          size="small"
+                          color="warning"
+                          sx={{ fontSize: '0.75rem' }}
+                        />
+                      )}
 
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleRollback}
+                        disabled={!hasUnsavedChanges}
+                        sx={{
+                          bgcolor: alpha(theme.palette.warning.main, 0.15),
+                          color: 'warning.main',
+                          border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                          '&:hover': {
+                            bgcolor: alpha(theme.palette.warning.main, 0.25),
+                            borderColor: theme.palette.warning.main,
+                            boxShadow: `0 2px 8px ${alpha(theme.palette.warning.main, 0.2)}`
+                          },
+                          '&.Mui-disabled': {
+                            bgcolor: alpha(theme.palette.action.disabled, 0.5),
+                            color: theme.palette.action.disabled,
+                            border: `1px solid ${alpha(theme.palette.action.disabled, 0.3)}`
+                          }
+                        }}
+                      >
+                        롤백
+                      </Button>
 
-                  </Box>
-                </CardContent>
-              </Card>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<SaveIcon />}
+                        onClick={handleSave}
+                        disabled={!hasUnsavedChanges}
+                        sx={{
+                          background: GRADIENTS.primary,
+                          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+                          },
+                          '&.Mui-disabled': {
+                            opacity: 0.5
+                          }
+                        }}
+                      >
+                        저장
+                      </Button>
+                    </Box>
+                  </Paper>
+                </>
+              ) : (
+                <Box sx={{ mt: 10 }}><Typography color="text.disabled">CCTV를 선택하세요</Typography></Box>
+              )}
             </Box>
-          )}
-
+          </Box>
         </Box>
-      )}
+      </Main>
 
-      {/* Mobile Controls Drawer */}
-      {isMobile && (
-        <Drawer
-          anchor="bottom"
-          open={mobileControlsOpen}
-          onClose={() => setMobileControlsOpen(false)}
+      {/* Right Sidebar */}
+      <Drawer
+        sx={{
+          width: RIGHT_DRAWER_WIDTH,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: RIGHT_DRAWER_WIDTH,
+            bgcolor: 'background.paper',
+            borderLeft: '1px solid',
+            borderColor: 'divider',
+            color: 'text.primary',
+            height: '100%',
+            top: 0
+          },
+        }}
+        variant="persistent"
+        anchor="right"
+        open={rightDrawerOpen}
+      >
+        <Paper
+          elevation={0}
           sx={{
-            '& .MuiDrawer-paper': {
-              maxHeight: '70vh',
-              borderRadius: '16px 16px 0 0',
-              p: 2
-            }
-          }}
-        >
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              빠른 작업
-            </Typography>
-            <Box sx={{
-              width: 40,
-              height: 4,
-              bgcolor: 'grey.300',
-              borderRadius: 2,
-              mx: 'auto',
-              mb: 2
-            }} />
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {!editMode && selectedRoiFile && selectedImage && (
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={() => {
-                  handleStartEdit();
-                  setMobileControlsOpen(false);
-                }}
-                fullWidth
-                sx={{ ...touchFriendly.button }}
-              >
-                편집 시작
-              </Button>
-            )}
-
-            {editMode && (
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => {
-                  handleEndEdit();
-                  setMobileControlsOpen(false);
-                }}
-                fullWidth
-                sx={{ ...touchFriendly.button }}
-              >
-                편집 종료
-              </Button>
-            )}
-
-            {selectedImage && (
-              <Button
-                variant={fullscreenCanvas ? "contained" : "outlined"}
-                startIcon={fullscreenCanvas ? <FullscreenExitIcon /> : <FullscreenIcon />}
-                onClick={() => {
-                  setFullscreenCanvas(!fullscreenCanvas);
-                  setMobileControlsOpen(false);
-                }}
-                fullWidth
-                sx={{ ...touchFriendly.button }}
-              >
-                {fullscreenCanvas ? "전체화면 끄기" : "전체화면"}
-              </Button>
-            )}
-
-            {selectedRoiFile && (
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<SaveIcon />}
-                onClick={() => {
-                  handleOpenSaveDialog();
-                  setMobileControlsOpen(false);
-                }}
-                fullWidth
-                sx={{
-                  ...touchFriendly.button,
-                  fontSize: '1.125rem',
-                  py: 2
-                }}
-              >
-                최종 저장
-              </Button>
-            )}
-          </Box>
-        </Drawer>
-      )}
-
-      {/* 로딩 인디케이터 */}
-      {loading && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            bgcolor: 'rgba(0, 0, 0, 0.5)',
+            p: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999
+            justifyContent: 'space-between',
+            bgcolor: isDark ? alpha(theme.palette.info.main, 0.05) : alpha(theme.palette.info.main, 0.03),
+            borderRadius: 0
           }}
         >
-          <CircularProgress />
+          <Typography variant="button" sx={{
+            fontWeight: 700,
+            color: 'info.main',
+            letterSpacing: 1
+          }}>
+            PROPERTIES
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setRightDrawerOpen(false)}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Paper>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', flex: 1 }}>
+          <Box sx={{ p: 2 }}>
+            {selectedRoiId ? (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase'
+                  }}>
+                    ID
+                  </Typography>
+                  <Typography variant="h6" sx={{
+                    color: 'text.primary',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em'
+                  }}>
+                    {selectedRoiId}
+                  </Typography>
+                </Box>
+                {selectedCctv && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDeleteRoi(selectedRoiId)}
+                    fullWidth
+                    className="hover-lift"
+                    sx={{
+                      borderColor: alpha(theme.palette.error.main, 0.5),
+                      color: 'error.main',
+                      '&:hover': {
+                        borderColor: 'error.main',
+                        bgcolor: alpha(theme.palette.error.main, 0.1)
+                      }
+                    }}
+                  >
+                    Delete ROI
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Typography variant="body2" sx={{
+                color: 'text.disabled',
+                fontStyle: 'italic'
+              }}>
+                Select an ROI to view details.
+              </Typography>
+            )}
+          </Box>
+          <Divider />
+          <List dense>
+            {Object.keys(roiData?.rois || {}).map(id => (
+              <ListItemButton
+                key={id}
+                selected={selectedRoiId === id}
+                onClick={() => setSelectedRoiId(id)}
+                className={selectedRoiId === id ? 'animate-fade-in' : ''}
+                sx={{
+                  borderLeft: selectedRoiId === id ? `3px solid ${theme.palette.info.main}` : '3px solid transparent',
+                  transition: 'all 0.2s ease',
+                  bgcolor: selectedRoiId === id ? alpha(theme.palette.info.main, 0.1) : 'transparent',
+                  '&:hover': {
+                    bgcolor: selectedRoiId === id
+                      ? alpha(theme.palette.info.main, 0.15)
+                      : alpha(theme.palette.action.hover, 0.05)
+                  }
+                }}
+              >
+                <ListItemText
+                  primary={id}
+                  secondary="Polygon"
+                  primaryTypographyProps={{
+                    color: selectedRoiId === id ? 'info.main' : 'text.primary',
+                    fontWeight: selectedRoiId === id ? 600 : 400,
+                    fontSize: '0.875rem'
+                  }}
+                  secondaryTypographyProps={{
+                    color: 'text.secondary',
+                    fontSize: '0.75rem'
+                  }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
         </Box>
-      )}
+      </Drawer>
 
-      {/* 성공/에러 알림 Snackbar */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity="success" 
-          sx={{ width: '100%' }}
-          elevation={6}
-        >
-          {success}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
+      {/* Alerts */}
+      {error && (
         <Alert
-          onClose={handleCloseSnackbar}
           severity="error"
-          sx={{ width: '100%' }}
-          elevation={6}
+          onClose={() => setError('')}
+          className="animate-slide-up"
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            boxShadow: isDark ? SHADOWS.dark.lg : SHADOWS.light.lg,
+            border: '1px solid',
+            borderColor: alpha(theme.palette.error.main, 0.3)
+          }}
         >
           {error}
         </Alert>
-      </Snackbar>
+      )}
+      {success && (
+        <Alert
+          severity="success"
+          onClose={() => setSuccess('')}
+          className="animate-slide-up"
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            boxShadow: isDark ? SHADOWS.dark.lg : SHADOWS.light.lg,
+            border: '1px solid',
+            borderColor: alpha(theme.palette.success.main, 0.3)
+          }}
+        >
+          {success}
+        </Alert>
+      )}
 
-      {/* 최종 저장 다이얼로그 */}
-      <Dialog open={saveDialogOpen} onClose={handleCloseSaveDialog}>
-        <DialogTitle>ROI 파일 저장</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            저장할 ROI 파일의 이름을 입력하세요.
-          </DialogContentText>
+      {/* ROI ID 입력 다이얼로그 */}
+      <Dialog open={showRoiIdDialog} onClose={() => setShowRoiIdDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'primary.main' }}>
+          ROI ID 입력
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            새로운 ROI의 ID를 입력하세요 (예: ParkingLot_001)
+          </Typography>
           <TextField
             autoFocus
-            margin="dense"
-            label="파일명"
-            type="text"
             fullWidth
-            variant="outlined"
-            value={newFileName}
-            onChange={(e) => setNewFileName(e.target.value)}
-            placeholder="예: new_roi_data"
-            helperText="파일명에 타임스탬프가 자동으로 추가됩니다. (예: new_roi_data_20231230_153045.json)"
+            size="small"
+            label="ROI ID"
+            placeholder="예: ParkingLot_001"
+            value={newRoiId}
+            onChange={(e) => setNewRoiId(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleConfirmRoiId();
+              }
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderColor: 'primary.main',
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseSaveDialog}>취소</Button>
-          <Button onClick={handleFinalSave} variant="contained" disabled={!newFileName.trim()}>
-            저장 및 다운로드
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setShowRoiIdDialog(false);
+              setPendingCreatePoints(null);
+              setNewRoiId('');
+              setRoiEditMode(null);
+              roiCanvasRef.current?.cancelRoiEdit();
+              setCurrentDrawingPoints([]);
+            }}
+          >
+            취소
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmRoiId}
+            sx={{
+              background: GRADIENTS.primary,
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
+              }
+            }}
+          >
+            확인
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* ROI 파일 변경 확인 다이얼로그 */}
-      <Dialog open={confirmDialogOpen} onClose={handleCancelFileChange}>
-        <DialogTitle>ROI 파일 변경</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            기존 작업했던 내용이 모두 삭제됩니다. 계속하시겠습니까?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelFileChange}>취소</Button>
-          <Button onClick={handleConfirmFileChange} color="error" variant="contained">
-            변경
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+    </Box>
   );
 };
+export default RoiWorkView;
