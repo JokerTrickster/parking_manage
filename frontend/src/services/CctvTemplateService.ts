@@ -12,6 +12,10 @@ export class CctvTemplateService {
    * 프로젝트 ID로 CCTV 템플릿 조회
    */
   static getTemplateByProjectId(projectId: string): CctvTemplate | null {
+    if (!projectId) {
+      console.warn('getTemplateByProjectId: projectId is null or undefined');
+      return null;
+    }
     const template = this.templates.get(projectId.toLowerCase());
     if (!template) {
       console.warn(`프로젝트 "${projectId}"에 대한 CCTV 템플릿을 찾을 수 없습니다.`);

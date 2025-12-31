@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Container,
-  Card,
-  CardContent,
-  CardActions,
   Button,
   Avatar,
   Breadcrumbs,
   Link,
-  Grid,
+  useTheme,
+  alpha,
+  Paper,
+  Divider,
+  Chip,
+  IconButton,
 } from '@mui/material';
+import { GRADIENTS, SHADOWS } from '../styles/theme';
+import '../index.css';
 import {
   Map as MapIcon,
   Crop as RoiIcon,
@@ -23,264 +26,305 @@ import {
   Business as BusinessIcon,
   Rocket as RocketIcon,
   Storage as StorageIcon,
+  NavigateNext as NavigateNextIcon,
+  ArrowForward as ArrowForwardIcon,
+  Settings as SettingsIcon,
+  BarChart as BarChartIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ThemeContext } from '../App';
 
 const ProjectDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const { projectId } = useParams<{ projectId: string }>();
+  const { mode, toggleTheme } = useContext(ThemeContext);
 
-  // 로컬 스토리지에서 선택된 프로젝트 정보 가져오기
+  // Local storage retrieval
   const selectedProject = localStorage.getItem('selectedProject');
   const projectData = selectedProject ? JSON.parse(selectedProject) : null;
 
-  const features = [
+  const tools = [
     {
       id: 'map-editor',
-      title: '맵 에디터',
-      description: 'CAD 파일 업로드, 맵 오브젝트 추출, 속성 정의 및 관계 설정',
+      title: '맵 에디터 (Map Editor)',
+      description: '주차장 도면을 업로드하고 주차면과 오브젝트를 설정합니다.',
       icon: <MapIcon />,
-      color: '#1976d2',
+      color: '#1a73e8', // Classic Blue
       path: `/project/${projectId}/map-editor`,
+      status: '설정 완료'
     },
     {
       id: 'roi-editor',
-      title: 'ROI 편집기',
-      description: '관심 영역(ROI)을 설정하고 편집합니다',
+      title: 'ROI 설정 (검지 영역)',
+      description: 'CCTV 화면에서 차량을 감지할 영역(ROI)을 지정합니다.',
       icon: <RoiIcon />,
-      color: '#f57c00',
+      color: '#e3742f', // Orange
       path: `/project/${projectId}/roi-editor`,
+      status: '작업 필요'
     },
     {
-      id: 'live-status',
-      title: '실시간 주차현황',
-      description: '실시간으로 주차 상태를 모니터링합니다',
-      icon: <LiveIcon />,
-      color: '#d32f2f',
-      path: `/project/${projectId}/live-status`,
-    },
-    {
-      id: 'learning-data-management',
+      id: 'learning-data',
       title: '학습 데이터 관리',
-      description: 'ROI 파일과 학습 이미지를 선택하여 차량 점유 상태를 표시합니다',
+      description: '차량 인식률 향상을 위한 이미지를 관리하고 라벨링합니다.',
       icon: <StorageIcon />,
-      color: '#388e3c',
+      color: '#188038', // Green
       path: `/project/${projectId}/learning-data-management`,
+      status: '데이터 120건'
     },
     {
-      id: 'algorithm-tuning',
+      id: 'algorithm',
       title: '알고리즘 튜닝',
-      description: '주차 감지 알고리즘을 조정하고 최적화합니다',
+      description: '주차 판단 임계값 및 감지 파라미터를 미세 조정합니다.',
       icon: <TuneIcon />,
-      color: '#7b1fa2',
+      color: '#9334e6', // Purple
       path: `/project/${projectId}/parking-validation`,
+      status: '최적화 됨'
     },
     {
-      id: 'file-repository',
-      title: '프로젝트 파일 보관함',
-      description: '5가지 파일 카테고리별 체계적 관리 시스템',
+      id: 'file-repo',
+      title: '파일 보관함',
+      description: '도면, 설정 파일, 리포트 등 프로젝트 관련 파일을 관리합니다.',
       icon: <FolderIcon />,
-      color: '#455a64',
+      color: '#5f6368', // Grey
       path: `/project/${projectId}/file-repository`,
+      status: '5개 파일'
     },
+    {
+      id: 'live-monitor',
+      title: '실시간 관제',
+      description: '설정이 완료된 주차장의 실시간 점유 상태를 모니터링합니다.',
+      icon: <LiveIcon />,
+      color: '#d93025', // Red
+      path: `/project/${projectId}/live-status`,
+      status: '운영 중'
+    }
   ];
 
-  const handleFeatureSelect = (path: string) => {
-    navigate(path);
-  };
-
   return (
-    <Container maxWidth="xl">
-      {/* Breadcrumb Navigation */}
-      <Box sx={{ mb: 3 }}>
-        <Breadcrumbs aria-label="breadcrumb">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 12 }}>
+
+      {/* Top Navigation Bar */}
+      <Paper elevation={0} sx={{
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        px: 4, py: 1.5,
+        bgcolor: 'background.paper',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb">
           <Link
+            underline="hover"
             color="inherit"
             onClick={() => navigate('/')}
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: 500 }}
           >
             <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-            프로젝트 선택
+            현장 목록
           </Link>
-          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center', fontWeight: 700 }}>
             <BusinessIcon sx={{ mr: 0.5 }} fontSize="inherit" />
             {projectData?.name || `프로젝트 ${projectId}`}
           </Typography>
         </Breadcrumbs>
-      </Box>
 
-      {/* Project Header */}
-      <Paper elevation={2} sx={{ p: 3, mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 3, width: 64, height: 64 }}>
-            <BusinessIcon sx={{ fontSize: 32, color: 'white' }} />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 'bold' }}>
-              {projectData?.name || `프로젝트 ${projectId}`}
-            </Typography>
-            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
-              {projectData?.description || '주차 관리 시스템 프로젝트'}
-            </Typography>
-            {projectData?.location && (
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.5 }}>
-                📍 {projectData.location}
-              </Typography>
-            )}
-          </Box>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Theme Toggle Button */}
+          <IconButton
+            onClick={toggleTheme}
+            size="small"
+            title={mode === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+          </IconButton>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<SettingsIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            현장 설정
+          </Button>
         </Box>
       </Paper>
 
-      {/* Features Grid */}
-      <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, fontWeight: 'bold' }}>
-        🛠️ 프로젝트 관리 기능
-      </Typography>
+      <Container maxWidth="xl" sx={{ mt: 3, mb: 6 }}>
 
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: 'repeat(2, 1fr)',
-          md: 'repeat(3, 1fr)',
-        },
-        gap: 3,
-      }}>
-        {features.map((feature) => (
-          <Card
-            key={feature.id}
-            sx={{
-              height: '280px',
-              display: 'flex',
-              flexDirection: 'column',
-              cursor: 'pointer',
-              '&:hover': {
-                boxShadow: 8,
-                transform: 'translateY(-4px)',
-                transition: 'all 0.3s ease-in-out',
-              },
-            }}
-            onClick={() => handleFeatureSelect(feature.path)}
-          >
-            <CardContent sx={{ flexGrow: 1, textAlign: 'center', p: 3 }}>
-              <Avatar
-                sx={{
-                  bgcolor: feature.color,
-                  width: 72,
-                  height: 72,
-                  mx: 'auto',
-                  mb: 2,
-                }}
-              >
-                {React.cloneElement(feature.icon, { sx: { fontSize: 36 } })}
+        {/* Site Overview Dashboard */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '3fr 1fr' },
+          gap: 2.5,
+          mb: 3
+        }}>
+          {/* Left: Info & Status */}
+          <Paper elevation={0} className="glass-medium animate-fade-in" sx={{
+            p: 3,
+            borderRadius: 2.5,
+            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+            bgcolor: 'background.paper',
+            boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'start', mb: 2 }}>
+              <Avatar variant="rounded" sx={{
+                width: 56, height: 56, mr: 2.5,
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main'
+              }}>
+                <BusinessIcon fontSize="medium" />
               </Avatar>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5, color: 'text.primary' }}>
+                  {projectData?.name || `프로젝트 ${projectId}`}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  {projectData?.description || '설명이 없습니다.'}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: alpha(theme.palette.action.hover, 0.1), px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.7rem' }}>위치: {projectData?.location || '서울'}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: alpha(theme.palette.success.main, 0.1), px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.7rem' }}>상태: 정상 운영 중</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
 
-              <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 'bold' }}>
-                {feature.title}
-              </Typography>
+            <Divider sx={{ my: 2 }} />
 
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                {feature.description}
-              </Typography>
-            </CardContent>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5} sx={{ fontSize: '0.7rem' }}>서버 호스트</Typography>
+                <Typography variant="body2" fontWeight="700">13.203.37.93</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5} sx={{ fontSize: '0.7rem' }}>카메라 연결</Typography>
+                <Typography variant="body2" fontWeight="700">12대 / 12대</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5} sx={{ fontSize: '0.7rem' }}>최근 배포</Typography>
+                <Typography variant="body2" fontWeight="700">2024-05-12 14:30</Typography>
+              </Box>
+            </Box>
+          </Paper>
 
-            <CardActions sx={{ justifyContent: 'center', pb: 3 }}>
-              <Button
-                variant="contained"
-                size="large"
-                sx={{
-                  bgcolor: feature.color,
-                  '&:hover': {
-                    bgcolor: feature.color,
-                    filter: 'brightness(0.9)',
-                  },
-                  px: 4,
-                }}
-              >
-                시작하기
-              </Button>
-            </CardActions>
-          </Card>
-        ))}
-      </Box>
-
-      {/* Project Overview */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-          📊 프로젝트 개요
-        </Typography>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
-          <Card sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ mb: 1 }}>🟢</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>운영 중</Typography>
-            <Typography variant="body2" color="text.secondary">시스템 상태</Typography>
-          </Card>
-
-          <Card sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ mb: 1 }}>📅</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {new Date().toLocaleDateString('ko-KR')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">오늘 날짜</Typography>
-          </Card>
-
-          <Card sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ mb: 1 }}>5</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>관리 기능</Typography>
-            <Typography variant="body2" color="text.secondary">사용 가능</Typography>
-          </Card>
-
-          <Card sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ mb: 1 }}>📈</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>실시간</Typography>
-            <Typography variant="body2" color="text.secondary">모니터링</Typography>
-          </Card>
-        </Box>
-
-        {/* 모니터링 및 프로젝트 정보 */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-              📊 모니터링 대시보드
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Grafana 실시간 모니터링
-            </Typography>
+          {/* Right: Quick Actions */}
+          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Typography variant="subtitle2" fontWeight="800" mb={1.5}>바로가기</Typography>
             <Button
               variant="contained"
               fullWidth
-              onClick={() => window.open('https://banpo-grafana.luxrobo.org/d/m0arCBf72/aaaea1b?orgId=1&from=now-12h&to=now&timezone=browser&var-job=$__all&var-instance=$__all&var-vision_job=$__all&var-vision_service=$__all&var-vision_node=$__all&var-vision_container=$__all&var-host=$__all&var-container=$__all&refresh=1m', '_blank')}
+              startIcon={<BarChartIcon />}
+              sx={{ mb: 1, py: 1.25, borderRadius: 2, fontSize: '0.875rem' }}
+              onClick={() => window.open('https://banpo-grafana.luxrobo.org/d/m0arCBf72/aaaea1b?orgId=1', '_blank')}
             >
-              모니터링 접속
+              Grafana 모니터링
             </Button>
-          </Card>
-
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-              ℹ️ 프로젝트 정보
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              🔧 마지막 배포: {new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('ko-KR')}
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              👥 활성 사용자: 3명
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              📍 서버 위치: 한국 (Seoul)
-            </Typography>
             <Button
               variant="outlined"
               fullWidth
               startIcon={<RocketIcon />}
+              sx={{ py: 1.25, borderRadius: 2, fontSize: '0.875rem' }}
               onClick={() => navigate(`/project/${projectId}/deployments`)}
-              sx={{ mt: 1 }}
             >
-              배포 결과 보기
+              배포 관리
             </Button>
-          </Card>
+          </Paper>
         </Box>
-      </Box>
-    </Container>
+
+        {/* Toolbox Grid */}
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, color: 'text.primary' }}>
+          작업 도구 (Toolkit)
+        </Typography>
+
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+          gap: 2
+        }}>
+          {tools.map((tool, index) => (
+            <Paper
+              key={tool.id}
+              elevation={0}
+              onClick={() => navigate(tool.path)}
+              className="hover-lift animate-fade-in-up"
+              sx={{
+                p: 2.5,
+                borderRadius: 2.5,
+                border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+                boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+                animationDelay: `${index * 0.1}s`,
+                '&:hover': {
+                  borderColor: tool.color,
+                  boxShadow: `0 8px 30px ${alpha(tool.color, isDark ? 0.3 : 0.2)}`,
+                  '& .tool-icon': {
+                    transform: 'scale(1.1) rotate(5deg)',
+                  }
+                }
+              }}
+            >
+              {/* Tool Icon & Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                <Avatar className="tool-icon" sx={{
+                  bgcolor: alpha(tool.color, 0.1),
+                  color: tool.color,
+                  width: 48, height: 48,
+                  borderRadius: 1.5,
+                  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  {React.cloneElement(tool.icon as React.ReactElement<any>, { fontSize: 'small' })}
+                </Avatar>
+                <Chip
+                  label={tool.status}
+                  size="small"
+                  sx={{
+                    bgcolor: isDark ? alpha(theme.palette.background.default, 0.8) : 'grey.100',
+                    color: isDark ? 'text.secondary' : 'text.secondary',
+                    fontWeight: 500,
+                    fontSize: '0.7rem',
+                    height: 22,
+                    border: isDark ? `1px solid ${alpha(theme.palette.divider, 0.5)}` : 'none'
+                  }}
+                />
+              </Box>
+
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ fontSize: '0.95rem' }}>
+                {tool.title}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem', lineHeight: 1.5 }}>
+                {tool.description}
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', color: tool.color, fontWeight: 600 }}>
+                <Typography variant="button" sx={{ mr: 1, fontSize: '0.75rem' }}>도구 열기</Typography>
+                <ArrowForwardIcon sx={{ fontSize: 16 }} />
+              </Box>
+            </Paper>
+          ))}
+        </Box>
+
+      </Container>
+    </Box>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   Box,
   Card,
@@ -29,7 +29,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid
+  Grid,
+  Paper,
+  alpha,
+  AppBar,
+  Toolbar,
+  List,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Divider
 } from '@mui/material';
 import {
   PlayArrow,
@@ -44,13 +53,21 @@ import {
   Refresh as RefreshIcon,
   Fullscreen as FullscreenIcon,
   ViewList as ViewListIcon,
-  Circle as CircleIcon
+  Circle as CircleIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  Dashboard as DashboardIcon,
+  LiveTv as LiveTvIcon
 } from '@mui/icons-material';
 import { RealtimeParkingViewModel } from '../viewmodels/RealtimeParkingViewModel';
 import LearningResultsView from './LearningResultsView';
 import { Project } from '../models/Project';
 import { touchFriendly, responsiveSpacing, responsiveGrid } from '../styles/responsive';
 import { CctvTemplate, CctvConfig } from '../models/CctvTemplate';
+import { ThemeContext } from '../App';
+import { GRADIENTS, SHADOWS } from '../styles/theme';
+import { useNavigate } from 'react-router-dom';
+import '../index.css';
 
 interface RealtimeParkingViewProps {
   project: Project;
@@ -59,6 +76,9 @@ interface RealtimeParkingViewProps {
 
 const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBack }) => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { mode, toggleTheme } = useContext(ThemeContext);
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -448,77 +468,146 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
 
   return (
-    <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding, pb: { xs: 8, md: 3 } }}>
-      {/* 헤더 */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        ...responsiveSpacing.sectionMargin,
-        flexWrap: { xs: 'wrap', sm: 'nowrap' },
-        gap: 1
-      }}>
-        {onBack && (
-          <Button
-            startIcon={<BackIcon />}
-            onClick={onBack}
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
+      {/* Header */}
+      <AppBar
+        position="sticky"
+        className="glass-medium"
+        sx={{
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.8) : alpha(theme.palette.background.paper, 0.95),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          backdropFilter: 'blur(10px)'
+        }}
+        elevation={0}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            onClick={() => navigate(`/project/${project.id}`)}
             sx={{
-              ...touchFriendly.button,
-              mr: { xs: 0, sm: 2 },
-              mb: { xs: 1, sm: 0 },
-              minWidth: { xs: 'auto', sm: 'unset' }
+              mr: 2,
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
             }}
-            size={isSmallMobile ? "small" : "medium"}
           >
-            {isSmallMobile ? "뒤로" : "대시보드로"}
-          </Button>
-        )}
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          component="h1"
-          sx={{ flexGrow: 1, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}
-        >
-          실시간 주차면
-        </Typography>
+            <BackIcon />
+          </IconButton>
 
-        {/* Mobile control buttons */}
-        {isMobile && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              onClick={() => setSettingsDialogOpen(true)}
-              sx={{ ...touchFriendly.iconButton }}
-              disabled={isRunning}
-            >
-              <SettingsIcon />
-            </IconButton>
-            {isRunning && cctvList.length > 0 && (
-              <Badge badgeContent={cctvList.length} color="primary">
-                <IconButton
-                  onClick={() => setCctvDialogOpen(true)}
-                  sx={{ ...touchFriendly.iconButton }}
-                >
-                  <VideocamIcon />
-                </IconButton>
-              </Badge>
-            )}
-          </Box>
-        )}
-      </Box>
+          <LiveTvIcon sx={{ mr: 1, color: 'primary.main' }} />
 
-      {/* 데이터 선택 및 실시간 설정 - Desktop only, 템플릿 모드가 아닐 때만 표시 */}
-      {!isMobile && !templateBasedMode && (
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{
+            flexGrow: 1,
+            color: 'text.primary',
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            fontSize: { xs: '1.1rem', sm: '1.25rem' }
+          }}>
+            실시간 주차 관제
+          </Typography>
+
+          {isRunning && (
+            <Chip
+              label="LIVE"
+              size="small"
+              icon={<CircleIcon sx={{ fontSize: '0.7rem' }} />}
+              className="status-badge status-success animate-pulse-glow"
+              sx={{ mr: 2 }}
+            />
+          )}
+
+          <IconButton
+            onClick={toggleTheme}
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+
+          {/* Mobile control buttons */}
+          {isMobile && (
+            <Box sx={{ display: 'flex', gap: 1, ml: 1 }}>
+              <IconButton
+                onClick={() => setSettingsDialogOpen(true)}
+                sx={{
+                  ...touchFriendly.iconButton,
+                  color: 'text.secondary'
+                }}
+                disabled={isRunning}
+              >
+                <SettingsIcon />
+              </IconButton>
+              {isRunning && cctvList.length > 0 && (
+                <Badge badgeContent={cctvList.length} color="primary">
+                  <IconButton
+                    onClick={() => setCctvDialogOpen(true)}
+                    sx={{
+                      ...touchFriendly.iconButton,
+                      color: 'text.secondary'
+                    }}
+                  >
+                    <VideocamIcon />
+                  </IconButton>
+                </Badge>
+              )}
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding }}>
+
+        {/* 데이터 선택 및 실시간 설정 - Desktop only, 템플릿 모드가 아닐 때만 표시 */}
+        {!isMobile && !templateBasedMode && (
+          <Paper
+            elevation={0}
+            className="glass-medium animate-fade-in"
+            sx={{
+              mb: 3,
+              mt: 3,
+              borderRadius: 2,
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{
+              p: 2.5,
+              borderBottom: settingsExpanded ? '1px solid' : 'none',
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              bgcolor: isDark ? alpha(theme.palette.primary.main, 0.05) : alpha(theme.palette.primary.main, 0.02)
+            }}>
+              <SettingsIcon sx={{ mr: 1.5, color: 'primary.main' }} />
               <Typography variant="h6" sx={{
                 flexGrow: 1,
                 fontSize: { xs: '1rem', sm: '1.25rem' },
-                fontWeight: 600
+                fontWeight: 700,
+                color: 'text.primary',
+                letterSpacing: '-0.01em'
               }}>
                 데이터 선택 및 설정
               </Typography>
               <IconButton
                 onClick={() => setSettingsExpanded(!settingsExpanded)}
-                sx={{ ...touchFriendly.iconButton }}
+                sx={{
+                  ...touchFriendly.iconButton,
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                    bgcolor: alpha(theme.palette.primary.main, 0.1)
+                  }
+                }}
               >
                 <ExpandMoreIcon
                   sx={{
@@ -530,6 +619,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
             </Box>
 
             <Collapse in={settingsExpanded}>
+              <Box sx={{ p: 2.5 }}>
               {/* 데이터 선택 */}
               <Box sx={{
                 display: 'grid',
@@ -619,9 +709,9 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                   sx={{ minHeight: { xs: 44, sm: 56 } }}
                 />
               </Box>
+              </Box>
             </Collapse>
-          </CardContent>
-        </Card>
+        </Paper>
       )}
 
       {/* 템플릿 모드가 아닐 때만 실시간 제어 버튼 표시 */}
@@ -760,15 +850,15 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         mb: 0.5,
                         borderRadius: 1,
                         cursor: 'pointer',
-                        backgroundColor: selectedCctv === cctv.cctvId ? '#1976d2' : 'transparent',
-                        color: selectedCctv === cctv.cctvId ? '#fff' : 'inherit',
+                        backgroundColor: selectedCctv === cctv.cctvId ? theme.palette.primary.main : 'transparent',
+                        color: selectedCctv === cctv.cctvId ? '#fff' : 'text.primary',
                         transition: 'all 0.2s',
                         '&:hover': {
-                          backgroundColor: selectedCctv === cctv.cctvId ? '#1565c0' : '#e3f2fd',
+                          backgroundColor: selectedCctv === cctv.cctvId ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.08),
                         }
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'inherit' }}>
                         {cctv.cctvId}
                       </Typography>
                     </Box>
@@ -923,7 +1013,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
             }}>
               {/* 데스크톱: CCTV 목록 */}
               {!isMobile && (
-                <Box sx={{ flex: '0 0 250px', borderRight: '1px solid #e0e0e0', pr: 2 }}>
+                <Box sx={{ flex: '0 0 250px', borderRight: `1px solid ${theme.palette.divider}`, pr: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     CCTV 목록 ({cctvList.length}개)
                   </Typography>
@@ -939,19 +1029,19 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                           sx={{
                             p: 1,
                             mb: 0.5,
-                            border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                            border: selectedCctv === cctvId ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                             borderRadius: 1,
-                            backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
+                            backgroundColor: selectedCctv === cctvId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                             '&:hover': {
-                              backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
-                              borderColor: '#1976d2'
+                              backgroundColor: selectedCctv === cctvId ? alpha(theme.palette.primary.main, 0.12) : alpha(theme.palette.action.hover, 0.08),
+                              borderColor: theme.palette.primary.main
                             }
                           }}
                           onClick={() => handleCctvSelect(cctvId)}
                         >
-                          <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.875rem' }}>
+                          <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.875rem', color: 'text.primary' }}>
                             {cctvId}
                           </Typography>
                         </Box>
@@ -1435,14 +1525,14 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                 sx={{
                   p: 1.5,
                   m: 0.5,
-                  border: selectedCctv === cctvId ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                  border: selectedCctv === cctvId ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                   borderRadius: 1,
-                  backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : 'transparent',
+                  backgroundColor: selectedCctv === cctvId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    backgroundColor: selectedCctv === cctvId ? '#f3f8ff' : '#f5f5f5',
-                    borderColor: '#1976d2'
+                    backgroundColor: selectedCctv === cctvId ? alpha(theme.palette.primary.main, 0.12) : alpha(theme.palette.action.hover, 0.08),
+                    borderColor: theme.palette.primary.main
                   },
                   ...touchFriendly.button
                 }}
@@ -1456,7 +1546,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <Typography variant="body2" fontWeight="medium">
+                  <Typography variant="body2" fontWeight="medium" sx={{ color: 'text.primary' }}>
                     {cctvId}
                   </Typography>
                   {selectedCctv === cctvId && (
@@ -1543,6 +1633,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
         </Box>
       </Modal>
     </Container>
+    </Box>
   );
 };
 

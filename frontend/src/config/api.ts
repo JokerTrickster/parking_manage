@@ -2,9 +2,9 @@
 export const API_CONFIG = {
   // 개발 환경
   development: {
-    BASE_URL: 'http://172.16.32.108:5000',
-    UPLOAD_URL: 'http://172.16.32.108:5000/v0.1/parking',
-    SWAGGER_URL: 'http://172.16.32.108:5000/swagger/index.html'
+    BASE_URL: `http://${window.location.hostname}:5000`,
+    UPLOAD_URL: `http://${window.location.hostname}:5000/v0.1/parking`,
+    SWAGGER_URL: `http://${window.location.hostname}:5000/swagger/index.html`
   },
   // 프로덕션 환경 (도커)
   production: {
@@ -57,40 +57,40 @@ export const apiConfig = getCurrentConfig();
 export const API_ENDPOINTS = {
   // 프로젝트 관련
   PROJECTS: '/api/projects',
-  
+
   // 파일 업로드 관련
   UPLOAD_LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/train-images`,
   UPLOAD_TEST: (projectId: string) => `/v0.1/parking/${projectId}/test-images`,
   UPLOAD_ROI: (projectId: string) => `/v0.1/parking/${projectId}/roi-files`,
-  
+
   // 폴더 관련
   GET_FOLDERS: (projectId: string, fileType: string) => `/api/folders/${projectId}/${fileType}`,
   GET_LEARNING_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/train-folders`,
   GET_TEST_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/test-folders`,
   GET_ROI_FOLDERS: (projectId: string) => `/v0.1/parking/${projectId}/images/roi-folders`,
   DELETE_FILE_OR_FOLDER: (projectId: string, folderPath: string) => `/v0.1/parking/${projectId}/${folderPath}`,
-  
+
   // 주차 테스트 관련
   PARKING_TEST: '/api/parking-test',
-  
+
   // 학습 실행 관련
   LEARNING: (projectId: string) => `/v0.1/parking/${projectId}/learning`,
   LEARNING_LIVE: (projectId: string) => `/v0.1/parking/${projectId}/learning/live`,
-  
+
   // 배치 이미지 다운로드
   BATCH_IMAGES: (projectId: string) => `/v0.1/parking/${projectId}/images/batch`,
-  
+
   // 학습 결과 조회 관련
   LEARNING_RESULTS: (projectId: string, folderPath: string) => `/v0.1/parking/${projectId}/learning-results/${folderPath}`,
   LEARNING_HISTORY: (projectId: string) => `/v0.1/parking/${projectId}/history`,
-  
+
   // CCTV 이미지 조회 관련
-  CCTV_IMAGE: (projectId: string, folderPath: string, cctvId: string, imageType: string) => 
+  CCTV_IMAGE: (projectId: string, folderPath: string, cctvId: string, imageType: string) =>
     `/v0.1/parking/${projectId}/${folderPath}/${cctvId}/images/${imageType}`,
   // 실시간 CCTV 이미지 조회
-  REALTIME_CCTV_IMAGE: (projectId: string, cctvId: string, imageType: string) => 
+  REALTIME_CCTV_IMAGE: (projectId: string, cctvId: string, imageType: string) =>
     `/v0.1/parking/${projectId}/${cctvId}/images/${imageType}`,
-  
+
   // ROI 관련
   GET_ROI_IMAGES: (projectId: string, folderPath: string) => `/v0.1/roi/${projectId}/${folderPath}/images`,
   GET_ROI_IMAGE: (projectId: string, folderPath: string, fileName: string) => `/v0.1/roi/${projectId}/${folderPath}?file=${fileName}`,

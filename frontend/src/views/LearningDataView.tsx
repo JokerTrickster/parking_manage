@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Button,
   Typography,
-  Card,
-  CardContent,
+  Paper,
   Alert,
   CircularProgress,
   List,
@@ -20,6 +19,11 @@ import {
   DialogActions,
   Divider,
   Chip,
+  Container,
+  AppBar,
+  Toolbar,
+  alpha,
+  useTheme
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -28,10 +32,17 @@ import {
   FolderOpen as FolderOpenIcon,
   Refresh as RefreshIcon,
   Warning as WarningIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { Project } from '../models/Project';
 import FileUploadView from './FileUploadView';
 import { FileUploadService, FolderInfo } from '../services/FileUploadService';
+import { ThemeContext } from '../App';
+import { GRADIENTS, SHADOWS } from '../styles/theme';
+import '../index.css';
 
 interface LearningDataViewProps {
   project: Project;
@@ -39,6 +50,11 @@ interface LearningDataViewProps {
 }
 
 const LearningDataView: React.FC<LearningDataViewProps> = ({ project, onBack }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { mode, toggleTheme } = useContext(ThemeContext);
+  const navigate = useNavigate();
+
   const [learningFolders, setLearningFolders] = useState<FolderInfo[]>([]);
   const [testFolders, setTestFolders] = useState<FolderInfo[]>([]);
   const [roiFolders, setRoiFolders] = useState<FolderInfo[]>([]);
@@ -126,105 +142,188 @@ const LearningDataView: React.FC<LearningDataViewProps> = ({ project, onBack }) 
   };
 
   return (
-    <Box>
-      {/* 헤더 */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Button
-          startIcon={<BackIcon />}
-          onClick={onBack}
-          sx={{ mr: 2 }}
-        >
-          대시보드로
-        </Button>
-        <Typography variant="h4" component="h1">
-          학습 데이터 등록 - {project.name}
-        </Typography>
-      </Box>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Header */}
+      <AppBar
+        position="sticky"
+        className="glass-medium"
+        sx={{
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.8) : alpha(theme.palette.background.paper, 0.95),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          backdropFilter: 'blur(10px)'
+        }}
+        elevation={0}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            onClick={onBack}
+            className="hover-lift"
+            sx={{ mr: 2 }}
+          >
+            <BackIcon />
+          </IconButton>
+
+          <CloudUploadIcon sx={{ mr: 2, color: 'primary.main' }} />
+
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
+            학습 데이터 관리 - {project.name}
+          </Typography>
+
+          {/* Refresh button */}
+          <IconButton
+            onClick={loadFolders}
+            className="hover-lift"
+            disabled={loading}
+            sx={{ mr: 1 }}
+          >
+            <RefreshIcon className={loading ? 'animate-spin' : ''} />
+          </IconButton>
+
+          {/* Theme toggle */}
+          <IconButton
+            onClick={toggleTheme}
+            className="hover-lift"
+          >
+            {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ py: 4 }}>
 
       {/* 성공/오류 메시지 */}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert
+          severity="success"
+          sx={{ mb: 3 }}
+          className="animate-fade-in"
+        >
           {success}
         </Alert>
       )}
-      
+
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          className="animate-fade-in"
+        >
           {error}
         </Alert>
       )}
 
       {/* 3개 섹션을 가로로 배치 */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          md: 'repeat(2, 1fr)',
+          lg: 'repeat(3, 1fr)'
+        },
+        gap: 3
+      }}>
         {/* 학습 이미지 관리 */}
-        <Card sx={{ flex: '1 1 400px', minWidth: 0 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              학습 이미지 관리
-            </Typography>
-            
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <FileUploadView
-                projectId={project.id}
-                fileType="learning"
-                onUploadSuccess={handleUploadSuccess}
-                onDeleteFolder={(folder) => handleDeleteClick('learning', folder)}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <Paper
+          className="glass-medium animate-fade-in hover-lift"
+          sx={{
+            boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+            border: '1px solid',
+            borderColor: 'divider',
+            p: 3
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            학습 이미지 관리
+          </Typography>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : (
+            <FileUploadView
+              projectId={project.id}
+              fileType="learning"
+              onUploadSuccess={handleUploadSuccess}
+              onDeleteFolder={(folder) => handleDeleteClick('learning', folder)}
+            />
+          )}
+        </Paper>
 
         {/* 테스트 이미지 관리 */}
-        <Card sx={{ flex: '1 1 400px', minWidth: 0 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              테스트 이미지 관리
-            </Typography>
-            
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <FileUploadView
-                projectId={project.id}
-                fileType="test"
-                onUploadSuccess={handleUploadSuccess}
-                onDeleteFolder={(folder) => handleDeleteClick('test', folder)}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <Paper
+          className="glass-medium animate-fade-in hover-lift"
+          sx={{
+            boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+            border: '1px solid',
+            borderColor: 'divider',
+            p: 3,
+            animationDelay: '0.1s'
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            테스트 이미지 관리
+          </Typography>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : (
+            <FileUploadView
+              projectId={project.id}
+              fileType="test"
+              onUploadSuccess={handleUploadSuccess}
+              onDeleteFolder={(folder) => handleDeleteClick('test', folder)}
+            />
+          )}
+        </Paper>
 
         {/* ROI 파일 관리 */}
-        <Card sx={{ flex: '1 1 400px', minWidth: 0 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              ROI 파일 관리
-            </Typography>
-            
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <FileUploadView
-                projectId={project.id}
-                fileType="roi"
-                onUploadSuccess={handleUploadSuccess}
-                onDeleteFolder={(folder) => handleDeleteClick('roi', folder)}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <Paper
+          className="glass-medium animate-fade-in hover-lift"
+          sx={{
+            boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+            border: '1px solid',
+            borderColor: 'divider',
+            p: 3,
+            animationDelay: '0.2s'
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            ROI 파일 관리
+          </Typography>
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : (
+            <FileUploadView
+              projectId={project.id}
+              fileType="roi"
+              onUploadSuccess={handleUploadSuccess}
+              onDeleteFolder={(folder) => handleDeleteClick('roi', folder)}
+            />
+          )}
+        </Paper>
       </Box>
 
       {/* 삭제 확인 다이얼로그 */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          className: 'glass-medium',
+          sx: {
+            boxShadow: isDark ? SHADOWS.dark.xl : SHADOWS.light.xl,
+            border: '1px solid',
+            borderColor: 'divider'
+          }
+        }}
+      >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <WarningIcon color="warning" />
@@ -240,12 +339,28 @@ const LearningDataView: React.FC<LearningDataViewProps> = ({ project, onBack }) 
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel}>취소</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <Button
+            onClick={handleDeleteCancel}
+            className="hover-lift"
+          >
+            취소
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            className="hover-lift"
+            sx={{
+              '&:hover': {
+                boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
+              }
+            }}
+          >
             삭제
           </Button>
         </DialogActions>
       </Dialog>
+      </Container>
     </Box>
   );
 };

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Paper,
   Typography,
   TextField,
   Button,
@@ -28,7 +27,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Container
+  Container,
+  AppBar,
+  Toolbar,
+  alpha
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -36,13 +38,20 @@ import {
   Settings as SettingsIcon,
   History as HistoryIcon,
   PlayArrow as PlayIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  Psychology as PsychologyIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { ParkingTestViewModel } from '../viewmodels/ParkingTestViewModel';
 import { Project } from '../models/Project';
 import LearningResultsView from './LearningResultsView';
 import { FileStorageService } from '../services/FileStorageService';
 import { touchFriendly, responsiveSpacing } from '../styles/responsive';
+import { ThemeContext } from '../App';
+import { GRADIENTS, SHADOWS } from '../styles/theme';
+import '../index.css';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -77,6 +86,9 @@ interface ParkingTestViewProps {
 
 export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBack }) => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { mode, toggleTheme } = useContext(ThemeContext);
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -247,56 +259,65 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
   };
 
   return (
-    <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding, pb: { xs: 8, md: 3 } }}>
-      {/* 헤더 */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        ...responsiveSpacing.sectionMargin,
-        flexWrap: { xs: 'wrap', sm: 'nowrap' },
-        gap: 1
-      }}>
-        {onBack && (
-          <Button
-            startIcon={<BackIcon />}
-            onClick={onBack}
-            sx={{
-              ...touchFriendly.button,
-              mr: { xs: 0, sm: 2 },
-              mb: { xs: 1, sm: 0 },
-              minWidth: { xs: 'auto', sm: 'unset' }
-            }}
-            size={isSmallMobile ? "small" : "medium"}
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Header */}
+      <AppBar
+        position="sticky"
+        className="glass-medium"
+        sx={{
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.8) : alpha(theme.palette.background.paper, 0.95),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          backdropFilter: 'blur(10px)'
+        }}
+        elevation={0}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            onClick={onBack || (() => navigate(-1))}
+            className="hover-lift"
+            sx={{ mr: 2 }}
           >
-            {isSmallMobile ? "뒤로" : "대시보드로"}
-          </Button>
-        )}
-        <Typography
-          variant={isMobile ? "h5" : "h4"}
-          component="h1"
-          sx={{ flexGrow: 1, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}
-        >
-          주차면 테스트
-        </Typography>
+            <BackIcon />
+          </IconButton>
 
-        {/* Mobile quick action buttons */}
-        {isMobile && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              onClick={() => setSettingsDialogOpen(true)}
-              sx={{ ...touchFriendly.iconButton }}
-            >
-              <SettingsIcon />
-            </IconButton>
-            <IconButton
-              onClick={() => setHistoryDialogOpen(true)}
-              sx={{ ...touchFriendly.iconButton }}
-            >
-              <HistoryIcon />
-            </IconButton>
-          </Box>
-        )}
-      </Box>
+          <PsychologyIcon sx={{ mr: 2, color: 'primary.main' }} />
+
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
+            주차면 학습 테스트 - {project.name}
+          </Typography>
+
+          {/* Mobile quick action buttons */}
+          {isMobile && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton
+                onClick={() => setSettingsDialogOpen(true)}
+                className="hover-lift"
+              >
+                <SettingsIcon />
+              </IconButton>
+              <IconButton
+                onClick={() => setHistoryDialogOpen(true)}
+                className="hover-lift"
+              >
+                <HistoryIcon />
+              </IconButton>
+            </Box>
+          )}
+
+          {/* Theme toggle */}
+          <IconButton
+            onClick={toggleTheme}
+            className="hover-lift"
+            sx={{ ml: 1 }}
+          >
+            {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding, pb: { xs: 8, md: 3 } }}>
 
       {/* Tabs - Desktop only */}
       {!isMobile && (
@@ -321,8 +342,15 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
       {(isMobile || activeTab === 0) && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 3 } }}>
           {/* 데이터 선택 */}
-          <Card>
-            <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+          <Paper
+            className="glass-medium animate-fade-in"
+            sx={{
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Box sx={{ ...responsiveSpacing.cardPadding }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{
                   flexGrow: 1,
@@ -363,6 +391,24 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                       label="학습 이미지 폴더"
                       onChange={(e) => setState(prev => ({ ...prev, selectedLearningFolder: e.target.value }))}
                       sx={{ minHeight: { xs: 44, sm: 56 } }}
+                      MenuProps={{
+                        PaperProps: {
+                          sx: {
+                            '& .MuiMenuItem-root': {
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                bgcolor: alpha(theme.palette.action.hover, 0.05)
+                              },
+                              '&.Mui-selected': {
+                                bgcolor: alpha(theme.palette.primary.main, isDark ? 0.15 : 0.1),
+                                '&:hover': {
+                                  bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.15)
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }}
                     >
                       {availableFolders.learning.map((folder) => (
                         <MenuItem key={folder} value={folder}>
@@ -405,12 +451,19 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                   </FormControl>
                 </Box>
               </Collapse>
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
 
           {/* 테스트 설정 */}
-          <Card>
-            <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+          <Paper
+            className="glass-medium animate-fade-in"
+            sx={{
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Box sx={{ ...responsiveSpacing.cardPadding }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{
                   flexGrow: 1,
@@ -481,23 +534,35 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                   disabled={state.loading || !state.selectedLearningFolder || !state.selectedRoiFile || !state.selectedTestFolder}
                   fullWidth={isMobile}
                   startIcon={<PlayIcon />}
+                  className="hover-lift"
                   sx={{
                     ...touchFriendly.button,
+                    background: GRADIENTS.primary,
                     fontSize: { xs: '1rem', sm: '1.125rem' },
                     py: { xs: 1.5, sm: 2 },
-                    minWidth: { xs: 'auto', sm: 200 }
+                    minWidth: { xs: 'auto', sm: 200 },
+                    '&:hover': {
+                      boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
+                    }
                   }}
                 >
                   {state.loading ? '학습 중...' : '학습 시작'}
                 </Button>
               </Collapse>
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
 
           {/* 학습 결과 */}
           {state.learningResult?.folder_path && state.learningResultsData?.cctv_list && state.learningResultsData.cctv_list.length > 0 && (
-            <Card>
-              <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+            <Paper
+              className="glass-medium animate-fade-in-up"
+              sx={{
+                boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              <Box sx={{ ...responsiveSpacing.cardPadding }}>
                 <Typography variant="h6" gutterBottom sx={{
                   fontSize: { xs: '1rem', sm: '1.25rem' },
                   fontWeight: 600
@@ -512,27 +577,41 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                     timestamp={state.learningResultsData.timestamp}
                   />
                 </Box>
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
           )}
-          
+
           {/* 학습 결과 로딩 실패 시 */}
           {state.learningResult?.folder_path && !state.learningResultsData && !state.loading && (
-            <Card>
-              <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+            <Paper
+              className="glass-medium animate-fade-in"
+              sx={{
+                boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              <Box sx={{ ...responsiveSpacing.cardPadding }}>
                 <Alert severity="warning" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   학습은 완료되었지만 결과를 불러오는데 실패했습니다.
                   <br />
                   폴더 경로: {state.learningResult.folder_path}
                 </Alert>
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
           )}
-          
+
           {/* 학습 중 로딩 표시 */}
           {state.loading && (
-            <Card>
-              <CardContent sx={{
+            <Paper
+              className="glass-medium animate-pulse"
+              sx={{
+                boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md,
+                border: '1px solid',
+                borderColor: 'primary.main'
+              }}
+            >
+              <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -557,8 +636,8 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                     : "완료되면 결과가 자동으로 표시됩니다."
                   }
                 </Typography>
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
           )}
         </Box>
       )}
@@ -567,8 +646,16 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
       {!isMobile && activeTab === 1 && (
         <Box sx={{ display: 'flex', gap: 2, height: '70vh' }}>
           {/* 히스토리 목록 */}
-          <Card sx={{ flex: '0 0 300px' }}>
-            <CardContent sx={{ ...responsiveSpacing.cardPadding }}>
+          <Paper
+            className="glass-medium animate-fade-in"
+            sx={{
+              flex: '0 0 300px',
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Box sx={{ ...responsiveSpacing.cardPadding }}>
               <Typography variant="h6" gutterBottom sx={{
                 fontSize: { xs: '1rem', sm: '1.25rem' },
                 fontWeight: 600
@@ -588,6 +675,19 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                         <ListItemButton
                           selected={selectedHistory?.folder_path === item.folder_path}
                           onClick={() => handleHistorySelect(item)}
+                          className="hover-lift"
+                          sx={{
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: alpha(theme.palette.action.hover, 0.05)
+                            },
+                            '&.Mui-selected': {
+                              bgcolor: alpha(theme.palette.primary.main, isDark ? 0.15 : 0.1),
+                              '&:hover': {
+                                bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.15)
+                              }
+                            }
+                          }}
                         >
                           <ListItemText
                             primary={
@@ -628,23 +728,39 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                   학습 히스토리가 없습니다. (현재 개수: {state.learningHistory?.length || 0})
                 </Typography>
               )}
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
 
           {/* 히스토리 결과 */}
           <Box sx={{ flex: 1 }}>
             {historyResultLoading ? (
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <Paper
+                className="glass-medium"
+                sx={{
+                  height: '100%',
+                  boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', p: 3 }}>
                   <CircularProgress sx={{ mb: 2 }} />
                   <Typography variant="body1" color="text.secondary">
                     학습 결과를 불러오는 중...
                   </Typography>
-                </CardContent>
-              </Card>
+                </Box>
+              </Paper>
             ) : selectedHistory && state.selectedHistoryResults ? (
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
+              <Paper
+                className="glass-medium animate-fade-in-up"
+                sx={{
+                  height: '100%',
+                  boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Box sx={{ p: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {selectedHistory.name || `학습 결과`} - {selectedHistory.created_at ? new Date(selectedHistory.created_at).toLocaleString() : ''}
                   </Typography>
@@ -654,16 +770,24 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
                     cctvList={state.selectedHistoryResults.cctv_list}
                     timestamp={state.selectedHistoryResults.timestamp}
                   />
-                </CardContent>
-              </Card>
+                </Box>
+              </Paper>
             ) : (
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <Paper
+                className="glass-medium"
+                sx={{
+                  height: '100%',
+                  boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 3 }}>
                   <Typography variant="body1" color="text.secondary">
                     히스토리를 선택하면 결과를 확인할 수 있습니다.
                   </Typography>
-                </CardContent>
-              </Card>
+                </Box>
+              </Paper>
             )}
           </Box>
         </Box>
@@ -937,6 +1061,7 @@ export const ParkingTestView: React.FC<ParkingTestViewProps> = ({ project, onBac
           {state.error}
         </Alert>
       </Snackbar>
-    </Container>
+      </Container>
+    </Box>
   );
 }; 

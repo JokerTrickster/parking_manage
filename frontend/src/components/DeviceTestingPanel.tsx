@@ -5,10 +5,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
   List,
   ListItem,
@@ -31,8 +27,6 @@ import {
   Tab,
   Switch,
   FormControlLabel,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   PhoneIphone as MobileIcon,
@@ -42,7 +36,6 @@ import {
   Accessibility as AccessibilityIcon,
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
-  Warning as WarningIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Refresh as RefreshIcon,
@@ -68,9 +61,6 @@ interface DeviceTestingPanelProps {
 }
 
 const DeviceTestingPanel: React.FC<DeviceTestingPanelProps> = ({ open, onClose }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   const [activeTab, setActiveTab] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState<DeviceProfile | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<TestScenario | null>(null);
@@ -95,6 +85,7 @@ const DeviceTestingPanel: React.FC<DeviceTestingPanelProps> = ({ open, onClose }
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, testingEnabled, autoRefresh]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {

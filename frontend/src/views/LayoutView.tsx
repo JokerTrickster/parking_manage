@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   AppBar,
   Toolbar,
   Typography,
   Container,
   Box,
-  CssBaseline,
-  ThemeProvider,
   IconButton,
   Drawer,
   List,
@@ -29,9 +27,11 @@ import {
   Folder as FolderIcon,
   BugReport as TestingIcon,
   Storage as StorageIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import theme from '../styles/theme';
+import { ThemeContext } from '../App';
 import { touchFriendly, responsiveSpacing } from '../styles/responsive';
 import DeviceTestingPanel from '../components/DeviceTestingPanel';
 
@@ -45,6 +45,7 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
   const { projectId } = useParams<{ projectId: string }>();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const { mode, toggleTheme } = useContext(ThemeContext);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [testingPanelOpen, setTestingPanelOpen] = useState(false);
@@ -69,8 +70,6 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
   const projectTitle = projectId ? `프로젝트 ${projectId}` : '주차 관리 시스템';
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AppBar position="static">
           <Toolbar>
@@ -104,6 +103,19 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
             >
               {isMobile ? currentPageTitle : projectTitle}
             </Typography>
+
+            {/* Theme Toggle Button */}
+            <IconButton
+              color="inherit"
+              onClick={toggleTheme}
+              title={mode === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              sx={{
+                ...touchFriendly.iconButton,
+                mr: 1
+              }}
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
 
             {!isMobile && (
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -221,6 +233,30 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
                 }}
               />
             </ListItemButton>
+
+            {/* Theme Toggle Menu Item */}
+            <ListItemButton
+              onClick={() => {
+                toggleTheme();
+                setMobileMenuOpen(false);
+              }}
+              sx={{
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                }
+              }}
+            >
+              <ListItemIcon>
+                {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+              </ListItemIcon>
+              <ListItemText
+                primary={mode === 'dark' ? '라이트 모드' : '다크 모드'}
+                primaryTypographyProps={{
+                  fontSize: '0.9rem',
+                  fontWeight: 400
+                }}
+              />
+            </ListItemButton>
           </List>
         </Drawer>
 
@@ -241,7 +277,6 @@ const LayoutView: React.FC<LayoutViewProps> = ({ children }) => {
           onClose={() => setTestingPanelOpen(false)}
         />
       </Box>
-    </ThemeProvider>
   );
 };
 
