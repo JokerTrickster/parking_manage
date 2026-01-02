@@ -8,6 +8,7 @@ import (
 	"main/features/roi/model/response"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
@@ -32,31 +33,31 @@ func (d *SaveDraftRoiUseCase) SaveDraftRoi(c context.Context, projectID string, 
 	// draft 파일 경로
 	roiFolderPath := filepath.Join(projectPath, "uploads", "roi")
 
-	// .json 확장자 제거 후 _draft.json 추가
+	// .json 확장자 제거
 	ext := filepath.Ext(roiFileName)
+	baseFileName := roiFileName
 	if ext == ".json" {
-		roiFileName = roiFileName[:len(roiFileName)-len(ext)]
+		baseFileName = roiFileName[:len(roiFileName)-len(ext)]
 	}
-	roiFileName += "_draft.json"
-	draftFilePath := filepath.Join(roiFolderPath, "draft", roiFileName)
+
+	// timestamp 패턴 제거 (예: gogo_1736708415 → gogo)
+	// 파일명 끝에 _숫자 형태가 있으면 제거
+	re := regexp.MustCompile(`_\d+$`)
+	baseFileName = re.ReplaceAllString(baseFileName, "")
+
+	// _draft.json 추가
+	draftFileName := baseFileName + "_draft.json"
+	draftFilePath := filepath.Join(roiFolderPath, "draft", draftFileName)
 
 	// draft 파일 존재 확인
 	if _, err := os.Stat(draftFilePath); os.IsNotExist(err) {
-		return response.ResSaveDraft{}, fmt.Errorf("draft 파일을 찾을 수 없습니다: %s", roiFileName)
+		return response.ResSaveDraft{}, fmt.Errorf("draft 파일을 찾을 수 없습니다: %s", draftFileName)
 	}
 
-	// 현재 날짜로 파일명 생성 (timestamp 추가)
+	// 현재 timestamp로 새 파일명 생성
 	now := time.Now()
 	timestamp := now.Unix()
-	fileExt := filepath.Ext(roiFileName)
-	nameWithoutExt := roiFileName[:len(roiFileName)-len(fileExt)]
-
-	// _draft 제거
-	if len(nameWithoutExt) > 6 && nameWithoutExt[len(nameWithoutExt)-6:] == "_draft" {
-		nameWithoutExt = nameWithoutExt[:len(nameWithoutExt)-6]
-	}
-
-	savedFileName := fmt.Sprintf("%s_%d.json", nameWithoutExt, timestamp)
+	savedFileName := fmt.Sprintf("%s_%d.json", baseFileName, timestamp)
 	savedFilePath := filepath.Join(roiFolderPath, savedFileName)
 
 	// 파일 복사
