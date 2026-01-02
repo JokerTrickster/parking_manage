@@ -16,6 +16,8 @@ import {
   Snackbar,
   Breadcrumbs,
   Link,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   Home as HomeIcon,
@@ -28,6 +30,7 @@ import { DragDropZone } from '../components/FileUpload/DragDropZone';
 import { FileListTable } from '../components/FileList/FileListTable';
 import { Pagination } from '../components/FileList/Pagination';
 import { FolderListView } from '../components/FolderView/FolderListView';
+import { SHADOWS } from '../styles/theme';
 
 interface ProjectFileRepositoryViewProps {
   projectId: string;
@@ -50,6 +53,8 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
   const navigate = useNavigate();
   const { projectId: paramProjectId } = useParams<{ projectId: string }>();
   const currentProjectId = projectId || paramProjectId;
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   // State
   const [state, setState] = useState<FileRepositoryState>({
@@ -151,14 +156,34 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{
+      p: 3,
+      minHeight: '100vh',
+      bgcolor: isDark ? '#0a0a0a' : '#fafafa'
+    }}>
       {/* Breadcrumb Navigation */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{
+        mb: 3,
+        p: 2,
+        borderRadius: 2,
+        bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
+        backdropFilter: 'blur(10px)',
+        border: '1px solid',
+        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+        boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
+      }}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link
             color="inherit"
             onClick={() => navigate('/')}
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main'
+              }
+            }}
           >
             <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
             프로젝트 선택
@@ -166,7 +191,14 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
           <Link
             color="inherit"
             onClick={() => navigate(`/project/${currentProjectId}`)}
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main'
+              }
+            }}
           >
             프로젝트 {projectName}
           </Link>
@@ -178,8 +210,17 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
       </Box>
 
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
+      <Box sx={{
+        mb: 3,
+        p: 3,
+        borderRadius: 2,
+        bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
+        backdropFilter: 'blur(10px)',
+        border: '1px solid',
+        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+        boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
+      }}>
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
           프로젝트 파일 보관함
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -188,12 +229,36 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
       </Box>
 
       {/* Category Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+      <Box sx={{
+        mb: 3,
+        borderRadius: 2,
+        bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
+        backdropFilter: 'blur(10px)',
+        border: '1px solid',
+        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+        boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+        overflow: 'hidden'
+      }}>
         <Tabs
           value={state.currentCategory}
           onChange={handleCategoryChange}
           variant="scrollable"
           scrollButtons="auto"
+          sx={{
+            '& .MuiTab-root': {
+              fontWeight: 500,
+              minHeight: 56,
+              transition: 'all 0.3s',
+              '&:hover': {
+                bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.05)
+              },
+              '&.Mui-selected': {
+                fontWeight: 600,
+                borderBottom: '3px solid',
+                borderColor: 'primary.main'
+              }
+            }
+          }}
         >
           <Tab label="Map" value="map" />
           <Tab label="CAD" value="cad" />
@@ -204,7 +269,15 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
       </Box>
 
       {/* File Upload Zone */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{
+        mb: 3,
+        borderRadius: 2,
+        bgcolor: isDark ? alpha('#1a1a1a', 0.4) : alpha('#ffffff', 0.6),
+        backdropFilter: 'blur(10px)',
+        border: '1px solid',
+        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+        p: 2
+      }}>
         <DragDropZone
           category={state.currentCategory}
           onFilesSelected={handleFilesSelected}
@@ -223,18 +296,41 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
 
       {/* Content: Folder View or File View */}
       {!state.loading && (
-        <Box>
+        <Box sx={{
+          borderRadius: 2,
+          bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
+          backdropFilter: 'blur(10px)',
+          border: '1px solid',
+          borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+          boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md,
+          p: 3
+        }}>
           {/* Folder View (learning/test categories) */}
           {viewModel.supportsFolderView && state.viewMode === 'folders' && (
             <Box>
               {/* Breadcrumb for nested folders */}
               {state.currentPath && (
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{
+                  mb: 3,
+                  p: 2,
+                  borderRadius: 1,
+                  bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
                   <Link
                     component="button"
                     variant="body2"
                     onClick={handleBackToFolders}
-                    sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    sx={{
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        color: 'primary.main'
+                      }
+                    }}
                   >
                     <FolderIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                     상위 폴더로 돌아가기
@@ -263,27 +359,60 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
             <Box>
               {/* Back button for folder navigation */}
               {viewModel.supportsFolderView && state.selectedFolder && (
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{
+                  mb: 3,
+                  p: 2,
+                  borderRadius: 1,
+                  bgcolor: isDark ? alpha('#fff', 0.05) : alpha('#000', 0.03),
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
                   <Link
                     component="button"
                     variant="body2"
                     onClick={handleBackToFolders}
-                    sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    sx={{
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        color: 'primary.main'
+                      }
+                    }}
                   >
                     <FolderIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                     폴더 목록으로 돌아가기
                   </Link>
-                  <Typography variant="h6" sx={{ mt: 1 }}>
+                  <Typography variant="h6" sx={{ mt: 1, fontWeight: 600 }}>
                     {state.selectedFolder.name}
                   </Typography>
                 </Box>
               )}
 
-              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignments: 'center' }}>
-                <Typography variant="subtitle1">
+              <Box sx={{
+                mb: 3,
+                pb: 2,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '2px solid',
+                borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1)
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   파일 목록 ({state.pagination.totalCount}개)
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  sx={{
+                    px: 2,
+                    py: 0.5,
+                    borderRadius: 1,
+                    bgcolor: isDark ? alpha(theme.palette.primary.main, 0.2) : alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.main',
+                    fontWeight: 500
+                  }}
+                >
                   {viewModel.isVersionedCategory ? '버전 관리 지원' : 'CCTV ID 구분'}
                 </Typography>
               </Box>
