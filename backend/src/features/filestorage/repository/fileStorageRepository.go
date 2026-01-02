@@ -11,7 +11,6 @@ import (
 	"main/common"
 	"main/common/db/mysql"
 	"main/features/filestorage/model/entity"
-	"main/features/filestorage/util"
 
 	"gorm.io/gorm"
 )
@@ -160,13 +159,13 @@ func (r *FileStorageRepository) ListFiles(projectID, category string, filters ma
 			cctvIDFromPath = filepath.Dir(relPath)
 		}
 
-		// Get original name and version
-		originalName, version, _ := util.ParseVersionFromFilename(info.Name())
+		// Use actual filename for both Filename and OriginalName
+		actualFilename := info.Name()
 
 		fileInfo := entity.FileInfo{
-			Filename:     info.Name(),
-			OriginalName: originalName,
-			Version:      version,
+			Filename:     actualFilename,
+			OriginalName: actualFilename,
+			Version:      "",
 			SizeBytes:    info.Size(),
 			UploadDate:   info.ModTime(),
 			FileType:     r.detectMimeType(info.Name()),
@@ -203,12 +202,13 @@ func (r *FileStorageRepository) listFilesInDirectory(dirPath, projectID, categor
 			continue
 		}
 
-		originalName, version, _ := util.ParseVersionFromFilename(info.Name())
+		// Use actual filename for both Filename and OriginalName
+		actualFilename := info.Name()
 
 		fileInfo := entity.FileInfo{
-			Filename:     info.Name(),
-			OriginalName: originalName,
-			Version:      version,
+			Filename:     actualFilename,
+			OriginalName: actualFilename,
+			Version:      "",
 			SizeBytes:    info.Size(),
 			UploadDate:   info.ModTime(),
 			FileType:     r.detectMimeType(info.Name()),
@@ -318,15 +318,16 @@ func (r *FileStorageRepository) GetFileMetadata(projectID, category, filename st
 		return entity.FileInfo{}, fmt.Errorf("failed to get file info: %w", err)
 	}
 
-	originalName, version, _ := util.ParseVersionFromFilename(info.Name())
+	// Use actual filename for both Filename and OriginalName
+	actualFilename := info.Name()
 
 	return entity.FileInfo{
-		Filename:     info.Name(),
-		OriginalName: originalName,
-		Version:      version,
+		Filename:     actualFilename,
+		OriginalName: actualFilename,
+		Version:      "",
 		SizeBytes:    info.Size(),
 		UploadDate:   info.ModTime(),
-		FileType:     r.detectMimeType(info.Name()),
+		FileType:     r.detectMimeType(actualFilename),
 		Path:         filePath,
 	}, nil
 }
