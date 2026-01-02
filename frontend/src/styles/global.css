@@ -1,8 +1,5 @@
 /* Global CSS for responsive design and mobile optimization */
 
-/* Import Korean font */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
-
 /* Reset and base styles */
 *,
 *::before,

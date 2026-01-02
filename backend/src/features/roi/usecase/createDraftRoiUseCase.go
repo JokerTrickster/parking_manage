@@ -7,6 +7,7 @@ import (
 	_interface "main/features/roi/model/interface"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -52,10 +53,16 @@ func (d *CreateDraftRoiUseCase) CreateDraftRoi(c context.Context, projectID stri
 		return fmt.Errorf("draft 폴더 생성 실패: %v", err)
 	}
 
-	// draft 파일명 생성 (원본 파일명에 _draft 추가)
+	// draft 파일명 생성 (timestamp 제거 후 _draft 추가)
 	ext := filepath.Ext(roiFileName)
 	nameWithoutExt := roiFileName[:len(roiFileName)-len(ext)]
-	draftFileName := fmt.Sprintf("%s_draft%s", nameWithoutExt, ext)
+
+	// timestamp 패턴 제거 (예: gogo_1767084153 → gogo)
+	re := regexp.MustCompile(`_\d+$`)
+	baseFileName := re.ReplaceAllString(nameWithoutExt, "")
+	fmt.Printf("CreateDraftRoi - Base filename (without timestamp): %s\n", baseFileName)
+
+	draftFileName := fmt.Sprintf("%s_draft%s", baseFileName, ext)
 	draftFilePath := filepath.Join(draftPath, draftFileName)
 	fmt.Printf("CreateDraftRoi - Draft file will be created at: %s\n", draftFilePath)
 

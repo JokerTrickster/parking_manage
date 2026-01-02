@@ -29,8 +29,7 @@ func NewFileStorageRepository(db *gorm.DB) *FileStorageRepository {
 // SaveFile saves a file to the filesystem and returns the actual saved filename
 func (r *FileStorageRepository) SaveFile(projectID, category, filename string, file multipart.File) (string, error) {
 	// Build full path
-	basePath := common.Env.UploadPath
-	categoryPath := filepath.Join(basePath, projectID, category)
+	categoryPath := r.getCategoryPath(projectID, category)
 
 	// Full file path (filename may include subdirectories)
 	filePath := filepath.Join(categoryPath, filename)
@@ -118,8 +117,7 @@ func (r *FileStorageRepository) SaveFileHistory(history *mysql.FileStorageHistor
 
 // ListFiles returns all files for a project category with optional filters
 func (r *FileStorageRepository) ListFiles(projectID, category string, filters map[string]string) ([]entity.FileInfo, error) {
-	basePath := common.Env.UploadPath
-	categoryPath := filepath.Join(basePath, projectID, category)
+	categoryPath := r.getCategoryPath(projectID, category)
 
 	// Check if directory exists
 	if _, err := os.Stat(categoryPath); os.IsNotExist(err) {
@@ -226,8 +224,8 @@ func (r *FileStorageRepository) listFilesInDirectory(dirPath, projectID, categor
 
 // ReadFile returns file content as io.ReadCloser
 func (r *FileStorageRepository) ReadFile(projectID, category, filename string) (io.ReadCloser, error) {
-	basePath := common.Env.UploadPath
-	filePath := filepath.Join(basePath, projectID, category, filename)
+	categoryPath := r.getCategoryPath(projectID, category)
+	filePath := filepath.Join(categoryPath, filename)
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -239,8 +237,8 @@ func (r *FileStorageRepository) ReadFile(projectID, category, filename string) (
 
 // DeleteFile removes a file from the filesystem
 func (r *FileStorageRepository) DeleteFile(projectID, category, filename string) error {
-	basePath := common.Env.UploadPath
-	filePath := filepath.Join(basePath, projectID, category, filename)
+	categoryPath := r.getCategoryPath(projectID, category)
+	filePath := filepath.Join(categoryPath, filename)
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
@@ -251,13 +249,13 @@ func (r *FileStorageRepository) DeleteFile(projectID, category, filename string)
 
 // DeleteFiles removes multiple files from the filesystem
 func (r *FileStorageRepository) DeleteFiles(projectID, category string, filenames []string) error {
-	basePath := common.Env.UploadPath
+	categoryPath := r.getCategoryPath(projectID, category)
 
 	var errors []string
 	successCount := 0
 
 	for _, filename := range filenames {
-		filePath := filepath.Join(basePath, projectID, category, filename)
+		filePath := filepath.Join(categoryPath, filename)
 
 		if err := os.Remove(filePath); err != nil {
 			errors = append(errors, fmt.Sprintf("failed to delete %s: %v", filename, err))
@@ -275,8 +273,8 @@ func (r *FileStorageRepository) DeleteFiles(projectID, category string, filename
 
 // DeleteFolder removes a folder and all its contents from the filesystem
 func (r *FileStorageRepository) DeleteFolder(projectID, category, folderPath string) error {
-	basePath := common.Env.UploadPath
-	fullPath := filepath.Join(basePath, projectID, category, folderPath)
+	categoryPath := r.getCategoryPath(projectID, category)
+	fullPath := filepath.Join(categoryPath, folderPath)
 
 	// Check if path exists and is a directory
 	info, err := os.Stat(fullPath)
@@ -296,10 +294,24 @@ func (r *FileStorageRepository) DeleteFolder(projectID, category, folderPath str
 	return nil
 }
 
+// getCategoryPath returns the correct path for a category
+// Some categories (roi, learning, test) use an "uploads" subdirectory
+func (r *FileStorageRepository) getCategoryPath(projectID, category string) string {
+	basePath := common.Env.UploadPath
+
+	// ROI, learning, and test categories use the "uploads" subdirectory
+	if category == "roi" || category == "learning" || category == "test" {
+		return filepath.Join(basePath, projectID, "uploads", category)
+	}
+
+	// Other categories (map, cad) don't use the "uploads" subdirectory
+	return filepath.Join(basePath, projectID, category)
+}
+
 // GetFileMetadata returns file information
 func (r *FileStorageRepository) GetFileMetadata(projectID, category, filename string) (entity.FileInfo, error) {
-	basePath := common.Env.UploadPath
-	filePath := filepath.Join(basePath, projectID, category, filename)
+	categoryPath := r.getCategoryPath(projectID, category)
+	filePath := filepath.Join(categoryPath, filename)
 
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -321,8 +333,8 @@ func (r *FileStorageRepository) GetFileMetadata(projectID, category, filename st
 
 // FileExists checks if a file exists
 func (r *FileStorageRepository) FileExists(projectID, category, filename string) bool {
-	basePath := common.Env.UploadPath
-	filePath := filepath.Join(basePath, projectID, category, filename)
+	categoryPath := r.getCategoryPath(projectID, category)
+	filePath := filepath.Join(categoryPath, filename)
 
 	_, err := os.Stat(filePath)
 	return err == nil

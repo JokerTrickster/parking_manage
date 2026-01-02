@@ -275,10 +275,11 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       const baseFileName = fileName.replace(/\.json$/, '').replace(/_\d+$/, '');
       console.log('📄 handleRoiFileSelect - Base filename:', baseFileName);
 
-      // 2. 초안 생성 (timestamp 없는 기본 파일명으로)
+      // 2. 초안 생성 (실제 선택한 파일 전체 이름으로)
       try {
-        console.log('📄 Creating draft for:', baseFileName);
-        await RoiService.createDraftRoi(projectId, baseFileName);
+        const fileNameWithoutExt = fileName.replace(/\.json$/, '');
+        console.log('📄 Creating draft from:', fileNameWithoutExt);
+        await RoiService.createDraftRoi(projectId, fileNameWithoutExt);
         console.log('📄 Draft created successfully');
       } catch (err) {
         // 이미 초안이 있으면 무시
