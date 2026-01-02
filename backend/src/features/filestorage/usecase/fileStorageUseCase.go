@@ -63,7 +63,6 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 
 		// Determine filename (with or without versioning)
 		filename := fileHeader.Filename
-		originalName := fileHeader.Filename
 
 		if isVersioned {
 			filename = util.GenerateVersionedFilename(fileHeader.Filename)
@@ -104,7 +103,7 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 			// File saved but metadata retrieval failed - still count as success
 			fileInfo = entity.FileInfo{
 				Filename:     savedFilename,
-				OriginalName: originalName,
+				OriginalName: savedFilename, // Use saved filename (with timestamp) as original name
 				Version:      version,
 			}
 		}
@@ -115,7 +114,7 @@ func (u *FileStorageUseCase) UploadFile(ctx context.Context, req request.UploadR
 			ProjectId:    req.ProjectID,
 			Category:     req.Category,
 			Filename:     savedFilename,
-			OriginalName: originalName,
+			OriginalName: savedFilename, // Use saved filename (with timestamp) as original name
 			Version:      version,
 			FilePath:     filepath.Join(req.ProjectID, req.Category, savedFilename),
 			FileSize:     fileInfo.SizeBytes,
