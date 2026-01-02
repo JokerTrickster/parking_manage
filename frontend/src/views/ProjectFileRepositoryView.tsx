@@ -14,14 +14,15 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Breadcrumbs,
-  Link,
   useTheme,
   alpha,
+  Paper,
+  IconButton,
+  Link,
 } from '@mui/material';
 import {
-  Home as HomeIcon,
   Folder as FolderIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileRepositoryViewModel } from '../viewmodels/FileRepositoryViewModel';
@@ -30,7 +31,7 @@ import { DragDropZone } from '../components/FileUpload/DragDropZone';
 import { FileListTable } from '../components/FileList/FileListTable';
 import { Pagination } from '../components/FileList/Pagination';
 import { FolderListView } from '../components/FolderView/FolderListView';
-import { SHADOWS } from '../styles/theme';
+import { SHADOWS, GRADIENTS } from '../styles/theme';
 
 interface ProjectFileRepositoryViewProps {
   projectId: string;
@@ -157,76 +158,56 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
 
   return (
     <Box sx={{
-      p: 3,
       minHeight: '100vh',
-      bgcolor: isDark ? '#0a0a0a' : '#fafafa'
+      bgcolor: isDark ? '#0a0a0a' : '#fafafa',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
-      {/* Breadcrumb Navigation */}
-      <Box sx={{
-        mb: 3,
-        p: 2,
-        borderRadius: 2,
-        bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
-        backdropFilter: 'blur(10px)',
-        border: '1px solid',
-        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
-        boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
-      }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <Link
-            color="inherit"
-            onClick={() => navigate('/')}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'primary.main'
-              }
-            }}
-          >
-            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-            프로젝트 선택
-          </Link>
-          <Link
-            color="inherit"
-            onClick={() => navigate(`/project/${currentProjectId}`)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'primary.main'
-              }
-            }}
-          >
-            프로젝트 {projectName}
-          </Link>
-          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-            <FolderIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-            파일 보관함
-          </Typography>
-        </Breadcrumbs>
-      </Box>
+      {/* Header Bar - ROI Editor Style */}
+      <Paper
+        elevation={0}
+        sx={{
+          px: 2,
+          py: 1,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.5) : theme.palette.background.paper,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          zIndex: 5,
+          flexShrink: 0
+        }}
+      >
+        <IconButton
+          size="small"
+          onClick={() => navigate(`/project/${currentProjectId}`)}
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'primary.main',
+              bgcolor: alpha(theme.palette.primary.main, 0.1)
+            }
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h6" sx={{
+          fontWeight: 700,
+          color: 'text.primary'
+        }}>
+          파일 보관함
+        </Typography>
+        <Typography variant="body2" sx={{
+          color: 'text.secondary',
+          ml: 'auto'
+        }}>
+          프로젝트: {projectName}
+        </Typography>
+      </Paper>
 
-      {/* Header */}
-      <Box sx={{
-        mb: 3,
-        p: 3,
-        borderRadius: 2,
-        bgcolor: isDark ? alpha('#1a1a1a', 0.6) : alpha('#ffffff', 0.8),
-        backdropFilter: 'blur(10px)',
-        border: '1px solid',
-        borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
-        boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
-      }}>
-        <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-          프로젝트 파일 보관함
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          현재 프로젝트: <strong>{projectName}</strong>
-        </Typography>
-      </Box>
+      {/* Main Content Area */}
+      <Box sx={{ p: 3, flex: 1 }}>
 
       {/* Category Tabs */}
       <Box sx={{
@@ -442,6 +423,7 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
           )}
         </Box>
       )}
+      </Box>
 
       {/* Error Snackbar */}
       <Snackbar
