@@ -879,30 +879,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
               <Box sx={{ flex: 1, p: 3 }}>
                 {selectedCctv && selectedCctvImages && (
                   <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.displayName}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Chip
-                          icon={<RefreshIcon sx={{ fontSize: '1rem' }} />}
-                          label={`${remainingTime}초 후 새로고침`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<RefreshIcon />}
-                          onClick={handleManualRefresh}
-                          sx={{ minWidth: '100px' }}
-                        >
-                          새로고침
-                        </Button>
-                      </Box>
-                    </Box>
-
                     {loadingCctvImages ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
                         <CircularProgress size={60} />
@@ -922,9 +898,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                           .find(c => c.cctvId === selectedCctv)
                           ?.images.map((imageConfig) => (
                             <Box key={imageConfig.type}>
-                              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
-                                {imageConfig.displayName}
-                              </Typography>
                               <Box
                                 sx={{
                                   border: '2px solid',
@@ -1067,43 +1040,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 {selectedCctv ? (
                   <Box>
-                    <Box sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      mb: { xs: 2, sm: 3 },
-                      flexWrap: 'wrap',
-                      gap: 1
-                    }}>
-                      <Box>
-                        <Typography
-                          variant={isMobile ? "h6" : "h5"}
-                          color="primary"
-                          sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
-                        >
-                          {templateBasedMode && cctvTemplate
-                            ? cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.displayName || selectedCctv
-                            : selectedCctv
-                          }
-                        </Typography>
-                        {templateBasedMode && cctvTemplate && (
-                          <Typography variant="caption" color="text.secondary">
-                            {cctvTemplate.cctvList.find(c => c.cctvId === selectedCctv)?.description}
-                          </Typography>
-                        )}
-                      </Box>
-                      {isMobile && (
-                        <Chip
-                          label={templateBasedMode ? "템플릿" : "실시간"}
-                          color={templateBasedMode ? "primary" : "success"}
-                          variant="outlined"
-                          size="small"
-                          icon={<CircleIcon sx={{ fontSize: 12 }} />}
-                        />
-                      )}
-                    </Box>
-
-                    
                     {loadingCctvImages ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
                         <CircularProgress size={60} />
@@ -1141,12 +1077,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                             .find(c => c.cctvId === selectedCctv)
                             ?.images.map((imageConfig) => (
                               <Box key={imageConfig.type}>
-                                <Typography variant="subtitle2" gutterBottom sx={{
-                                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                                  fontWeight: 600
-                                }}>
-                                  {imageConfig.displayName}
-                                </Typography>
                                 <Box sx={{
                                   border: '1px solid',
                                   borderColor: 'divider',
@@ -1230,11 +1160,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         }}>
                           {/* ROI 결과 이미지 */}
                           <Box>
-                            <Typography variant="subtitle2" gutterBottom sx={{
-                              fontSize: { xs: '0.875rem', sm: '1rem' }
-                            }}>
-                              ROI 결과
-                            </Typography>
                             <Box sx={{
                               border: '1px solid',
                               borderColor: 'divider',
@@ -1291,11 +1216,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
                           {/* Foreground 마스크 이미지 */}
                           <Box>
-                            <Typography variant="subtitle2" gutterBottom sx={{
-                              fontSize: { xs: '0.875rem', sm: '1rem' }
-                            }}>
-                              Foreground 마스크
-                            </Typography>
                             <Box sx={{
                               border: '1px solid',
                               borderColor: 'divider',
