@@ -146,7 +146,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
 
   // 파일 저장 다이얼로그 상태
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [saveFileName, setSaveFileName] = useState<string>('');
 
   // 수정 모드 관련 상태
   const [isSelectingRoiForEdit, setIsSelectingRoiForEdit] = useState(false);
@@ -427,28 +426,26 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     }
   };
 
-  // 최종 저장 (새 파일 이름으로 저장)
+  // 최종 저장
   const handleFinalSave = () => {
-    setSaveFileName(selectedRoiFile || '');
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = async () => {
-    if (!saveFileName.trim()) {
-      setError('파일 이름을 입력해주세요');
+    if (!selectedRoiFile) {
+      setError('선택된 파일이 없습니다');
       return;
     }
 
     try {
       // timestamp 제거한 기본 파일명으로 저장
-      const baseFileName = saveFileName.trim().replace(/\.json$/, '').replace(/_\d+$/, '');
+      const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
       await RoiService.saveDraftRoi(projectId, baseFileName);
       setSuccess(`${baseFileName} 파일로 저장 완료`);
       setHasUnsavedChanges(false);
       // CCTV별 변경사항 초기화
       setCctvWithChanges(new Set());
       setShowSaveDialog(false);
-      setSaveFileName('');
       loadRoiLists();
     } catch (err) {
       setError('저장 실패: ' + (err as Error).message);
@@ -1513,39 +1510,20 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       {/* 파일 저장 다이얼로그 */}
       <Dialog open={showSaveDialog} onClose={() => setShowSaveDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, color: 'primary.main' }}>
-          ROI 파일 저장
+          최종 저장
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-            저장할 파일 이름을 입력하세요
+          <Typography variant="body1" sx={{ mb: 2, color: 'text.primary' }}>
+            최종 저장하시겠습니까?
           </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            label="파일 이름"
-            placeholder="예: parking_roi_v1.json"
-            value={saveFileName}
-            onChange={(e) => setSaveFileName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleConfirmSave();
-              }
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderColor: 'primary.main',
-              }
-            }}
-          />
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            현재 파일: {selectedRoiFile}
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button
             variant="outlined"
-            onClick={() => {
-              setShowSaveDialog(false);
-              setSaveFileName('');
-            }}
+            onClick={() => setShowSaveDialog(false)}
           >
             취소
           </Button>
@@ -1559,7 +1537,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
               }
             }}
           >
-            저장
+            확인
           </Button>
         </DialogActions>
       </Dialog>
