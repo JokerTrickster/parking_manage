@@ -5,7 +5,7 @@
  * Features: category tabs, file upload, file list, pagination
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useContext } from 'react';
 import {
   Typography,
   Box,
@@ -23,8 +23,11 @@ import {
 import {
   Folder as FolderIcon,
   ArrowBack as ArrowBackIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ThemeContext } from '../App';
 import { FileRepositoryViewModel } from '../viewmodels/FileRepositoryViewModel';
 import { FileCategory, FileRepositoryState, FolderNode } from '../models/FileStorage';
 import { DragDropZone } from '../components/FileUpload/DragDropZone';
@@ -56,6 +59,10 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
   const currentProjectId = projectId || paramProjectId;
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { mode, toggleTheme } = useContext(ThemeContext);
+
+  // Fallback: use projectId if projectName is not available
+  const displayProjectName = projectName || currentProjectId || 'Unknown';
 
   // State
   const [state, setState] = useState<FileRepositoryState>({
@@ -198,12 +205,26 @@ export const ProjectFileRepositoryView: React.FC<ProjectFileRepositoryViewProps>
         }}>
           파일 보관함
         </Typography>
-        <Typography variant="body2" sx={{
-          color: 'text.secondary',
-          ml: 'auto'
-        }}>
-          프로젝트: {projectName}
-        </Typography>
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" sx={{
+            color: 'text.secondary'
+          }}>
+            프로젝트: {displayProjectName}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={toggleTheme}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: mode === 'dark' ? 'warning.main' : 'primary.main',
+                bgcolor: alpha(mode === 'dark' ? theme.palette.warning.main : theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+          </IconButton>
+        </Box>
       </Paper>
 
       {/* Main Content Area */}
