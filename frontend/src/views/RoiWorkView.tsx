@@ -490,9 +490,38 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
   };
 
   const handleRollback = () => {
-    // Reload data from file to discard changes
-    if (selectedRoiFile) {
-      handleRoiFileSelect(selectedRoiFile);
+    // 현재 CCTV만 원본 데이터로 롤백
+    if (!selectedCctv) return;
+
+    // 현재 CCTV의 원본 데이터 가져오기
+    const originalData = originalCctvDataMap.get(selectedCctv);
+    if (originalData) {
+      // 현재 CCTV의 roiData를 원본으로 복구
+      setRoiData(JSON.parse(JSON.stringify(originalData)));
+
+      // cctvRoiDataMap에서 해당 CCTV 데이터 업데이트
+      setCctvRoiDataMap(prevMap => {
+        const newMap = new Map(prevMap);
+        newMap.set(selectedCctv, JSON.parse(JSON.stringify(originalData)));
+        return newMap;
+      });
+
+      // 변경사항 Set에서 제거
+      setCctvWithChanges(prevSet => {
+        const newSet = new Set(prevSet);
+        newSet.delete(selectedCctv);
+        return newSet;
+      });
+
+      // hasUnsavedChanges 재계산 (다른 CCTV에 변경사항이 있는지 확인)
+      setCctvWithChanges(currentSet => {
+        const hasOtherChanges = Array.from(currentSet).some(id => id !== selectedCctv);
+        setHasUnsavedChanges(hasOtherChanges);
+        return currentSet;
+      });
+
+      setSuccess(`${selectedCctv} CCTV의 변경사항이 롤백되었습니다`);
+      setTimeout(() => setSuccess(''), 3000);
     }
   };
 
@@ -1240,26 +1269,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                     {selectedRoiId}
                   </Typography>
                 </Box>
-                {selectedCctv && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDeleteRoi(selectedRoiId)}
-                    fullWidth
-                    className="hover-lift"
-                    sx={{
-                      borderColor: alpha(theme.palette.error.main, 0.5),
-                      color: 'error.main',
-                      '&:hover': {
-                        borderColor: 'error.main',
-                        bgcolor: alpha(theme.palette.error.main, 0.1)
-                      }
-                    }}
-                  >
-                    Delete ROI
-                  </Button>
-                )}
               </>
             ) : (
               <Typography variant="body2" sx={{

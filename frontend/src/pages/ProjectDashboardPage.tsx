@@ -55,7 +55,8 @@ const ProjectDashboardPage: React.FC = () => {
       icon: <MapIcon />,
       color: '#1a73e8', // Classic Blue
       path: `/project/${projectId}/map-editor`,
-      status: '설정 완료'
+      status: '설정 완료',
+      disabled: false
     },
     {
       id: 'roi-editor',
@@ -64,34 +65,8 @@ const ProjectDashboardPage: React.FC = () => {
       icon: <RoiIcon />,
       color: '#e3742f', // Orange
       path: `/project/${projectId}/roi-editor`,
-      status: '작업 필요'
-    },
-    {
-      id: 'learning-data',
-      title: '학습 데이터 관리',
-      description: '차량 인식률 향상을 위한 이미지를 관리하고 라벨링합니다.',
-      icon: <StorageIcon />,
-      color: '#188038', // Green
-      path: `/project/${projectId}/learning-data-management`,
-      status: '데이터 120건'
-    },
-    {
-      id: 'algorithm',
-      title: '알고리즘 튜닝',
-      description: '주차 판단 임계값 및 감지 파라미터를 미세 조정합니다.',
-      icon: <TuneIcon />,
-      color: '#9334e6', // Purple
-      path: `/project/${projectId}/parking-validation`,
-      status: '최적화 됨'
-    },
-    {
-      id: 'file-repo',
-      title: '파일 보관함',
-      description: '도면, 설정 파일, 리포트 등 프로젝트 관련 파일을 관리합니다.',
-      icon: <FolderIcon />,
-      color: '#5f6368', // Grey
-      path: `/project/${projectId}/file-repository`,
-      status: '5개 파일'
+      status: '작업 필요',
+      disabled: false
     },
     {
       id: 'live-monitor',
@@ -100,7 +75,38 @@ const ProjectDashboardPage: React.FC = () => {
       icon: <LiveIcon />,
       color: '#d93025', // Red
       path: `/project/${projectId}/live-status`,
-      status: '운영 중'
+      status: '운영 중',
+      disabled: false
+    },
+    {
+      id: 'file-repo',
+      title: '파일 보관함',
+      description: '도면, 설정 파일, 리포트 등 프로젝트 관련 파일을 관리합니다.',
+      icon: <FolderIcon />,
+      color: '#5f6368', // Grey
+      path: `/project/${projectId}/file-repository`,
+      status: '5개 파일',
+      disabled: false
+    },
+    {
+      id: 'learning-data',
+      title: '학습 데이터 관리',
+      description: '차량 인식률 향상을 위한 이미지를 관리하고 라벨링합니다.',
+      icon: <StorageIcon />,
+      color: '#188038', // Green
+      path: `/project/${projectId}/learning-data-management`,
+      status: '준비 중',
+      disabled: true
+    },
+    {
+      id: 'algorithm',
+      title: '알고리즘 튜닝',
+      description: '주차 판단 임계값 및 감지 파라미터를 미세 조정합니다.',
+      icon: <TuneIcon />,
+      color: '#9334e6', // Purple
+      path: `/project/${projectId}/parking-validation`,
+      status: '준비 중',
+      disabled: true
     }
   ];
 
@@ -260,20 +266,21 @@ const ProjectDashboardPage: React.FC = () => {
             <Paper
               key={tool.id}
               elevation={0}
-              onClick={() => navigate(tool.path)}
-              className="hover-lift animate-fade-in-up"
+              onClick={() => !tool.disabled && navigate(tool.path)}
+              className={tool.disabled ? 'animate-fade-in-up' : 'hover-lift animate-fade-in-up'}
               sx={{
                 p: 2.5,
                 borderRadius: 2.5,
                 border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                cursor: 'pointer',
+                cursor: tool.disabled ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 overflow: 'hidden',
                 bgcolor: 'background.paper',
                 boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
                 animationDelay: `${index * 0.1}s`,
-                '&:hover': {
+                opacity: tool.disabled ? 0.6 : 1,
+                '&:hover': tool.disabled ? {} : {
                   borderColor: tool.color,
                   boxShadow: `0 8px 30px ${alpha(tool.color, isDark ? 0.3 : 0.2)}`,
                   '& .tool-icon': {

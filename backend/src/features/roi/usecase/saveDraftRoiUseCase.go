@@ -31,6 +31,12 @@ func (d *SaveDraftRoiUseCase) SaveDraftRoi(c context.Context, projectID string, 
 
 	// draft 파일 경로
 	roiFolderPath := filepath.Join(projectPath, "uploads", "roi")
+
+	// .json 확장자 제거 후 _draft.json 추가
+	ext := filepath.Ext(roiFileName)
+	if ext == ".json" {
+		roiFileName = roiFileName[:len(roiFileName)-len(ext)]
+	}
 	roiFileName += "_draft.json"
 	draftFilePath := filepath.Join(roiFolderPath, "draft", roiFileName)
 
@@ -39,18 +45,18 @@ func (d *SaveDraftRoiUseCase) SaveDraftRoi(c context.Context, projectID string, 
 		return response.ResSaveDraft{}, fmt.Errorf("draft 파일을 찾을 수 없습니다: %s", roiFileName)
 	}
 
-	// 현재 날짜로 파일명 생성
+	// 현재 날짜로 파일명 생성 (timestamp 추가)
 	now := time.Now()
-	dateStr := now.Format("20060102_150405")
-	ext := filepath.Ext(roiFileName)
-	nameWithoutExt := roiFileName[:len(roiFileName)-len(ext)]
+	timestamp := now.Unix()
+	fileExt := filepath.Ext(roiFileName)
+	nameWithoutExt := roiFileName[:len(roiFileName)-len(fileExt)]
 
 	// _draft 제거
 	if len(nameWithoutExt) > 6 && nameWithoutExt[len(nameWithoutExt)-6:] == "_draft" {
 		nameWithoutExt = nameWithoutExt[:len(nameWithoutExt)-6]
 	}
 
-	savedFileName := fmt.Sprintf("%s_%s%s", nameWithoutExt, dateStr, ext)
+	savedFileName := fmt.Sprintf("%s_%d.json", nameWithoutExt, timestamp)
 	savedFilePath := filepath.Join(roiFolderPath, savedFileName)
 
 	// 파일 복사
