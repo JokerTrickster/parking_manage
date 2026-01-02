@@ -118,6 +118,12 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
 
   const [roiFileData, setRoiFileData] = useState<RoiFileData | null>(null);
   const [roiData, setRoiData] = useState<any>(null);
+  // CCTV별 작업 내용을 저장하는 Map (cctvId -> roiData)
+  const [cctvRoiDataMap, setCctvRoiDataMap] = useState<Map<string, any>>(new Map());
+  // CCTV별 원본 데이터를 저장하는 Map (변경사항 비교용)
+  const [originalCctvDataMap, setOriginalCctvDataMap] = useState<Map<string, any>>(new Map());
+  // 변경사항이 있는 CCTV ID Set
+  const [cctvWithChanges, setCctvWithChanges] = useState<Set<string>>(new Set());
 
   const [cctvImageUrl, setCctvImageUrl] = useState<string>('');
   const [originalImageUrl, setOriginalImageUrl] = useState<string>('');
@@ -137,6 +143,15 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
   const [newRoiId, setNewRoiId] = useState<string>('');
   const [pendingCreatePoints, setPendingCreatePoints] = useState<number[] | null>(null);
   const [currentDrawingPoints, setCurrentDrawingPoints] = useState<number[]>([]);
+
+  // 파일 저장 다이얼로그 상태
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveFileName, setSaveFileName] = useState<string>('');
+
+  // 수정 모드 관련 상태
+  const [isSelectingRoiForEdit, setIsSelectingRoiForEdit] = useState(false);
+  const [editingRoiId, setEditingRoiId] = useState<string>('');
+  const [editingOriginalRoi, setEditingOriginalRoi] = useState<number[] | null>(null);
 
   // --- Layout Sizing Logic ---
   const referenceContainerRef = useRef<HTMLDivElement>(null);
@@ -199,6 +214,33 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     if (cctvTemplate) setCctvList(cctvTemplate.cctvList.map(c => c.cctvId));
   }, [cctvTemplate]);
 
+  // roiData가 변경될 때마다 현재 CCTV의 작업 내용을 Map에 저장하고 변경사항 확인
+  useEffect(() => {
+    if (selectedCctv && roiData) {
+      // 작업 내용 저장
+      setCctvRoiDataMap(prevMap => {
+        const newMap = new Map(prevMap);
+        newMap.set(selectedCctv, { ...roiData });
+        return newMap;
+      });
+
+      // 변경사항 확인 (원본 데이터와 비교)
+      const originalData = originalCctvDataMap.get(selectedCctv);
+      if (originalData) {
+        const hasChanges = JSON.stringify(originalData.rois) !== JSON.stringify(roiData.rois);
+        setCctvWithChanges(prevSet => {
+          const newSet = new Set(prevSet);
+          if (hasChanges) {
+            newSet.add(selectedCctv);
+          } else {
+            newSet.delete(selectedCctv);
+          }
+          return newSet;
+        });
+      }
+    }
+  }, [roiData, selectedCctv, originalCctvDataMap]);
+
 
 
   // --- Logic ---
@@ -235,11 +277,26 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       setRoiData(null);
       setCctvImageUrl('');
       setOriginalImageUrl('');
+      // ROI 파일 변경 시 모든 Map과 Set 초기화
+      setCctvRoiDataMap(new Map());
+      setOriginalCctvDataMap(new Map());
+      setCctvWithChanges(new Set());
     } catch { setError(`파일 '${fileName}' 로드 실패`); }
   };
 
   const handleCctvSelect = (cctvId: string) => {
     if (selectedCctv === cctvId) return;
+
+    // 1. 현재 CCTV의 작업 내용을 Map에 저장 (이전 CCTV가 있는 경우)
+    if (selectedCctv && roiData) {
+      setCctvRoiDataMap(prevMap => {
+        const newMap = new Map(prevMap);
+        newMap.set(selectedCctv, { ...roiData });
+        return newMap;
+      });
+    }
+
+    // 2. 새로운 CCTV 선택
     setSelectedCctv(cctvId);
     setError('');
 
@@ -257,7 +314,15 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     if (viewConfig) setCctvImageUrl(`${viewConfig.endpoint}?t=${timestamp}`);
     else { setError('이미지 설정 없음'); return; }
 
-    extractRoiDataForCctv(cctvId, roiFileData);
+    // 3. 새로운 CCTV의 작업 내용 확인
+    const savedRoiData = cctvRoiDataMap.get(cctvId);
+    if (savedRoiData) {
+      // Map에 저장된 작업 내용이 있으면 복원
+      setRoiData(savedRoiData);
+    } else {
+      // 저장된 작업 내용이 없으면 파일에서 추출
+      extractRoiDataForCctv(cctvId, roiFileData);
+    }
   };
 
   const extractRoiDataForCctv = (cctvId: string, currentFileData: any) => {
@@ -300,18 +365,52 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
 
     const finalData = foundData || { cctv_id: cctvId, rois: {} };
     setRoiData(finalData);
+
+    // 원본 데이터 저장 (변경사항 비교용)
+    setOriginalCctvDataMap(prevMap => {
+      const newMap = new Map(prevMap);
+      newMap.set(cctvId, JSON.parse(JSON.stringify(finalData)));
+      return newMap;
+    });
   };
 
   // Actions
+  // CCTV별 임시 저장 (기존 파일에 저장)
   const handleSave = async () => {
     if (!selectedRoiFile || !hasUnsavedChanges) return;
     try {
-      // Save current roiData to file
       await RoiService.saveDraftRoi(projectId, selectedRoiFile);
       setSuccess('저장 완료');
       setHasUnsavedChanges(false);
       loadRoiLists();
     } catch { setError('저장 실패'); }
+  };
+
+  // 최종 저장 (새 파일 이름으로 저장)
+  const handleFinalSave = () => {
+    setSaveFileName(selectedRoiFile || '');
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!saveFileName.trim()) {
+      setError('파일 이름을 입력해주세요');
+      return;
+    }
+
+    try {
+      // 서버에 현재 roiData 저장
+      await RoiService.saveDraftRoi(projectId, saveFileName.trim());
+      setSuccess(`${saveFileName.trim()} 파일로 저장 완료`);
+      setHasUnsavedChanges(false);
+      // CCTV별 변경사항 초기화
+      setCctvWithChanges(new Set());
+      setShowSaveDialog(false);
+      setSaveFileName('');
+      loadRoiLists();
+    } catch (err) {
+      setError('저장 실패: ' + (err as Error).message);
+    }
   };
 
   const handleCreateRoi = (points: number[]) => {
@@ -320,21 +419,40 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       return;
     }
     setPendingCreatePoints(points);
-    setNewRoiId('');
+
+    // 다음 번호 자동 계산
+    const existingNumbers = Object.keys(roiData?.rois || {})
+      .filter(id => id.startsWith('ParkingLocations_'))
+      .map(id => parseInt(id.replace('ParkingLocations_', ''), 10))
+      .filter(num => !isNaN(num));
+
+    const nextNumber = existingNumbers.length > 0
+      ? Math.max(...existingNumbers) + 1
+      : 1;
+
+    setNewRoiId(nextNumber.toString());
     setShowRoiIdDialog(true);
     setCurrentDrawingPoints([]);
   };
 
   const handleConfirmRoiId = () => {
     if (!newRoiId.trim()) {
-      setError('ROI ID를 입력해주세요');
+      setError('ROI 번호를 입력해주세요');
       return;
     }
     if (!roiData || !pendingCreatePoints) return;
 
-    const id = newRoiId.trim();
+    // 숫자 검증
+    const number = parseInt(newRoiId.trim(), 10);
+    if (isNaN(number) || number < 1) {
+      setError('1 이상의 숫자를 입력해주세요');
+      return;
+    }
+
+    // ParkingLocations_ + 숫자로 ID 생성
+    const id = `ParkingLocations_${number}`;
     if (roiData.rois[id]) {
-      setError('이미 존재하는 ROI ID입니다');
+      setError('이미 존재하는 ROI 번호입니다');
       return;
     }
 
@@ -355,6 +473,11 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     setRoiData({ ...roiData, rois: newRois });
     setRoiEditMode(null);
     setHasUnsavedChanges(true);
+    // 수정 모드 상태 초기화
+    setSelectedRoiId(''); // 선택된 ROI 초기화 - 다음 수정 시 새로운 선택 가능
+    setEditingRoiId('');
+    setEditingOriginalRoi(null);
+    setCurrentDrawingPoints([]);
   };
 
   const handleDeleteRoi = (id: string) => {
@@ -510,6 +633,24 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                     fontWeight: selectedCctv === id ? 600 : 400
                   }}
                 />
+                {cctvWithChanges.has(id) && (
+                  <Chip
+                    label="변경됨"
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      bgcolor: alpha(theme.palette.warning.main, 0.15),
+                      color: 'warning.main',
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                      '& .MuiChip-label': {
+                        px: 0.75,
+                        py: 0,
+                      },
+                    }}
+                  />
+                )}
               </ListItemButton>
             ))}
           </List>
@@ -563,17 +704,39 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
             ROI 편집기
           </Typography>
           {selectedRoiFile && (
-            <Typography variant="body2" sx={{
-              color: 'text.secondary',
-              ml: 'auto'
-            }}>
-              {selectedRoiFile}
-            </Typography>
+            <>
+              <Typography variant="body2" sx={{
+                color: 'text.secondary',
+                ml: 'auto'
+              }}>
+                {selectedRoiFile}
+              </Typography>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<SaveIcon />}
+                onClick={handleFinalSave}
+                sx={{
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1.5,
+                  ml: 1.5,
+                  background: GRADIENTS.primary,
+                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+                  }
+                }}
+              >
+                최종 저장
+              </Button>
+            </>
           )}
         </Paper>
 
-        {/* Helper/Expand Button (Left) */}
-        <Box sx={{ position: 'absolute', top: 70, left: 10, zIndex: 10 }}>
+        {/* Helper/Expand Button (Left) - 세로 중앙 */}
+        <Box sx={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 10 }}>
           <IconButton
             size="small"
             onClick={() => setLeftDrawerOpen(!leftDrawerOpen)}
@@ -593,6 +756,30 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
             }}
           >
             {leftDrawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </Box>
+
+        {/* Properties Panel Toggle Button (Right) - 세로 중앙 */}
+        <Box sx={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', zIndex: 10 }}>
+          <IconButton
+            size="small"
+            onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
+            className="hover-lift"
+            sx={{
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              color: 'text.secondary',
+              boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+              '&:hover': {
+                bgcolor: 'background.paper',
+                color: 'info.main',
+                borderColor: 'info.main',
+                boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
+              }
+            }}
+          >
+            {rightDrawerOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </Box>
 
@@ -657,7 +844,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                   }}>
                     <RoiCanvas
                       imageSrc={originalImageUrl}
-                      rois={roiData?.rois || {}}
+                      rois={originalCctvDataMap.get(selectedCctv)?.rois || {}}
                       editable={false}
                       onRoiClick={(id) => { setSelectedRoiId(id); setRightDrawerOpen(true); }}
                       selectedRoiId={selectedRoiId}
@@ -748,9 +935,25 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                     <RoiCanvas
                       ref={roiCanvasRef}
                       imageSrc={cctvImageUrl}
-                      rois={roiData?.rois || {}}
+                      rois={editingRoiId && roiEditMode === 'update'
+                        ? Object.fromEntries(Object.entries(roiData?.rois || {}).filter(([id]) => id !== editingRoiId))
+                        : roiData?.rois || {}
+                      }
                       editable={true}
-                      onRoiClick={(id) => { setSelectedRoiId(id); setRightDrawerOpen(true); }}
+                      onRoiClick={(id) => {
+                        if (isSelectingRoiForEdit) {
+                          // ROI 선택 모드: 선택한 ROI를 편집 모드로 전환
+                          setSelectedRoiId(id);
+                          setEditingRoiId(id);
+                          setEditingOriginalRoi([...roiData.rois[id]]);
+                          setRoiEditMode('update');
+                          setIsSelectingRoiForEdit(false);
+                        } else {
+                          // 일반 모드: ROI 선택만
+                          setSelectedRoiId(id);
+                          setRightDrawerOpen(true);
+                        }
+                      }}
                       selectedRoiId={selectedRoiId}
                       editMode={roiEditMode}
                       onRoiCreate={handleCreateRoi}
@@ -758,6 +961,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                       onPointsChange={setCurrentDrawingPoints}
                       isMobile={false}
                       fullscreen={false}
+                      isSelectingForEdit={isSelectingRoiForEdit}
                     />
                   </Box>
 
@@ -786,7 +990,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                   >
                     {/* Left: ROI Actions */}
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {roiEditMode === 'create' && currentDrawingPoints.length >= 6 ? (
+                      {(roiEditMode === 'create' || roiEditMode === 'update') && currentDrawingPoints.length >= 6 ? (
                         <>
                           <Button
                             variant="contained"
@@ -810,7 +1014,15 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                             size="small"
                             onClick={() => {
                               roiCanvasRef.current?.cancelRoiEdit();
+                              if (roiEditMode === 'update' && editingOriginalRoi && editingRoiId) {
+                                // 수정 모드 취소: 원본 ROI 복원
+                                const newRois = { ...roiData!.rois, [editingRoiId]: editingOriginalRoi };
+                                setRoiData({ ...roiData!, rois: newRois });
+                                setEditingRoiId('');
+                                setEditingOriginalRoi(null);
+                              }
                               setRoiEditMode(null);
+                              setSelectedRoiId(''); // 선택 초기화
                               setCurrentDrawingPoints([]);
                             }}
                             sx={{
@@ -849,14 +1061,27 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                         variant="contained"
                         size="small"
                         startIcon={<EditIcon />}
-                        onClick={() => { setRoiEditMode('update'); }}
-                        disabled={!selectedRoiId}
+                        onClick={() => {
+                          if (selectedRoiId && roiData?.rois[selectedRoiId]) {
+                            // 수정할 ROI 선택 완료 - 편집 모드 시작
+                            setEditingRoiId(selectedRoiId);
+                            setEditingOriginalRoi([...roiData.rois[selectedRoiId]]); // 원본 저장
+                            setRoiEditMode('update');
+                            setIsSelectingRoiForEdit(false);
+                          } else {
+                            // ROI 선택 모드 시작
+                            setIsSelectingRoiForEdit(true);
+                            setError('수정할 ROI를 클릭하세요');
+                            setTimeout(() => setError(''), 3000);
+                          }
+                        }}
+                        disabled={!roiData || Object.keys(roiData?.rois || {}).length === 0}
                         sx={{
-                          bgcolor: theme.palette.primary.main,
+                          bgcolor: isSelectingRoiForEdit ? theme.palette.warning.main : theme.palette.primary.main,
                           color: '#fff',
                           '&:hover': {
-                            bgcolor: theme.palette.primary.dark,
-                            boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`
+                            bgcolor: isSelectingRoiForEdit ? theme.palette.warning.dark : theme.palette.primary.dark,
+                            boxShadow: `0 2px 8px ${alpha(isSelectingRoiForEdit ? theme.palette.warning.main : theme.palette.primary.main, 0.3)}`
                           },
                           '&.Mui-disabled': {
                             bgcolor: alpha(theme.palette.action.disabled, 0.5),
@@ -864,7 +1089,7 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
                           }
                         }}
                       >
-                        수정
+                        {isSelectingRoiForEdit ? 'ROI 선택 중...' : '수정'}
                       </Button>
 
                       <Button
@@ -981,9 +1206,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
             p: 2,
             borderBottom: '1px solid',
             borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             bgcolor: isDark ? alpha(theme.palette.info.main, 0.05) : alpha(theme.palette.info.main, 0.03),
             borderRadius: 0
           }}
@@ -995,19 +1217,6 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
           }}>
             PROPERTIES
           </Typography>
-          <IconButton
-            size="small"
-            onClick={() => setRightDrawerOpen(false)}
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                color: 'primary.main',
-                bgcolor: alpha(theme.palette.primary.main, 0.1)
-              }
-            }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
         </Paper>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', flex: 1 }}>
@@ -1142,31 +1351,38 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       {/* ROI ID 입력 다이얼로그 */}
       <Dialog open={showRoiIdDialog} onClose={() => setShowRoiIdDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, color: 'primary.main' }}>
-          ROI ID 입력
+          ROI 번호 입력
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-            새로운 ROI의 ID를 입력하세요 (예: ParkingLot_001)
+            새로운 ROI의 번호를 입력하세요
           </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            label="ROI ID"
-            placeholder="예: ParkingLot_001"
-            value={newRoiId}
-            onChange={(e) => setNewRoiId(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleConfirmRoiId();
-              }
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderColor: 'primary.main',
-              }
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
+              ParkingLocations_
+            </Typography>
+            <TextField
+              autoFocus
+              size="small"
+              type="number"
+              label="번호"
+              placeholder="1"
+              value={newRoiId}
+              onChange={(e) => setNewRoiId(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirmRoiId();
+                }
+              }}
+              inputProps={{ min: 1 }}
+              sx={{
+                flex: 1,
+                '& .MuiOutlinedInput-root': {
+                  borderColor: 'primary.main',
+                }
+              }}
+            />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button
@@ -1193,6 +1409,60 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
             }}
           >
             확인
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 파일 저장 다이얼로그 */}
+      <Dialog open={showSaveDialog} onClose={() => setShowSaveDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: 'primary.main' }}>
+          ROI 파일 저장
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            저장할 파일 이름을 입력하세요
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="파일 이름"
+            placeholder="예: parking_roi_v1.json"
+            value={saveFileName}
+            onChange={(e) => setSaveFileName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleConfirmSave();
+              }
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderColor: 'primary.main',
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setShowSaveDialog(false);
+              setSaveFileName('');
+            }}
+          >
+            취소
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmSave}
+            sx={{
+              background: GRADIENTS.primary,
+              '&:hover': {
+                background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
+              }
+            }}
+          >
+            저장
           </Button>
         </DialogActions>
       </Dialog>

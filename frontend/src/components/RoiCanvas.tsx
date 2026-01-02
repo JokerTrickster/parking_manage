@@ -13,6 +13,7 @@ interface RoiCanvasProps {
   isMobile?: boolean;
   fullscreen?: boolean;
   onPointsChange?: (points: number[]) => void;
+  isSelectingForEdit?: boolean; // ROI 선택 모드 여부
 }
 
 export interface RoiCanvasRef {
@@ -32,7 +33,8 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
   onRoiUpdate,
   isMobile = false,
   fullscreen = false,
-  onPointsChange
+  onPointsChange,
+  isSelectingForEdit = false
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -126,8 +128,9 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
       const isHovered = editable && hoveredRoiId === roiId;
 
       ctx.beginPath();
-      // 선택됨: 노란색, 호버: 주황색, 일반: 연두색
-      ctx.strokeStyle = isSelected ? '#ffff00' : (isHovered ? '#ff8800' : '#00ff00');
+      // 선택 모드: 호버 시 노란색, 선택됨: 노란색, 일반 호버: 주황색, 일반: 연두색
+      const hoverColor = isSelectingForEdit ? '#ffff00' : '#ff8800';
+      ctx.strokeStyle = isSelected ? '#ffff00' : (isHovered ? hoverColor : '#00ff00');
       ctx.lineWidth = Math.max(1, (isSelected ? 3 : 2) * scaleX); // 선택된 ROI는 더 두껍게
 
       // 첫 번째 점으로 이동 (좌표 스케일링 - X와 Y 각각 다르게)
@@ -197,7 +200,8 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
         ctx.stroke();
       }
     }
-  }, [imageLoaded, imageElement, rois, selectedRoiId, hoveredRoiId, editMode, drawingPoints, isDrawing, isMobile, fullscreen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageLoaded, imageElement, rois, selectedRoiId, hoveredRoiId, editMode, drawingPoints, isDrawing, isMobile, fullscreen, isSelectingForEdit]);
 
   // 좌표 변환 함수
   const getImageCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -252,7 +256,8 @@ const RoiCanvas = React.forwardRef<RoiCanvasRef, RoiCanvasProps>(({
 
   // 마우스 이동 이벤트 - ROI 호버 감지
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !imageElement || editMode) return;
+    // 선택 모드에서는 호버 허용, 일반 편집 모드에서는 호버 비활성화
+    if (!canvasRef.current || !imageElement || (editMode && !isSelectingForEdit)) return;
 
     const coords = getImageCoordinates(event);
     if (!coords) return;
