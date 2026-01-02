@@ -820,19 +820,36 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
       {/* 템플릿 모드: 왼쪽 사이드 패널 + 이미지 표시 */}
       {templateBasedMode && cctvTemplate && (
-        <Card>
+        <Card
+          className="glass-medium animate-fade-in"
+          sx={{
+            borderRadius: 2,
+            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+            boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm,
+            overflow: 'hidden'
+          }}
+        >
           <CardContent sx={{ ...responsiveSpacing.cardPadding, p: 0 }}>
             <Box sx={{ display: 'flex', height: '800px' }}>
               {/* 왼쪽 사이드 패널: CCTV 목록 */}
               <Box sx={{
                 width: '250px',
-                borderRight: '1px solid #e0e0e0',
+                borderRight: '1px solid',
+                borderColor: 'divider',
                 overflowY: 'auto',
-                backgroundColor: '#fafafa',
+                bgcolor: isDark ? alpha(theme.palette.background.paper, 0.5) : alpha(theme.palette.background.default, 0.3),
                 maxHeight: '800px'
               }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Box sx={{
+                  p: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: isDark ? alpha(theme.palette.secondary.main, 0.05) : alpha(theme.palette.secondary.main, 0.02),
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1
+                }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
                     CCTV 목록
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -845,20 +862,30 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                     <Box
                       key={cctv.cctvId}
                       onClick={() => handleCctvSelect(cctv.cctvId)}
+                      className={selectedCctv === cctv.cctvId ? 'animate-fade-in' : ''}
                       sx={{
                         p: 1,
                         mb: 0.5,
                         borderRadius: 1,
                         cursor: 'pointer',
-                        backgroundColor: selectedCctv === cctv.cctvId ? theme.palette.primary.main : 'transparent',
-                        color: selectedCctv === cctv.cctvId ? '#fff' : 'text.primary',
-                        transition: 'all 0.2s',
+                        borderLeft: selectedCctv === cctv.cctvId ? `3px solid ${theme.palette.secondary.main}` : '3px solid transparent',
+                        bgcolor: selectedCctv === cctv.cctvId
+                          ? alpha(theme.palette.secondary.main, 0.15)
+                          : 'transparent',
+                        color: selectedCctv === cctv.cctvId ? 'secondary.main' : 'text.primary',
+                        transition: 'all 0.2s ease',
                         '&:hover': {
-                          backgroundColor: selectedCctv === cctv.cctvId ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.08),
+                          bgcolor: selectedCctv === cctv.cctvId
+                            ? alpha(theme.palette.secondary.main, 0.2)
+                            : alpha(theme.palette.action.hover, 0.05),
                         }
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem', color: 'inherit' }}>
+                      <Typography variant="body2" sx={{
+                        fontWeight: selectedCctv === cctv.cctvId ? 600 : 500,
+                        fontSize: '0.875rem',
+                        color: 'inherit'
+                      }}>
                         {cctv.cctvId}
                       </Typography>
                     </Box>
@@ -918,15 +945,16 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                               </Typography>
                               <Box
                                 sx={{
-                                  border: '2px solid #e0e0e0',
+                                  border: '2px solid',
+                                  borderColor: 'divider',
                                   borderRadius: 2,
                                   overflow: 'hidden',
-                                  backgroundColor: '#000',
+                                  backgroundColor: isDark ? '#000' : '#1a1a1a',
                                   cursor: 'pointer',
                                   transition: 'all 0.3s',
                                   '&:hover': {
-                                    borderColor: '#1976d2',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                    borderColor: 'primary.main',
+                                    boxShadow: isDark ? SHADOWS.dark.md : SHADOWS.light.md
                                   }
                                 }}
                                 onClick={() => selectedCctvImages[imageConfig.type] && handleImageClick(
@@ -955,7 +983,9 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    backgroundColor: '#f5f5f5'
+                                    backgroundColor: isDark
+                                      ? alpha(theme.palette.background.paper, 0.3)
+                                      : alpha(theme.palette.background.default, 0.5)
                                   }}>
                                     <Typography variant="body2" color="text.secondary">
                                       이미지를 불러올 수 없습니다.
@@ -1136,12 +1166,20 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                   {imageConfig.displayName}
                                 </Typography>
                                 <Box sx={{
-                                  border: '1px solid #e0e0e0',
+                                  border: '1px solid',
+                                  borderColor: 'divider',
                                   borderRadius: 1,
                                   p: 1,
-                                  backgroundColor: '#fafafa',
+                                  backgroundColor: isDark
+                                    ? alpha(theme.palette.background.paper, 0.3)
+                                    : alpha(theme.palette.background.default, 0.5),
                                   position: 'relative',
-                                  cursor: 'pointer'
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  '&:hover': {
+                                    borderColor: 'primary.main',
+                                    boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
+                                  }
                                 }}
                                 onClick={() => selectedCctvImages[imageConfig.type] && handleImageClick(
                                   selectedCctvImages[imageConfig.type],
@@ -1174,7 +1212,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                           top: 8,
                                           right: 8,
                                           color: 'white',
-                                          backgroundColor: 'rgba(0,0,0,0.5)',
+                                          backgroundColor: alpha(theme.palette.common.black, 0.5),
                                           borderRadius: '50%',
                                           padding: { xs: '6px', sm: '4px' },
                                           fontSize: { xs: '16px', sm: '20px' }
@@ -1216,12 +1254,20 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                               ROI 결과
                             </Typography>
                             <Box sx={{
-                              border: '1px solid #e0e0e0',
+                              border: '1px solid',
+                              borderColor: 'divider',
                               borderRadius: 1,
                               p: 1,
-                              backgroundColor: '#fafafa',
+                              backgroundColor: isDark
+                                ? alpha(theme.palette.background.paper, 0.3)
+                                : alpha(theme.palette.background.default, 0.5),
                               position: 'relative',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                                boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
+                              }
                             }}
                             onClick={() => handleImageClick(
                               selectedCctvImages.roiResultImage,
@@ -1252,7 +1298,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                   top: 8,
                                   right: 8,
                                   color: 'white',
-                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  backgroundColor: alpha(theme.palette.common.black, 0.5),
                                   borderRadius: '50%',
                                   padding: { xs: '6px', sm: '4px' },
                                   fontSize: { xs: '16px', sm: '20px' }
@@ -1269,12 +1315,20 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                               Foreground 마스크
                             </Typography>
                             <Box sx={{
-                              border: '1px solid #e0e0e0',
+                              border: '1px solid',
+                              borderColor: 'divider',
                               borderRadius: 1,
                               p: 1,
-                              backgroundColor: '#fafafa',
+                              backgroundColor: isDark
+                                ? alpha(theme.palette.background.paper, 0.3)
+                                : alpha(theme.palette.background.default, 0.5),
                               position: 'relative',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                                boxShadow: isDark ? SHADOWS.dark.sm : SHADOWS.light.sm
+                              }
                             }}
                             onClick={() => handleImageClick(
                               selectedCctvImages.fgMaskImage,
@@ -1305,7 +1359,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                                   top: 8,
                                   right: 8,
                                   color: 'white',
-                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  backgroundColor: alpha(theme.palette.common.black, 0.5),
                                   borderRadius: '50%',
                                   padding: { xs: '6px', sm: '4px' },
                                   fontSize: { xs: '16px', sm: '20px' }
@@ -1321,8 +1375,12 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                         justifyContent: 'center',
                         alignItems: 'center',
                         height: { xs: '200px', sm: '300px' },
-                        border: '1px dashed #e0e0e0',
-                        borderRadius: 1
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        bgcolor: isDark
+                          ? alpha(theme.palette.background.paper, 0.2)
+                          : alpha(theme.palette.background.default, 0.3)
                       }}>
                         <Typography variant="body1" color="text.secondary" sx={{
                           textAlign: 'center',
@@ -1341,9 +1399,13 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                     justifyContent: 'center',
                     alignItems: 'center',
                     height: { xs: '250px', sm: '350px' },
-                    border: '1px dashed #e0e0e0',
+                    border: '1px dashed',
+                    borderColor: 'divider',
                     borderRadius: 1,
-                    gap: 2
+                    gap: 2,
+                    bgcolor: isDark
+                      ? alpha(theme.palette.background.paper, 0.2)
+                      : alpha(theme.palette.background.default, 0.3)
                   }}>
                     <Typography variant="body1" color="text.secondary" sx={{
                       textAlign: 'center',
@@ -1606,7 +1668,7 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
         >
           {modalImage && (
             <>
-              <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="h6" component="h2">
                     {modalImage.title}
