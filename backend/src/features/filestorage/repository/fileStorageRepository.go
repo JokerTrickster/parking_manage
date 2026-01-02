@@ -159,6 +159,11 @@ func (r *FileStorageRepository) ListFiles(projectID, category string, filters ma
 			cctvIDFromPath = filepath.Dir(relPath)
 		}
 
+		// Skip draft files (ROI category only)
+		if category == "roi" && cctvIDFromPath == "draft" {
+			return nil
+		}
+
 		// Use actual filename for both Filename and OriginalName
 		actualFilename := info.Name()
 
