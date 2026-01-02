@@ -837,28 +837,11 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                 borderRight: '1px solid',
                 borderColor: 'divider',
                 overflowY: 'auto',
-                bgcolor: isDark ? alpha(theme.palette.background.paper, 0.5) : alpha(theme.palette.background.default, 0.3),
-                maxHeight: '800px'
+                bgcolor: isDark ? '#1a1a1a' : '#f5f5f5',
+                maxHeight: '800px',
+                p: 1
               }}>
-                <Box sx={{
-                  p: 2,
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: isDark ? alpha(theme.palette.secondary.main, 0.05) : alpha(theme.palette.secondary.main, 0.02),
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                    CCTV 목록
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {cctvTemplate.cctvList.length}개 카메라
-                  </Typography>
-                </Box>
-
-                <Box sx={{ p: 1 }}>
-                  {cctvTemplate.cctvList.map((cctv) => (
+                {cctvTemplate.cctvList.map((cctv) => (
                     <Box
                       key={cctv.cctvId}
                       onClick={() => handleCctvSelect(cctv.cctvId)}
@@ -890,7 +873,6 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
                       </Typography>
                     </Box>
                   ))}
-                </Box>
               </Box>
 
               {/* 오른쪽: 선택된 CCTV 이미지 표시 */}
