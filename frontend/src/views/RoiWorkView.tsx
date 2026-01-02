@@ -268,9 +268,30 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     try {
       setSelectedRoiFile(fileName);
       setError('');
-      const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
-      const text = await blob.text();
-      setRoiFileData(JSON.parse(text));
+
+      // 1. timestamp 제거한 기본 파일명 추출
+      const baseFileName = fileName.replace(/\.json$/, '').replace(/_\d+$/, '');
+
+      // 2. 초안 생성 (timestamp 없는 기본 파일명으로)
+      try {
+        await RoiService.createDraftRoi(projectId, baseFileName);
+      } catch (err) {
+        // 이미 초안이 있으면 무시
+        console.log('Draft creation skipped:', err);
+      }
+
+      // 3. 초안 파일 직접 다운로드 (draft 폴더에서)
+      try {
+        const draftFileName = `draft/${baseFileName}_draft.json`;
+        const blob = await FileStorageService.downloadFile(projectId, 'roi', draftFileName);
+        const text = await blob.text();
+        setRoiFileData(JSON.parse(text));
+      } catch {
+        // 초안 로드 실패 시 원본 파일 로드
+        const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
+        const text = await blob.text();
+        setRoiFileData(JSON.parse(text));
+      }
 
       setHasUnsavedChanges(false);
       setSelectedCctv('');
@@ -375,13 +396,16 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
   };
 
   // Actions
-  // CCTV별 임시 저장 (기존 파일에 저장)
+  // CCTV별 임시 저장 (초안에 저장 후 정식 파일로 저장)
   const handleSave = async () => {
     if (!selectedRoiFile || !hasUnsavedChanges) return;
     try {
-      await RoiService.saveDraftRoi(projectId, selectedRoiFile);
+      // timestamp 제거한 기본 파일명으로 저장
+      const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
+      await RoiService.saveDraftRoi(projectId, baseFileName);
       setSuccess('저장 완료');
       setHasUnsavedChanges(false);
+      setCctvWithChanges(new Set()); // 변경사항 초기화
       loadRoiLists();
     } catch { setError('저장 실패'); }
   };
@@ -399,9 +423,10 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     }
 
     try {
-      // 서버에 현재 roiData 저장
-      await RoiService.saveDraftRoi(projectId, saveFileName.trim());
-      setSuccess(`${saveFileName.trim()} 파일로 저장 완료`);
+      // timestamp 제거한 기본 파일명으로 저장
+      const baseFileName = saveFileName.trim().replace(/\.json$/, '').replace(/_\d+$/, '');
+      await RoiService.saveDraftRoi(projectId, baseFileName);
+      setSuccess(`${baseFileName} 파일로 저장 완료`);
       setHasUnsavedChanges(false);
       // CCTV별 변경사항 초기화
       setCctvWithChanges(new Set());
@@ -435,12 +460,12 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     setCurrentDrawingPoints([]);
   };
 
-  const handleConfirmRoiId = () => {
+  const handleConfirmRoiId = async () => {
     if (!newRoiId.trim()) {
       setError('ROI 번호를 입력해주세요');
       return;
     }
-    if (!roiData || !pendingCreatePoints) return;
+    if (!roiData || !pendingCreatePoints || !selectedRoiFile || !selectedCctv) return;
 
     // 숫자 검증
     const number = parseInt(newRoiId.trim(), 10);
@@ -456,23 +481,55 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
       return;
     }
 
-    const newRois = { ...roiData.rois, [id]: pendingCreatePoints.map(Math.round) };
+    const roundedPoints = pendingCreatePoints.map(Math.round);
+    const newRois = { ...roiData.rois, [id]: roundedPoints };
     setRoiData({ ...roiData, rois: newRois });
     setRoiEditMode(null);
     setSelectedRoiId(id);
     setHasUnsavedChanges(true);
+
+    // 초안 파일에 즉시 생성
+    try {
+      const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
+      await RoiService.createRoi(projectId, {
+        roi_id: id,
+        cctv_id: selectedCctv,
+        roi_file: baseFileName,
+        coords: roundedPoints
+      });
+    } catch (err) {
+      console.error('Failed to create ROI in draft:', err);
+      setError('ROI 생성 실패');
+    }
 
     setShowRoiIdDialog(false);
     setPendingCreatePoints(null);
     setNewRoiId('');
   };
 
-  const handleUpdateRoi = (id: string, points: number[]) => {
-    if (!roiData) return;
-    const newRois = { ...roiData.rois, [id]: points.map(Math.round) };
+  const handleUpdateRoi = async (id: string, points: number[]) => {
+    if (!roiData || !selectedRoiFile || !selectedCctv) return;
+
+    const roundedPoints = points.map(Math.round);
+    const newRois = { ...roiData.rois, [id]: roundedPoints };
     setRoiData({ ...roiData, rois: newRois });
     setRoiEditMode(null);
     setHasUnsavedChanges(true);
+
+    // 초안 파일에 즉시 업데이트
+    try {
+      const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
+      await RoiService.updateRoi(projectId, {
+        roi_id: id,
+        cctv_id: selectedCctv,
+        roi_file: baseFileName,
+        coords: roundedPoints
+      });
+    } catch (err) {
+      console.error('Failed to update ROI in draft:', err);
+      setError('ROI 업데이트 실패');
+    }
+
     // 수정 모드 상태 초기화
     setSelectedRoiId(''); // 선택된 ROI 초기화 - 다음 수정 시 새로운 선택 가능
     setEditingRoiId('');
@@ -480,13 +537,27 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
     setCurrentDrawingPoints([]);
   };
 
-  const handleDeleteRoi = (id: string) => {
-    if (!roiData) return;
+  const handleDeleteRoi = async (id: string) => {
+    if (!roiData || !selectedRoiFile || !selectedCctv) return;
+
     const newRois = { ...roiData.rois };
     delete newRois[id];
     setRoiData({ ...roiData, rois: newRois });
     if (selectedRoiId === id) setSelectedRoiId('');
     setHasUnsavedChanges(true);
+
+    // 초안 파일에서 즉시 삭제
+    try {
+      const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
+      await RoiService.deleteRoi(projectId, {
+        roi_id: id,
+        cctv_id: selectedCctv,
+        roi_file: baseFileName
+      });
+    } catch (err) {
+      console.error('Failed to delete ROI in draft:', err);
+      setError('ROI 삭제 실패');
+    }
   };
 
   const handleRollback = () => {
