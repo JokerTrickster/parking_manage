@@ -7,6 +7,7 @@ import (
 	_interface "main/features/roi/model/interface"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -23,14 +24,22 @@ func (d *CreateDraftRoiUseCase) CreateDraftRoi(c context.Context, projectID stri
 	_, cancel := context.WithTimeout(c, d.ContextTimeout)
 	defer cancel()
 
+	fmt.Printf("CreateDraftRoi - Input roiFileName: %s\n", roiFileName)
+
 	// 저장 경로 설정
 	uploadPath := common.Env.UploadPath
 	projectPath := filepath.Join(uploadPath, projectID)
 
 	// 원본 ROI 파일 경로 (json 파일)
 	roiFolderPath := filepath.Join(projectPath, "uploads", "roi")
-	roiFileName += ".json"
+
+	// 파일명에 .json이 없으면 추가
+	if !strings.HasSuffix(roiFileName, ".json") {
+		roiFileName += ".json"
+	}
+	fmt.Printf("CreateDraftRoi - After adding .json: %s\n", roiFileName)
 	roiFilePath := filepath.Join(roiFolderPath, roiFileName)
+	fmt.Printf("CreateDraftRoi - Looking for file at: %s\n", roiFilePath)
 
 	// ROI 파일 존재 확인
 	if _, err := os.Stat(roiFilePath); os.IsNotExist(err) {
@@ -48,6 +57,7 @@ func (d *CreateDraftRoiUseCase) CreateDraftRoi(c context.Context, projectID stri
 	nameWithoutExt := roiFileName[:len(roiFileName)-len(ext)]
 	draftFileName := fmt.Sprintf("%s_draft%s", nameWithoutExt, ext)
 	draftFilePath := filepath.Join(draftPath, draftFileName)
+	fmt.Printf("CreateDraftRoi - Draft file will be created at: %s\n", draftFilePath)
 
 	// 기존 draft 파일이 있으면 삭제
 	if _, err := os.Stat(draftFilePath); err == nil {

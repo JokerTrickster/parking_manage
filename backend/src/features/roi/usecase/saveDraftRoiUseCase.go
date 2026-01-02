@@ -26,6 +26,8 @@ func (d *SaveDraftRoiUseCase) SaveDraftRoi(c context.Context, projectID string, 
 	_, cancel := context.WithTimeout(c, d.ContextTimeout)
 	defer cancel()
 
+	fmt.Printf("SaveDraftRoi - Input roiFileName: %s\n", roiFileName)
+
 	// 저장 경로 설정
 	uploadPath := common.Env.UploadPath
 	projectPath := filepath.Join(uploadPath, projectID)
@@ -44,10 +46,12 @@ func (d *SaveDraftRoiUseCase) SaveDraftRoi(c context.Context, projectID string, 
 	// 파일명 끝에 _숫자 형태가 있으면 제거
 	re := regexp.MustCompile(`_\d+$`)
 	baseFileName = re.ReplaceAllString(baseFileName, "")
+	fmt.Printf("SaveDraftRoi - After removing timestamp: %s\n", baseFileName)
 
 	// _draft.json 추가
 	draftFileName := baseFileName + "_draft.json"
 	draftFilePath := filepath.Join(roiFolderPath, "draft", draftFileName)
+	fmt.Printf("SaveDraftRoi - Looking for draft file at: %s\n", draftFilePath)
 
 	// draft 파일 존재 확인
 	if _, err := os.Stat(draftFilePath); os.IsNotExist(err) {

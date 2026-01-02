@@ -265,32 +265,41 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
   const handleRoiFileSelect = async (fileName: string) => {
     if (selectedRoiFile === fileName) return;
 
+    console.log('📄 handleRoiFileSelect - Selected file:', fileName);
+
     try {
       setSelectedRoiFile(fileName);
       setError('');
 
       // 1. timestamp 제거한 기본 파일명 추출
       const baseFileName = fileName.replace(/\.json$/, '').replace(/_\d+$/, '');
+      console.log('📄 handleRoiFileSelect - Base filename:', baseFileName);
 
       // 2. 초안 생성 (timestamp 없는 기본 파일명으로)
       try {
+        console.log('📄 Creating draft for:', baseFileName);
         await RoiService.createDraftRoi(projectId, baseFileName);
+        console.log('📄 Draft created successfully');
       } catch (err) {
         // 이미 초안이 있으면 무시
-        console.log('Draft creation skipped:', err);
+        console.log('📄 Draft creation skipped:', err);
       }
 
       // 3. 초안 파일 직접 다운로드 (draft 폴더에서)
       try {
         const draftFileName = `draft/${baseFileName}_draft.json`;
+        console.log('📄 Loading draft file:', draftFileName);
         const blob = await FileStorageService.downloadFile(projectId, 'roi', draftFileName);
         const text = await blob.text();
         setRoiFileData(JSON.parse(text));
-      } catch {
+        console.log('📄 Draft file loaded successfully');
+      } catch (err) {
         // 초안 로드 실패 시 원본 파일 로드
+        console.log('📄 Draft load failed, loading original:', fileName, err);
         const blob = await FileStorageService.downloadFile(projectId, 'roi', fileName);
         const text = await blob.text();
         setRoiFileData(JSON.parse(text));
+        console.log('📄 Original file loaded');
       }
 
       setHasUnsavedChanges(false);
@@ -399,15 +408,22 @@ export const RoiWorkView: React.FC<RoiWorkViewProps> = ({ projectId: propProject
   // CCTV별 임시 저장 (초안에 저장 후 정식 파일로 저장)
   const handleSave = async () => {
     if (!selectedRoiFile || !hasUnsavedChanges) return;
+    console.log('💾 handleSave - Selected file:', selectedRoiFile);
+
     try {
       // timestamp 제거한 기본 파일명으로 저장
       const baseFileName = selectedRoiFile.replace(/\.json$/, '').replace(/_\d+$/, '');
+      console.log('💾 handleSave - Saving draft with baseFileName:', baseFileName);
+
       await RoiService.saveDraftRoi(projectId, baseFileName);
       setSuccess('저장 완료');
       setHasUnsavedChanges(false);
       setCctvWithChanges(new Set()); // 변경사항 초기화
       loadRoiLists();
-    } catch { setError('저장 실패'); }
+    } catch (err) {
+      console.error('💾 handleSave - Save failed:', err);
+      setError('저장 실패');
+    }
   };
 
   // 최종 저장 (새 파일 이름으로 저장)
