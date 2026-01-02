@@ -469,6 +469,101 @@ const RealtimeParkingView: React.FC<RealtimeParkingViewProps> = ({ project, onBa
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
+      {/* Header */}
+      <AppBar
+        position="sticky"
+        className="glass-medium"
+        sx={{
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.8) : alpha(theme.palette.background.paper, 0.95),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          backdropFilter: 'blur(10px)'
+        }}
+        elevation={0}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            onClick={() => navigate(`/project/${project.id}`)}
+            sx={{
+              mr: 2,
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            <BackIcon />
+          </IconButton>
+
+          <LiveTvIcon sx={{ mr: 1, color: 'primary.main' }} />
+
+          <Typography variant="h6" sx={{
+            flexGrow: 1,
+            color: 'text.primary',
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            fontSize: { xs: '1.1rem', sm: '1.25rem' }
+          }}>
+            실시간 주차 관제
+          </Typography>
+
+          {isRunning && (
+            <Chip
+              label="LIVE"
+              size="small"
+              icon={<CircleIcon sx={{ fontSize: '0.7rem' }} />}
+              className="status-badge status-success animate-pulse-glow"
+              sx={{ mr: 2 }}
+            />
+          )}
+
+          <IconButton
+            onClick={toggleTheme}
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+
+          {/* Mobile control buttons */}
+          {isMobile && (
+            <Box sx={{ display: 'flex', gap: 1, ml: 1 }}>
+              <IconButton
+                onClick={() => setSettingsDialogOpen(true)}
+                sx={{
+                  ...touchFriendly.iconButton,
+                  color: 'text.secondary'
+                }}
+                disabled={isRunning}
+              >
+                <SettingsIcon />
+              </IconButton>
+              {isRunning && cctvList.length > 0 && (
+                <Badge badgeContent={cctvList.length} color="primary">
+                  <IconButton
+                    onClick={() => setCctvDialogOpen(true)}
+                    sx={{
+                      ...touchFriendly.iconButton,
+                      color: 'text.secondary'
+                    }}
+                  >
+                    <VideocamIcon />
+                  </IconButton>
+                </Badge>
+              )}
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+
       <Container maxWidth="xl" sx={{ ...responsiveSpacing.pagePadding }}>
 
         {/* 데이터 선택 및 실시간 설정 - Desktop only, 템플릿 모드가 아닐 때만 표시 */}
